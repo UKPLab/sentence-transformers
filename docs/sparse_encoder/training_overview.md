@@ -169,11 +169,11 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 .. tab:: Contrastive Sparse Representation (CSR) 
 
     .. 
-        Contrastive Sparse Representation (CSR) models usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
-    Contrastive Sparse Representation (CSR) models apply a :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` module on top of a dense Sentence Transformer model, which usually consist of a :class:`~sentence_transformers.models.Transformer` followed by a :class:`~sentence_transformers.models.Pooling` module. You can initialize one from scratch like so:
+        Contrastive Sparse Representation (CSR) models usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.SparseAutoEncoder` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
+    Contrastive Sparse Representation (CSR) models apply a :class:`~sentence_transformers.sparse_encoder.models.SparseAutoEncoder` module on top of a dense Sentence Transformer model, which usually consist of a :class:`~sentence_transformers.models.Transformer` followed by a :class:`~sentence_transformers.models.Pooling` module. You can initialize one from scratch like so:
     
     .. 
-        usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.CSRSparsity` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
+        usually use a sequence of :class:`~sentence_transformers.models.Transformer`, :class:`~sentence_transformers.models.Pooling` and :class:`~sentence_transformers.sparse_encoder.models.SparseAutoEncoder` modules to create sparse representations on top of an already trained dense Sentence Transformer model.
 
     .. raw:: html
 
@@ -182,14 +182,14 @@ But if instead you want to train from another checkpoint, or from scratch, then 
             <ul class="simple">
                 <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Transformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Transformer</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Pooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Pooling</span></code></a></li>
-                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.CSRSparsity"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.CSRSparsity</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SparseAutoEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.SparseAutoEncoder</span></code></a></li>
             </ul>
         </div>
 
     ::
 
         from sentence_transformers import models, SparseEncoder
-        from sentence_transformers.sparse_encoder.models import CSRSparsity
+        from sentence_transformers.sparse_encoder.models import SparseAutoEncoder
 
         # Initialize transformer (can be any dense encoder model)
         transformer = models.Transformer("google-bert/bert-base-uncased")
@@ -197,15 +197,15 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         # Initialize pooling
         pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
         
-        # Initialize CSRSparsity module
-        csr_sparsity = CSRSparsity(
+        # Initialize SparseAutoEncoder module
+        sae = SparseAutoEncoder(
             input_dim=transformer.get_word_embedding_dimension(),
             hidden_dim=4 * transformer.get_word_embedding_dimension(),
             k=256,  # Number of top values to keep
             k_aux=512,  # Number of top values for auxiliary loss
         )
         # Create the CSR model
-        model = SparseEncoder(modules=[transformer, pooling, csr_sparsity])
+        model = SparseEncoder(modules=[transformer, pooling, sae])
     
     Or if your base model is 1) a dense Sentence Transformer model or 2) a non-MLM Transformer model (those are loaded as Splade models by default), then this shortcut will automatically initialize the CSR model for you:
 
@@ -217,7 +217,7 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         # SparseEncoder(
         #   (0): Transformer({'max_seq_length': 512, 'do_lower_case': False, 'architectures': 'BertModel'})
         #   (1): Pooling({'word_embedding_dimension': 1024, 'pooling_mode_cls_token': True, 'pooling_mode_mean_tokens': False, 'pooling_mode_max_tokens': False, 'pooling_mode_mean_sqrt_len_tokens': False, 'pooling_mode_weightedmean_tokens': False, 'pooling_mode_lasttoken': False, 'include_prompt': True})
-        #   (2): CSRSparsity({'input_dim': 1024, 'hidden_dim': 4096, 'k': 256, 'k_aux': 512, 'normalize': False, 'dead_threshold': 30})
+        #   (2): SparseAutoEncoder({'input_dim': 1024, 'hidden_dim': 4096, 'k': 256, 'k_aux': 512, 'normalize': False, 'dead_threshold': 30})
         # )
 
     .. warning::

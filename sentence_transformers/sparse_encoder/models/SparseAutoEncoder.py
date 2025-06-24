@@ -30,7 +30,7 @@ class TiedTranspose(nn.Module):
         return self.linear.bias
 
 
-class CSRSparsity(Module):
+class SparseAutoEncoder(Module):
     """
     This module implements the Sparse AutoEncoder architecture based on the paper:
     Beyond Matryoshka: Revisiting Sparse Coding for Adaptive Representation, https://arxiv.org/abs/2503.01776
@@ -224,7 +224,7 @@ class CSRSparsity(Module):
         return model
 
     def __repr__(self):
-        return f"CSRSparsity({self.get_config_dict()})"
+        return f"SparseAutoEncoder({self.get_config_dict()})"
 
     def get_sentence_embedding_dimension(self) -> int:
         """

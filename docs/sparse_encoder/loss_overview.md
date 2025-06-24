@@ -20,7 +20,7 @@ The <a href="../package_reference/sparse_encoder/losses.html#spladeloss"><code>S
 
 ### CSR Loss
 
-If you are using the <a href="../package_reference/sparse_encoder/models.html#csrsparsity"><code>CSRSparsity</code></a> module, then you have to use the <a href="../package_reference/sparse_encoder/losses.html#csrloss"><code>CSRLoss</code></a> (Contrastive Sparse Representation Loss). It combines two components:
+If you are using the <a href="../package_reference/sparse_encoder/models.html#sparseautoencoder"><code>SparseAutoEncoder</code></a> module, then you have to use the <a href="../package_reference/sparse_encoder/losses.html#csrloss"><code>CSRLoss</code></a> (Contrastive Sparse Representation Loss). It combines two components:
 
 - A reconstruction loss <a href="../package_reference/sparse_encoder/losses.html#csrreconstructionloss"><code>CSRReconstructionLoss</code></a> that ensures sparse representation can faithfully reconstruct original embeddings.
 - A main loss, which in the paper is a contrastive learning component using <a href="../package_reference/sparse_encoder/losses.html#sparsemultiplenegativesrankingloss">`SparseMultipleNegativesRankingLoss`</a> that ensures semanticallysimilar sentences have similar representations. But it's theorically possible to use all the losses mention below as main loss like for <a href="../package_reference/sparse_encoder/losses.html#spladeloss"><code>SpladeLoss</code></a> .

@@ -17,7 +17,7 @@ from sentence_transformers.models import Pooling, Transformer
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.similarity_functions import SimilarityFunction
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardData
-from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseAutoEncoder, SpladePooling
 from sentence_transformers.util import batch_to_device, select_max_active_dims
 
 logger = logging.getLogger(__name__)
@@ -171,7 +171,7 @@ class SparseEncoder(SentenceTransformer):
             self.max_active_dims = max_active_dims
         else:
             for module in self._modules.values():
-                if isinstance(module, CSRSparsity):
+                if isinstance(module, SparseAutoEncoder):
                     self.max_active_dims = module.k
                     break
             else:
@@ -995,7 +995,7 @@ class SparseEncoder(SentenceTransformer):
                     break
         if has_modules:
             logger.info(
-                "A SentenceTransformer model found, using Sentence Transformer modules with CSR sparsity modules on top"
+                "A SentenceTransformer model found, using Sentence Transformer modules with SparseAutoEncoder modules on top to form a CSR model"
             )
             modules, self.module_kwargs = self._load_sbert_model(
                 model_name_or_path,
@@ -1013,14 +1013,14 @@ class SparseEncoder(SentenceTransformer):
             hidden_dim = 4 * input_dim
             k = input_dim // 4  # Number of top values to keep
             k_aux = input_dim // 2  # Number of top values for auxiliary loss
-            csr_sparsity = CSRSparsity(
+            sae = SparseAutoEncoder(
                 input_dim=input_dim,
                 hidden_dim=hidden_dim,
                 k=k,
                 k_aux=k_aux,
             )
-            modules.append(csr_sparsity)
-            self._model_card_text = None  # If we're loading a SentenceTransformer model, but adding a CSRSparsity, then the original README isn't useful anymore as it's a different architecture
+            modules.append(sae)
+            self._model_card_text = None  # If we're loading a SentenceTransformer model, but adding a SparseAutoEncoder, then the original README isn't useful anymore as it's a different architecture
 
         elif is_mlm_model:
             # For MLM models like BERT, RoBERTa, etc., use MLMTransformer with SpladePooling
@@ -1039,7 +1039,7 @@ class SparseEncoder(SentenceTransformer):
 
         else:
             logger.info(
-                "No MLM model found and no SentenceTransformer model found, using default transformer modules and mean pooling with CSR sparsity modules on Top"
+                "No MLM model found and no SentenceTransformer model found, using default transformer modules and mean pooling with SparseAutoEncoder modules on top to form a CSR model"
             )
             transformer_model = Transformer(
                 model_name_or_path,
@@ -1050,13 +1050,13 @@ class SparseEncoder(SentenceTransformer):
                 backend=self.backend,
             )
             pooling = Pooling(transformer_model.get_word_embedding_dimension(), pooling_mode="mean")
-            csr_sparsity = CSRSparsity(
+            sae = SparseAutoEncoder(
                 input_dim=pooling.get_sentence_embedding_dimension(),
                 hidden_dim=4 * pooling.get_sentence_embedding_dimension(),
                 k=256,  # Number of top values to keep
                 k_aux=512,  # Number of top values for auxiliary loss
             )
-            modules = [transformer_model, pooling, csr_sparsity]
+            modules = [transformer_model, pooling, sae]
 
         if not local_files_only:
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
