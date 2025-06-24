@@ -11,4 +11,3 @@ __all__ = [
     "SparseEncoderTrainingArguments",
     "SparseEncoderModelCardData",
 ]
-# TODO : Add tests for all the components
