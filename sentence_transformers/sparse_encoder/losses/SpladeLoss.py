@@ -167,13 +167,16 @@ class SpladeLoss(nn.Module):
         }
         if self.lambda_query is not None:
             config_dict["lambda_query"] = self.lambda_query
-        # Include regularizer names and threshold information
-        config_dict["corpus_regularizer"] = self.corpus_regularizer.__class__.__name__
+        # Include regularizer names (if not flops) and threshold information (if not None)
+
+        if not isinstance(self.corpus_regularizer, FlopsLoss):
+            config_dict["corpus_regularizer"] = self.corpus_regularizer.__class__.__name__
         if hasattr(self.corpus_regularizer, "threshold") and self.corpus_regularizer.threshold is not None:
             config_dict["corpus_threshold"] = self.corpus_regularizer.threshold
 
         if hasattr(self, "query_regularizer") and self.query_regularizer is not None:
-            config_dict["query_regularizer"] = self.query_regularizer.__class__.__name__
+            if not isinstance(self.query_regularizer, FlopsLoss):
+                config_dict["query_regularizer"] = self.query_regularizer.__class__.__name__
             if hasattr(self.query_regularizer, "threshold") and self.query_regularizer.threshold is not None:
                 config_dict["query_threshold"] = self.query_regularizer.threshold
         return config_dict
