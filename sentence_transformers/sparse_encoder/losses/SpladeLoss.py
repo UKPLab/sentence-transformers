@@ -113,7 +113,12 @@ class SpladeLoss(nn.Module):
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
         losses = {}
-        losses["base_loss"] = self.loss.compute_loss_from_embeddings(embeddings, labels)
+        base_loss = self.loss.compute_loss_from_embeddings(embeddings, labels)
+        if isinstance(base_loss, dict):
+            losses.update(base_loss)
+        else:
+            losses["base_loss"] = base_loss
+
         if self.all_docs:
             # If all_docs is True, we consider all the input to be of the same type and so under the same regularization
             corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings))
