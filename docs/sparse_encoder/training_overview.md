@@ -215,7 +215,7 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 
         model = SparseEncoder("mixedbread-ai/mxbai-embed-large-v1")
         # SparseEncoder(
-        #   (0): Transformer({'max_seq_length': 512, 'do_lower_case': False}) with Transformer model: BertModel
+        #   (0): Transformer({'max_seq_length': 512, 'do_lower_case': False, 'architectures': 'BertModel'})
         #   (1): Pooling({'word_embedding_dimension': 1024, 'pooling_mode_cls_token': True, 'pooling_mode_mean_tokens': False, 'pooling_mode_max_tokens': False, 'pooling_mode_mean_sqrt_len_tokens': False, 'pooling_mode_weightedmean_tokens': False, 'pooling_mode_lasttoken': False, 'include_prompt': True})
         #   (2): CSRSparsity({'input_dim': 1024, 'hidden_dim': 4096, 'k': 256, 'k_aux': 512, 'normalize': False, 'dead_threshold': 30})
         # )
