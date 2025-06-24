@@ -157,7 +157,7 @@ class MLMTransformer(InputModule):
         return self.auto_model.config.vocab_size
 
     def __repr__(self) -> str:
-        return f"MLMTransformer({self.get_config_dict()}) with MLMTransformer model: {self.auto_model.__class__.__name__} "
+        return f"MLMTransformer({dict(self.get_config_dict(), architectures=self.auto_model.__class__.__name__)})"
 
     def save(self, output_path: str, safe_serialization: bool = True, **kwargs) -> None:
         self.auto_model.save_pretrained(output_path, safe_serialization=safe_serialization)

@@ -436,7 +436,7 @@ class Transformer(InputModule):
         )
 
     def __repr__(self) -> str:
-        return f"Transformer({self.get_config_dict()}) with Transformer model: {self.auto_model.__class__.__name__} "
+        return f"Transformer({dict(self.get_config_dict(), architectures=self.auto_model.__class__.__name__)})"
 
     def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
