@@ -94,17 +94,22 @@ class SpladeLoss(nn.Module):
         self.regularizer = regularizer if regularizer is not None else FlopsLoss(model, threshold=threshold)
         self.lambda_corpus = lambda_corpus
         self.lambda_query = lambda_query
+        self.all_docs = all_docs
 
         if self.lambda_query is None and not all_docs:
             logging.warning(
                 "lambda_query is None. This means that the query regularization will not be applied. If you are in an inference free set up it's fine else you should have a lambda_query > 0."
             )
-        self.all_docs = all_docs
         if self.all_docs and self.lambda_query is not None:
             logging.warning(
                 "lambda_query should be None when all_docs is True. all_docs mean we consider all the input to be of the same type and so under the same regularization. lambda_query will be ignored."
             )
             self.lambda_query = None
+        if not hasattr(loss, "compute_loss_from_embeddings"):
+            raise ValueError(
+                "The provided loss does not have a 'compute_loss_from_embeddings' method, which is required for SpladeLoss. "
+                "This method must have the signature `compute_loss_from_embeddings(embeddings: List[Tensor], labels: Tensor | None = None)`."
+            )
 
     def forward(
         self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
