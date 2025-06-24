@@ -20,7 +20,7 @@ class SparseMarginMSELoss(MarginMSELoss):
         an advantage of SparseMarginMSELoss over SparseMultipleNegativesRankingLoss, but note that the SparseMarginMSELoss is much slower
         to train. With SparseMultipleNegativesRankingLoss, with a batch size of 64, we compare one query against 128 passages.
         With SparseMarginMSELoss, we compare a query only against two passages. It's also possible to use multiple negatives
-        with MargiSparseMarginMSELossnMSELoss, but the training would be even slower to train.
+        with SparseMarginMSELoss, but the training would be even slower to train.
 
         Args:
             model: SparseEncoder

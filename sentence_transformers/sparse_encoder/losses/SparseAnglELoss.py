@@ -73,4 +73,4 @@ class SparseAnglELoss(SparseCoSENTLoss):
         return super().__init__(model, scale, similarity_fct=util.pairwise_angle_sim)
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        raise AttributeError("SparseAngleLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")
+        raise AttributeError("SparseAnglELoss should not be used alone. Use it with SpladeLoss or CSRLoss.")

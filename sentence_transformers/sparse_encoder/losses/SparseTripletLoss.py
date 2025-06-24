@@ -66,4 +66,4 @@ class SparseTripletLoss(TripletLoss):
         super().__init__(model, distance_metric=distance_metric, triplet_margin=triplet_margin)
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        raise AttributeError("SparseTripletLoss shold not be used alone. Use it with SpladeLoss or CSRLoss.")
+        raise AttributeError("SparseTripletLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")
