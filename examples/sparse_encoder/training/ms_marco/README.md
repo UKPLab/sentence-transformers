@@ -14,7 +14,7 @@ This page describes two strategies to **train a Splade models** on the MS MARCO 
 **Training code: [train_splade_msmarco_mrl.py](train_splade_msmarco_mrl.py)**
 
 ```{eval-rst}
-When we use :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, we provide triplets: ``(query, positive_passage, negative_passage)`` where ``positive_passage`` is the relevant passage to the query and ``negative_passage`` is a non-relevant passage to the query. We compute the embeddings for all queries, positive passages, and negative passages in the corpus and then optimize the following objective: The ``(query, positive_passage)` pair must be close in the vector space, while ``(query, negative_passage)`` should be distant in vector space.
+When we use :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, we provide triplets: ``(query, positive_passage, negative_passage)`` where ``positive_passage`` is the relevant passage to the query and ``negative_passage`` is a non-relevant passage to the query. We compute the embeddings for all queries, positive passages, and negative passages in the corpus and then optimize the following objective: The ``(query, positive_passage)`` pair must be close in the vector space, while ``(query, negative_passage)`` should be distant in vector space.
 
 To further improve the training, we use **in-batch negatives**: 
 ```
