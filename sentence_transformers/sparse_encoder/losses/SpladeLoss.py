@@ -146,7 +146,7 @@ class SpladeLoss(nn.Module):
         }
         if self.lambda_query is not None:
             config_dict["lambda_query"] = self.lambda_query
-        if self.regularizer.threshold is not None:
+        if hasattr(self.regularizer, "threshold") and self.regularizer.threshold is not None:
             config_dict["threshold"] = self.regularizer.threshold
         return config_dict
 
