@@ -180,7 +180,7 @@ class MarginMSELoss(nn.Module):
         # Handle both single and multiple negative cases
         if len(embeddings_negs) == 1:
             scores_neg = self.similarity_fct(embeddings_query, embeddings_negs[0])
-            margin_pred = scores_pos - scores_neg
+            margin_pred = (scores_pos - scores_neg).unsqueeze(1)
             return self.loss_fct(margin_pred, labels)
         else:
             # Multiple negatives case
