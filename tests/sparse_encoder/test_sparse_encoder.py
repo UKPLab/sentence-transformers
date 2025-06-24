@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
 from unittest.mock import patch
 
 import pytest
 import torch
 
+from sentence_transformers.models import Pooling, Transformer
+from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from tests.sparse_encoder.utils import sparse_allclose
 
@@ -388,3 +391,148 @@ def test_encode_query_document_vs_encode(splade_bert_tiny_model: SparseEncoder, 
     # Embeddings should differ when different prompts are used
     assert not sparse_allclose(query_embeddings_without_prompt, query_embeddings)
     assert not sparse_allclose(document_embeddings_without_prompt, document_embeddings)
+
+
+def test_default_prompt(splade_bert_tiny_model: SparseEncoder):
+    """Test that the default prompt is used when no prompt is specified"""
+    model = splade_bert_tiny_model
+    model.prompts = {"query": "query: ", "document": "document: "}
+    model.default_prompt_name = "query"
+
+    # Call encode_query without specifying a prompt
+    query_embeddings = model.encode_query("test")
+    assert query_embeddings.shape == (model.get_sentence_embedding_dimension(),)
+
+    # Call encode_document without specifying a prompt
+    document_embeddings = model.encode_document("test")
+    assert document_embeddings.shape == (model.get_sentence_embedding_dimension(),)
+
+    default_embeddings = model.encode("test")
+    assert default_embeddings.shape == (model.get_sentence_embedding_dimension(),)
+
+    # Make sure that the default prompt is used
+    assert sparse_allclose(query_embeddings, default_embeddings)
+    assert not sparse_allclose(document_embeddings, default_embeddings)
+
+    # Also check that if the default prompt is not set, the default embeddings aren't the same as query
+    model.default_prompt_name = None
+    default_embeddings_no_default = model.encode("test")
+    assert not sparse_allclose(default_embeddings_no_default, default_embeddings)
+
+
+def test_wrong_prompt(splade_bert_tiny_model: SparseEncoder):
+    """Test that using a wrong prompt raises an error"""
+    model = splade_bert_tiny_model
+    model.prompts = {"query": "query: ", "document": "document: "}
+
+    for encode_method in [model.encode_query, model.encode_document, model.encode]:
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Prompt name 'invalid_prompt' not found in the configured prompts dictionary with keys ['query', 'document']."
+            ),
+        ):
+            encode_method("test", prompt_name="invalid_prompt")
+
+
+def test_max_active_dims_set_init(splade_bert_tiny_model: SparseEncoder, csr_bert_tiny_model: SparseEncoder, tmp_path):
+    splade_bert_tiny_model.save_pretrained(str(tmp_path / "splade_bert_tiny"))
+    csr_bert_tiny_model.save_pretrained(str(tmp_path / "csr_bert_tiny"))
+
+    # Load the models with max_active_dims set
+    loaded_model = SparseEncoder(str(tmp_path / "splade_bert_tiny"))
+    assert loaded_model.max_active_dims is None
+    loaded_model = SparseEncoder(str(tmp_path / "splade_bert_tiny"), max_active_dims=13)
+    assert loaded_model.max_active_dims == 13
+
+    loaded_model = SparseEncoder(str(tmp_path / "csr_bert_tiny"))
+    assert loaded_model.max_active_dims == 16  # Based on the CSRSparsity's k value
+    loaded_model = SparseEncoder(str(tmp_path / "csr_bert_tiny"), max_active_dims=13)
+    assert loaded_model.max_active_dims == 13
+
+
+def test_detect_mlm():
+    model = SparseEncoder("distilbert/distilbert-base-uncased")
+
+    assert isinstance(model[0], MLMTransformer)
+    assert isinstance(model[1], SpladePooling)
+
+
+def test_default_to_csr():
+    # NOTE: bert-tiny is actually MLM-based, but the config isn't modern enough to allow us to detect it,
+    # so we should default to CSR here.
+    model = SparseEncoder("prajjwal1/bert-tiny")
+    assert isinstance(model[0], Transformer)
+    assert isinstance(model[1], Pooling)
+    assert isinstance(model[2], CSRSparsity)
+
+
+def test_sparsity(splade_bert_tiny_model: SparseEncoder):
+    model = splade_bert_tiny_model
+
+    # Check that the sparsity is applied correctly
+    embeddings = model.encode_query(["What is the capital of France?", "Who has won the World Cup in 2016?"])
+    sparsity = model.sparsity(embeddings)
+    assert isinstance(sparsity, dict)
+    assert "active_dims" in sparsity
+    assert "sparsity_ratio" in sparsity
+    assert sparsity["active_dims"] < 100 and sparsity["active_dims"] > 0
+    assert sparsity["sparsity_ratio"] < 1.0 and sparsity["sparsity_ratio"] >= 0.99
+
+    # Also check with dense tensors
+    dense_sparsity = model.sparsity(embeddings.to_dense())
+    assert dense_sparsity == sparsity, "Sparsity should be the same for dense and sparse tensors"
+
+    # Check that 1-dimensional embeddings work correctly
+    sparsity_one = model.sparsity(embeddings[0])
+    sparsity_two = model.sparsity(embeddings[1])
+    assert (sparsity_one["active_dims"] + sparsity_two["active_dims"]) / 2 == sparsity["active_dims"]
+
+
+def test_splade_pooling_chunk_size(splade_bert_tiny_model: SparseEncoder):
+    model = splade_bert_tiny_model
+
+    # The chunk size defaults to None, i.e. no chunking
+    assert model.splade_pooling_chunk_size is None
+    # But we can chunk the pooling to save memory at the cost of some speed
+    model.splade_pooling_chunk_size = 13
+    assert model.splade_pooling_chunk_size == 13
+    assert isinstance(model[1], SpladePooling)
+    assert model[1].chunk_size == 13
+
+
+def test_intersection(splade_bert_tiny_model: SparseEncoder):
+    model = splade_bert_tiny_model
+
+    # Test intersection with a single text
+    query = "Where can I deposit my money?"
+    document = "I'm sitting by the river."
+    query_embeddings = model.encode_query(query)
+    document_embeddings = model.encode_document(document)
+    query_sparsity = model.sparsity(query_embeddings)
+    document_sparsity = model.sparsity(document_embeddings)
+
+    # Let's check that the intersection is a tensor and has the correct shape
+    intersection = model.intersection(query_embeddings, document_embeddings)
+    assert isinstance(intersection, torch.Tensor)
+    assert intersection.shape == (model.get_sentence_embedding_dimension(),)
+
+    # Check that the intersection sparsity is less than both query and document sparsities
+    intersection_sparsity = model.sparsity(intersection)
+    assert (
+        intersection_sparsity["active_dims"] < query_sparsity["active_dims"]
+        and intersection_sparsity["active_dims"] < document_sparsity["active_dims"]
+    )
+
+    # Test with multiple texts
+    query = "Who has won the World Cup in 2016?"
+    documents = ["The capital of France is Paris.", "Germany won the World Cup in 2014."]
+    query_embeddings = model.encode_query(query)
+    document_embeddings = model.encode_document(documents)
+
+    intersection_batch = model.intersection(query_embeddings, document_embeddings)
+    assert isinstance(intersection_batch, torch.Tensor)
+    assert intersection_batch.shape == (len(documents), model.get_sentence_embedding_dimension())
+
+    decoded_intersection_batch = model.decode(intersection_batch)
+    assert len(decoded_intersection_batch) == len(documents)
