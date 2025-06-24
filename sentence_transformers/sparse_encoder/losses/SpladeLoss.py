@@ -20,8 +20,10 @@ class SpladeLoss(nn.Module):
         lambda_corpus: float,
         lambda_query: float | None = None,
         all_docs: bool = False,
-        threshold: int | None = None,
-        regularizer: nn.Module | None = None,
+        corpus_threshold: int | None = None,
+        query_threshold: int | None = None,
+        corpus_regularizer: nn.Module | None = None,
+        query_regularizer: nn.Module | None = None,
     ):
         """
         SpladeLoss implements the loss function for the SPLADE (Sparse Lexical and Expansion) model,
@@ -41,10 +43,16 @@ class SpladeLoss(nn.Module):
                 if you are having all_docs=True. Else you should have a lambda_query > 0.
             all_docs: If True, all input embeddings are treated as documents and regularized together with lambda_corpus.
                 Especially useful when training with symmetric texts (e.g. pairs of documents) or more.
-            threshold: Optional threshold for the number of non-zero (active) elements in the embeddings to be considered in the FlopsLoss.
-                If specified, only embeddings with more than this number of non-zero (active) elements will be considered.
-                This can help to ignore embeddings that are too sparse and may not contribute meaningfully to the loss.
-            regularizer: Optional regularizer to use instead of the default FlopsLoss. This can be useful for custom regularization strategies.
+            corpus_threshold: Optional threshold for the number of non-zero (active) elements in the corpus embeddings to be considered in the FlopsLoss.
+                If specified, only corpus embeddings with more than this number of non-zero (active) elements will be considered.
+                Only used when corpus_regularizer is None (for the default FlopsLoss).
+            query_threshold: Optional threshold for the number of non-zero (active) elements in the query embeddings to be considered in the FlopsLoss.
+                If specified, only query embeddings with more than this number of non-zero (active) elements will be considered.
+                Only used when query_regularizer is None (for the default FlopsLoss).
+            corpus_regularizer: Optional regularizer to use specifically for corpus regularization instead of the default FlopsLoss.
+                This allows for different regularization strategies for documents vs queries.
+            query_regularizer: Optional regularizer to use specifically for query regularization instead of the default FlopsLoss.
+                This allows for different regularization strategies for queries vs documents.
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
@@ -91,10 +99,18 @@ class SpladeLoss(nn.Module):
         super().__init__()
         self.model = model
         self.loss = loss
-        self.regularizer = regularizer if regularizer is not None else FlopsLoss(model, threshold=threshold)
         self.lambda_corpus = lambda_corpus
         self.lambda_query = lambda_query
         self.all_docs = all_docs
+
+        # Set up regularizers with defaults to FlopsLoss using specific thresholds
+        self.corpus_regularizer = (
+            corpus_regularizer if corpus_regularizer is not None else FlopsLoss(model, threshold=corpus_threshold)
+        )
+        if query_regularizer is not None:
+            self.query_regularizer = query_regularizer
+        elif not all_docs:
+            self.query_regularizer = FlopsLoss(model, threshold=query_threshold)
 
         if self.lambda_query is None and not all_docs:
             logging.warning(
@@ -126,14 +142,14 @@ class SpladeLoss(nn.Module):
 
         if self.all_docs:
             # If all_docs is True, we consider all the input to be of the same type and so under the same regularization
-            corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings))
+            corpus_loss = self.corpus_regularizer.compute_loss_from_embeddings(torch.cat(embeddings))
         else:
-            corpus_loss = self.regularizer.compute_loss_from_embeddings(torch.cat(embeddings[1:]))
+            corpus_loss = self.corpus_regularizer.compute_loss_from_embeddings(torch.cat(embeddings[1:]))
         losses["corpus_regularizer_loss"] = corpus_loss * self.lambda_corpus
 
         # Add query regularization if enabled
         if self.lambda_query is not None:
-            query_loss = self.regularizer.compute_loss_from_embeddings(embeddings[0])
+            query_loss = self.query_regularizer.compute_loss_from_embeddings(embeddings[0])
             losses["query_regularizer_loss"] = query_loss * self.lambda_query
 
         return losses
@@ -151,8 +167,15 @@ class SpladeLoss(nn.Module):
         }
         if self.lambda_query is not None:
             config_dict["lambda_query"] = self.lambda_query
-        if hasattr(self.regularizer, "threshold") and self.regularizer.threshold is not None:
-            config_dict["threshold"] = self.regularizer.threshold
+        # Include regularizer names and threshold information
+        config_dict["corpus_regularizer"] = self.corpus_regularizer.__class__.__name__
+        if hasattr(self.corpus_regularizer, "threshold") and self.corpus_regularizer.threshold is not None:
+            config_dict["corpus_threshold"] = self.corpus_regularizer.threshold
+
+        if hasattr(self, "query_regularizer") and self.query_regularizer is not None:
+            config_dict["query_regularizer"] = self.query_regularizer.__class__.__name__
+            if hasattr(self.query_regularizer, "threshold") and self.query_regularizer.threshold is not None:
+                config_dict["query_threshold"] = self.query_regularizer.threshold
         return config_dict
 
     @property
