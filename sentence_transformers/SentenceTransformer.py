@@ -1256,7 +1256,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         return self._similarity_pairwise
 
     def start_multi_process_pool(
-        self, target_devices: list[str] = None
+        self, target_devices: list[str] | None = None
     ) -> dict[Literal["input", "output", "processes"], Any]:
         """
         Starts a multi-process pool to process the encoding with several independent processes
@@ -1336,7 +1336,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         prompt_name: str | None = None,
         prompt: str | None = None,
         batch_size: int = 32,
-        chunk_size: int = None,
+        chunk_size: int | None = None,
         show_progress_bar: bool | None = None,
         precision: Literal["float32", "int8", "uint8", "binary", "ubinary"] = "float32",
         normalize_embeddings: bool = False,
@@ -1994,7 +1994,7 @@ print(similarities)
         else:
             return sum([len(t) for t in text])  # Sum of length of individual strings
 
-    def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None) -> dict[str, float] | float:
+    def evaluate(self, evaluator: SentenceEvaluator, output_path: str | None = None) -> dict[str, float] | float:
         """
         Evaluate the model based on an evaluator
 

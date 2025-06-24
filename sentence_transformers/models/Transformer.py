@@ -71,7 +71,7 @@ class Transformer(InputModule):
         config_args: dict[str, Any] | None = None,
         cache_dir: str | None = None,
         do_lower_case: bool = False,
-        tokenizer_name_or_path: str = None,
+        tokenizer_name_or_path: str | None = None,
         backend: str = "torch",
     ) -> None:
         super().__init__()

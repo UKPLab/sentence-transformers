@@ -168,7 +168,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         batch_size: int = 32,
         write_csv: bool = True,
         max_active_dims: int | None = None,
-        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = None,
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] | None = None,
         main_score_function: str | SimilarityFunction | None = None,
         aggregate_fn: Callable[[list[float]], float] = np.mean,
         aggregate_key: str = "mean",
@@ -212,7 +212,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         )
 
     def __call__(
-        self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self, model: SparseEncoder, output_path: str | None = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         self.sparsity_stats = defaultdict(list)
         self.lengths = defaultdict(list)

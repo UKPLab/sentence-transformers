@@ -138,7 +138,7 @@ class SparseBinaryClassificationEvaluator(BinaryClassificationEvaluator):
         self.csv_headers.extend(["active_dims", "sparsity_ratio"])
 
     def __call__(
-        self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SparseEncoder, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         self.sparsity_stats = defaultdict(list)
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)

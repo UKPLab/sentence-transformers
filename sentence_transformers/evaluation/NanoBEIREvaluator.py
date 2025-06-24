@@ -202,7 +202,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         batch_size: int = 32,
         write_csv: bool = True,
         truncate_dim: int | None = None,
-        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = None,
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] | None = None,
         main_score_function: str | SimilarityFunction | None = None,
         aggregate_fn: Callable[[list[float]], float] = np.mean,
         aggregate_key: str = "mean",
@@ -281,7 +281,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
                 self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self,
+        model: SentenceTransformer,
+        output_path: str | None = None,
+        epoch: int = -1,
+        steps: int = -1,
+        *args,
+        **kwargs,
     ) -> dict[str, float]:
         per_metric_results = {}
         per_dataset_results = {}

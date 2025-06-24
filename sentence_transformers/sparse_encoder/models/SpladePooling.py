@@ -46,8 +46,8 @@ class SpladePooling(Module):
         self,
         pooling_strategy: Literal["max", "sum"] = "max",
         activation_function: Literal["relu", "log1p_relu"] = "relu",
-        word_embedding_dimension: int = None,
-        chunk_size: int = None,
+        word_embedding_dimension: int | None = None,
+        chunk_size: int | None = None,
     ) -> None:
         super().__init__()
         self.pooling_strategy = pooling_strategy

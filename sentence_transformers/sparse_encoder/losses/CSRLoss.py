@@ -127,7 +127,7 @@ class CSRReconstructionLoss(nn.Module):
 
 
 class CSRLoss(nn.Module):
-    def __init__(self, model: SparseEncoder, loss: nn.Module = None, beta: float = 0.1, gamma: float = 1.0):
+    def __init__(self, model: SparseEncoder, loss: nn.Module | None = None, beta: float = 0.1, gamma: float = 1.0):
         """
         CSRLoss implements a combined loss function for Contrastive Sparse Representation (CSR) models.
 
@@ -187,7 +187,7 @@ class CSRLoss(nn.Module):
         self.loss = loss if loss is not None else SparseMultipleNegativesRankingLoss(model=model)
 
     def forward(
-        self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
+        self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor | None = None
     ) -> dict[str, torch.Tensor]:
         # Compute embeddings using the model
         outputs = [self.model(sentence_feature) for sentence_feature in sentence_features]

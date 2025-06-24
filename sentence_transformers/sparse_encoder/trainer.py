@@ -100,7 +100,7 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
     def __init__(
         self,
         model: SparseEncoder | None = None,
-        args: SparseEncoderTrainingArguments = None,
+        args: SparseEncoderTrainingArguments | None = None,
         train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         loss: (

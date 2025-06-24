@@ -135,7 +135,7 @@ class RerankingEvaluator(SentenceEvaluator):
         self.primary_metric = f"ndcg@{self.at_k}"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         """
         Evaluates the model on the dataset and returns the evaluation metrics.

@@ -47,7 +47,7 @@ class LabelAccuracyEvaluator(SentenceEvaluator):
         self.primary_metric = "accuracy"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         model.eval()
         total = 0

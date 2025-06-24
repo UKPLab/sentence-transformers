@@ -94,7 +94,9 @@ class MSEEvaluator(SentenceEvaluator):
 
         self.source_embeddings = self.embed_inputs(teacher_model, source_sentences)
 
-    def __call__(self, model: SentenceTransformer, output_path: str = None, epoch=-1, steps=-1) -> dict[str, float]:
+    def __call__(
+        self, model: SentenceTransformer, output_path: str | None = None, epoch=-1, steps=-1
+    ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
                 out_txt = f" after epoch {epoch}"

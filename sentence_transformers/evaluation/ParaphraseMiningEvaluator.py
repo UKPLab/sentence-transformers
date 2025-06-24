@@ -92,8 +92,8 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
     def __init__(
         self,
         sentences_map: dict[str, str],
-        duplicates_list: list[tuple[str, str]] = None,
-        duplicates_dict: dict[str, dict[str, bool]] = None,
+        duplicates_list: list[tuple[str, str]] | None = None,
+        duplicates_dict: dict[str, dict[str, bool]] | None = None,
         add_transitive_closure: bool = False,
         query_chunk_size: int = 5000,
         corpus_chunk_size: int = 100000,
@@ -154,7 +154,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.primary_metric = "average_precision"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:

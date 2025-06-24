@@ -18,10 +18,10 @@ class SpladeLoss(nn.Module):
         model: SparseEncoder,
         loss: nn.Module,
         lambda_corpus: float,
-        lambda_query: float = None,
+        lambda_query: float | None = None,
         all_docs: bool = False,
-        threshold: int = None,
-        regularizer: nn.Module = None,
+        threshold: int | None = None,
+        regularizer: nn.Module | None = None,
     ):
         """
         SpladeLoss implements the loss function for the SPLADE (Sparse Lexical and Expansion) model,
@@ -112,7 +112,7 @@ class SpladeLoss(nn.Module):
             )
 
     def forward(
-        self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor = None
+        self, sentence_features: Iterable[dict[str, torch.Tensor]], labels: torch.Tensor | None = None
     ) -> dict[str, torch.Tensor]:
         # Compute embeddings using the model
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]

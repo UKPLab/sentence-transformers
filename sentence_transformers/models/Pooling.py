@@ -63,7 +63,7 @@ class Pooling(Module):
     def __init__(
         self,
         word_embedding_dimension: int,
-        pooling_mode: str = None,
+        pooling_mode: str | None = None,
         pooling_mode_cls_token: bool = False,
         pooling_mode_max_tokens: bool = False,
         pooling_mode_mean_tokens: bool = True,

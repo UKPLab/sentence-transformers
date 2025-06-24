@@ -122,7 +122,7 @@ class SentenceTransformerTrainer(Trainer):
     def __init__(
         self,
         model: SentenceTransformer | None = None,
-        args: SentenceTransformerTrainingArguments = None,
+        args: SentenceTransformerTrainingArguments | None = None,
         train_dataset: Dataset | DatasetDict | IterableDataset | dict[str, Dataset] | None = None,
         eval_dataset: Dataset | DatasetDict | IterableDataset | dict[str, Dataset] | None = None,
         loss: nn.Module
@@ -1160,7 +1160,7 @@ class SentenceTransformerTrainer(Trainer):
     def add_dataset_name_transform(
         batch: dict[str, list[Any]],
         dataset_name: str | None = None,
-        transform: Callable[[dict[str, list[Any]]], dict[str, list[Any]]] = None,
+        transform: Callable[[dict[str, list[Any]]], dict[str, list[Any]]] | None = None,
         **kwargs,
     ) -> dict[str, list[Any]]:
         """A transform/map function that adds prompts or dataset names to the batch.

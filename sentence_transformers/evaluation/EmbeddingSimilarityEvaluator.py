@@ -151,7 +151,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         return cls(sentences1, sentences2, scores, **kwargs)
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:

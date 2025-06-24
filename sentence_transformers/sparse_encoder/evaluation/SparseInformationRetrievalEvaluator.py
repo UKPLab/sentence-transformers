@@ -194,7 +194,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         )
 
     def __call__(
-        self, model: SparseEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self, model: SparseEncoder, output_path: str | None = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
         self.corpus_lengths = []

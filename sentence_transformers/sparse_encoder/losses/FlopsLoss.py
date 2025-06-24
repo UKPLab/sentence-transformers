@@ -9,7 +9,7 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class FlopsLoss(nn.Module):
-    def __init__(self, model: SparseEncoder, threshold: float = None) -> None:
+    def __init__(self, model: SparseEncoder, threshold: float | None = None) -> None:
         """
         FlopsLoss implements a regularization technique to promote sparsity in sparse encoder models.
         It calculates the squared L2 norm of the mean embedding vector, which helps reduce the number of floating-point
@@ -55,10 +55,10 @@ class FlopsLoss(nn.Module):
     @property
     def citation(self) -> str:
         return """
-            @article{paria2020minimizing,
+@article{paria2020minimizing,
     title={Minimizing flops to learn efficient sparse representations},
     author={Paria, Biswajit and Yeh, Chih-Kuan and Yen, Ian EH and Xu, Ning and Ravikumar, Pradeep and P{\'o}czos, Barnab{\'a}s},
     journal={arXiv preprint arXiv:2004.05665},
     year={2020}
-    }
-    """
+}
+"""

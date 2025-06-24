@@ -112,7 +112,7 @@ class SparseMSEEvaluator(MSEEvaluator):
     def __call__(
         self,
         model: SparseEncoder,
-        output_path: str = None,
+        output_path: str | None = None,
         epoch: int = -1,
         steps: int = -1,
     ) -> dict[str, float]:

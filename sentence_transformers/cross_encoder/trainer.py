@@ -101,7 +101,7 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
     def __init__(
         self,
         model: CrossEncoder | None = None,
-        args: CrossEncoderTrainingArguments = None,
+        args: CrossEncoderTrainingArguments | None = None,
         train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         loss: nn.Module

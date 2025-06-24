@@ -726,7 +726,7 @@ class SparseEncoder(SentenceTransformer):
         prompt_name: str | None = None,
         prompt: str | None = None,
         batch_size: int = 32,
-        chunk_size: int = None,
+        chunk_size: int | None = None,
         show_progress_bar: bool | None = None,
         max_active_dims: int | None = None,
     ) -> Tensor:
@@ -1269,7 +1269,7 @@ class SparseEncoder(SentenceTransformer):
         return intersection
 
     def decode(
-        self, embeddings: torch.Tensor, top_k: int = None
+        self, embeddings: torch.Tensor, top_k: int | None = None
     ) -> list[tuple[str, float]] | list[list[tuple[str, float]]]:
         """
         Decode top K tokens and weights from a sparse embedding.

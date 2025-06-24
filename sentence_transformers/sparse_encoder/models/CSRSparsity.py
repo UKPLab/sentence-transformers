@@ -109,7 +109,7 @@ class CSRSparsity(Module):
         x, mu, std = self.LN(x)
         return x, dict(mu=mu, std=std)
 
-    def top_k(self, x: torch.Tensor, k: int = None, compute_aux: bool = True) -> torch.Tensor:
+    def top_k(self, x: torch.Tensor, k: int | None = None, compute_aux: bool = True) -> torch.Tensor:
         """
         :param x: input data (shape: [batch, input_dim])
         :return: autoencoder latents (shape: [batch, hidden_dim])

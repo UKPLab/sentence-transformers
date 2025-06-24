@@ -209,7 +209,13 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
                 self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self,
+        model: SentenceTransformer,
+        output_path: str | None = None,
+        epoch: int = -1,
+        steps: int = -1,
+        *args,
+        **kwargs,
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
