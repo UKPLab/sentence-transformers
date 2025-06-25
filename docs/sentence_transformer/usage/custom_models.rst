@@ -225,7 +225,7 @@ This can now be used as a module in a Sentence Transformer model::
    print(model)
    """
    SentenceTransformer(
-       (0): Transformer({'max_seq_length': 256, 'do_lower_case': False, 'architectures': 'BertModel'})
+       (0): Transformer({'max_seq_length': 256, 'do_lower_case': False, 'architecture': 'BertModel'})
        (1): DecayMeanPooling()
        (2): Normalize()
    )
