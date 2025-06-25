@@ -59,7 +59,12 @@ class SparseCosineSimilarityLoss(CosineSimilarityLoss):
                         "score": [1.0, 0.3],
                     }
                 )
-                loss = losses.SpladeLoss(model=model, loss=losses.SparseCosineSimilarityLoss(model), lambda_corpus=5e-5, all_docs=True)
+                loss = losses.SpladeLoss(
+                    model=model,
+                    loss=losses.SparseCosineSimilarityLoss(model),
+                    corpus_regularizer_weight=5e-5,
+                    use_corpus_regularizer_only=True,
+                )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()

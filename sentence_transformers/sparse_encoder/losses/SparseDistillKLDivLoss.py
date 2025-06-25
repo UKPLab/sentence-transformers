@@ -80,7 +80,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
                 loss = losses.SpladeLoss(
-                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), corpus_regularizer_weight=3e-5, query_regularizer_weight=5e-5
                 )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
@@ -124,7 +124,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
                 loss = losses.SpladeLoss(
-                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                    student_model, loss=losses.SparseDistillKLDivLoss(student_model), corpus_regularizer_weight=3e-5, query_regularizer_weight=5e-5
                 )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)

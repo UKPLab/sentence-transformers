@@ -21,23 +21,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class IDF(InputModule):
+class SparseStaticEmbedding(InputModule):
     """
-    IDF (Inverse Document Frequency) module for efficient sparse representations.
+    SparseStaticEmbedding module for efficient sparse representations.
 
-    This lightweight module applies IDF weights to token representations, emphasizing
-    rare terms while downweighting common ones. It creates sparse vectors where non-zero
-    values correspond to the IDF weights of tokens in the text.
+    This lightweight module computes sparse representations by mapping input tokens to static weights,
+    such as IDF (Inverse Document Frequency) weights. It is designed to encode queries or documents
+    into fixed-size embeddings based on the presence of tokens in the input.
 
-    Key benefits:
-    - Computationally efficient for both encoding and search
-    - Compatible with traditional inverted indices
-    - Can be used for inference-free query encoding when paired with pre-computed document embeddings
+    A common scenario is to use this module for encoding queries, and using a heavier module like
+    SPLADE (MLMTransformer + SpladePooling) for document encoding.
 
     Args:
-        weight: IDF weights for vocabulary tokens
-        tokenizer:  PreTrainedTokenizer to convert tokens to IDs
-        frozen: If True, weights are fixed. Defaults to False.
+        tokenizer (PreTrainedTokenizer): PreTrainedTokenizer to tokenize input texts into input IDs.
+        weight (torch.Tensor | None): Static weights for vocabulary tokens (e.g., IDF weights),
+            shape should be (vocab_size,). If None, initializes weights to a vector of ones.
+            Default is None.
+        frozen (bool): Whether the weights should be frozen (not trainable). Default is False.
     """
 
     config_keys: list[str] = ["frozen"]
@@ -55,35 +55,31 @@ class IDF(InputModule):
             self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
         else:
             self.weight = torch.nn.Parameter(torch.ones(len(self.tokenizer.get_vocab())), requires_grad=not frozen)
+
         self.frozen = frozen
-        self.word_embedding_dimension = self.weight.size(0)
+        self.num_dimensions = self.weight.size(0)
         self.max_seq_length = self.tokenizer.model_max_length
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        input_ids, attention_mask = features["input_ids"], features["attention_mask"]
+        input_ids = features["input_ids"]
+        attention_mask = features["attention_mask"]
+        sentence_embedding = features.get("sentence_embedding", None)
         batch_size = input_ids.shape[0]
 
-        multi_hot = torch.zeros(
-            batch_size, self.word_embedding_dimension, dtype=torch.float32, device=input_ids.device
-        )
-        batch_indices = torch.arange(batch_size, device=input_ids.device).unsqueeze(-1)
+        # Create binary mask where 1 indicates token presence, shape: (batch_size, num_dimensions)
+        token_presence = torch.zeros(batch_size, self.num_dimensions, device=input_ids.device, dtype=torch.int64)
 
-        valid_tokens = attention_mask == 1
-        valid_batch_indices = batch_indices.expand_as(input_ids)[valid_tokens]
-        valid_input_ids = input_ids[valid_tokens]
+        # Only consider tokens where attention_mask is 1 by using the attention_mask as scatter values
+        token_presence.scatter_(1, input_ids, attention_mask)
 
-        # If this module is used after a module has already computed a sentence embedding,
-        # then we simply use the existing sentence embedding value instead of setting it to 1 before
-        # multiplying with the IDF weight.
-        if "sentence_embedding" in features:
-            values = features["sentence_embedding"][valid_batch_indices, valid_input_ids]
-            multi_hot[valid_batch_indices, valid_input_ids] = values
-        else:
-            multi_hot[valid_batch_indices, valid_input_ids] = 1
+        # Multiply by weights to get final embeddings
+        embeddings = token_presence * self.weight
 
-        sentence_embedding = multi_hot * self.weight
+        # If we already have a sentence embedding, we can multiply it with the calculated embeddings
+        if sentence_embedding is not None:
+            embeddings = embeddings * sentence_embedding
 
-        features["sentence_embedding"] = sentence_embedding
+        features["sentence_embedding"] = embeddings
         return features
 
     def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
@@ -94,7 +90,7 @@ class IDF(InputModule):
     @classmethod
     def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, **config):
         """
-        Create an IDF model from a JSON file containing token to IDF weight mappings.
+        Create an SparseStaticEmbedding module from a JSON file containing token to IDF weight mappings.
 
         Args:
             json_path (str): Path to the JSON file containing token to IDF weight mappings.
@@ -102,7 +98,7 @@ class IDF(InputModule):
             **config: Additional configuration options for the IDF model.
 
         Returns:
-            IDF: An initialized IDF model.
+            SparseStaticEmbedding: An initialized SparseStaticEmbedding model.
         """
         if not os.path.exists(json_path):
             try:
@@ -138,7 +134,7 @@ class IDF(InputModule):
         **kwargs,
     ) -> Self:
         """
-        Load the IDF model with its tokenizer.
+        Load the SparseStaticEmbedding module with its tokenizer.
 
         Args:
             model_name_or_path (str): Path to the directory containing the saved model.
@@ -150,7 +146,7 @@ class IDF(InputModule):
             **kwargs: Additional keyword arguments
 
         Returns:
-            IDF: The loaded IDF model.
+            SparseStaticEmbedding: The loaded SparseStaticEmbedding module.
         """
         config = cls.load_config(
             model_name_or_path=model_name_or_path,
@@ -191,39 +187,14 @@ class IDF(InputModule):
 
     def __repr__(self) -> str:
         tokenizer_info = f", tokenizer={self.tokenizer.__class__.__name__}"
-        return f"IDF({self.get_config_dict()}, dim={self.word_embedding_dimension}{tokenizer_info})"
+        return f"SparseStaticEmbedding({self.get_config_dict()}, dim={self.num_dimensions}{tokenizer_info})"
 
     def get_sentence_embedding_dimension(self) -> int:
-        return self.word_embedding_dimension
+        return self.num_dimensions
 
     def tokenize(
         self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
     ) -> dict[str, torch.Tensor]:
-        """Tokenizes a text and maps tokens to token-ids"""
-        output = {}
-        if isinstance(texts[0], str):
-            to_tokenize = [texts]
-        elif isinstance(texts[0], dict):
-            to_tokenize = []
-            output["text_keys"] = []
-            for lookup in texts:
-                text_key, text = next(iter(lookup.items()))
-                to_tokenize.append(text)
-                output["text_keys"].append(text_key)
-            to_tokenize = [to_tokenize]
-        else:
-            batch1, batch2 = [], []
-            for text_tuple in texts:
-                batch1.append(text_tuple[0])
-                batch2.append(text_tuple[1])
-            to_tokenize = [batch1, batch2]
-        output.update(
-            self.tokenizer(
-                *to_tokenize,
-                padding=padding,
-                truncation="longest_first",
-                return_tensors="pt",
-                add_special_tokens=False,
-            )
+        return dict(
+            self.tokenizer(texts, padding=padding, truncation=True, return_tensors="pt", add_special_tokens=False)
         )
-        return output

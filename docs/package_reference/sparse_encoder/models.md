@@ -12,12 +12,12 @@ Note that modules from `sentence_transformers.models` can also be used for Spars
 .. autoclass:: sentence_transformers.sparse_encoder.models.MLMTransformer
 ```
 
-## CSR Sparsity
+## SparseAutoEncoder
 ```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.models.CSRSparsity
+.. autoclass:: sentence_transformers.sparse_encoder.models.SparseAutoEncoder
 ```
 
-## IDF
+## SparseStaticEmbedding
 ```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.models.IDF
+.. autoclass:: sentence_transformers.sparse_encoder.models.SparseStaticEmbedding
 ``` 

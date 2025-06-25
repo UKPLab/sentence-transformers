@@ -631,7 +631,7 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
            # mapping regular expressions of parameter names to learning rates
            # Matching is done with 'search', not just 'match' or 'fullmatch'
            learning_rate_mapping = {
-               "IDF": 1e-4,
+               "SparseStaticEmbedding": 1e-4,
                "linear_.*": 1e-5,
            }
 

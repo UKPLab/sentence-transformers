@@ -5,11 +5,11 @@ from pathlib import Path
 import torch
 
 from sentence_transformers import SparseEncoder
-from sentence_transformers.sparse_encoder.models import IDF
+from sentence_transformers.sparse_encoder.models import SparseStaticEmbedding
 from tests.sparse_encoder.utils import sparse_allclose
 
 
-def test_idf_padding_ignored(inference_free_splade_bert_tiny_model: SparseEncoder) -> None:
+def test_sparse_static_embedding_padding_ignored(inference_free_splade_bert_tiny_model: SparseEncoder) -> None:
     model = inference_free_splade_bert_tiny_model
 
     input_texts = ["This is a test input", "This is a considerably longer test input to check padding behavior."]
@@ -26,7 +26,9 @@ def test_idf_padding_ignored(inference_free_splade_bert_tiny_model: SparseEncode
     ), "Batch encoding does not match single encoding."
 
 
-def test_idf_save_load(inference_free_splade_bert_tiny_model: SparseEncoder, tmp_path: Path) -> None:
+def test_sparse_static_embedding_save_load(
+    inference_free_splade_bert_tiny_model: SparseEncoder, tmp_path: Path
+) -> None:
     model = inference_free_splade_bert_tiny_model
 
     # Define test inputs
@@ -36,7 +38,7 @@ def test_idf_save_load(inference_free_splade_bert_tiny_model: SparseEncoder, tmp
     original_embeddings = model.encode_query(test_inputs, save_to_cpu=True)
 
     # Save the model
-    save_path = tmp_path / "test_idf_model"
+    save_path = tmp_path / "test_sparse_static_embedding_model"
     model.save_pretrained(save_path)
 
     # Load the model
@@ -48,8 +50,10 @@ def test_idf_save_load(inference_free_splade_bert_tiny_model: SparseEncoder, tmp
     # Check if embeddings are the same before and after save/load
     assert sparse_allclose(original_embeddings, loaded_embeddings, atol=1e-6), "Embeddings changed after save and load"
 
-    # Check if IDF weights are maintained after loading
-    assert isinstance(loaded_model[0].query_0_IDF, IDF), "IDF component missing after loading"
+    # Check if SparseStaticEmbedding weights are maintained after loading
+    assert isinstance(
+        loaded_model[0].query_0_SparseStaticEmbedding, SparseStaticEmbedding
+    ), "SparseStaticEmbedding component missing after loading"
     assert torch.allclose(
-        model[0].query_0_IDF.weight, loaded_model[0].query_0_IDF.weight
-    ), "IDF weights changed after save and load"
+        model[0].query_0_SparseStaticEmbedding.weight, loaded_model[0].query_0_SparseStaticEmbedding.weight
+    ), "SparseStaticEmbedding weights changed after save and load"

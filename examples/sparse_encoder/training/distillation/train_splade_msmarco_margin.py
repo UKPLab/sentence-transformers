@@ -29,8 +29,8 @@ def main():
 
     train_batch_size = 16
     num_epochs = 1
-    lambda_query = 0.1
-    lambda_corpus = 0.08
+    query_regularizer_weight = 0.1
+    corpus_regularizer_weight = 0.08
     learning_rate = 2e-5
 
     # 1. Define our SparseEncoder model
@@ -71,7 +71,10 @@ def main():
 
     # 3. Define our training loss
     loss = losses.SpladeLoss(
-        model, losses.SparseMarginMSELoss(model), lambda_query=lambda_query, lambda_corpus=lambda_corpus
+        model,
+        losses.SparseMarginMSELoss(model),
+        query_regularizer_weight=query_regularizer_weight,
+        corpus_regularizer_weight=corpus_regularizer_weight,
     )
 
     # 4. Define the evaluator. We use the SparseNanoBEIREvaluator, which is a light-weight evaluator for English

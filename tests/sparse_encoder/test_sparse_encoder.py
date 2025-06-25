@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from sentence_transformers.models import Pooling, Transformer
-from sentence_transformers.sparse_encoder.models import CSRSparsity, MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseAutoEncoder, SpladePooling
 from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 from tests.sparse_encoder.utils import sparse_allclose
 
@@ -446,7 +446,7 @@ def test_max_active_dims_set_init(splade_bert_tiny_model: SparseEncoder, csr_ber
     assert loaded_model.max_active_dims == 13
 
     loaded_model = SparseEncoder(str(tmp_path / "csr_bert_tiny"))
-    assert loaded_model.max_active_dims == 16  # Based on the CSRSparsity's k value
+    assert loaded_model.max_active_dims == 16  # Based on the SparseAutoEncoder's k value
     loaded_model = SparseEncoder(str(tmp_path / "csr_bert_tiny"), max_active_dims=13)
     assert loaded_model.max_active_dims == 13
 
@@ -464,7 +464,7 @@ def test_default_to_csr():
     model = SparseEncoder("prajjwal1/bert-tiny")
     assert isinstance(model[0], Transformer)
     assert isinstance(model[1], Pooling)
-    assert isinstance(model[2], CSRSparsity)
+    assert isinstance(model[2], SparseAutoEncoder)
 
 
 def test_sparsity(splade_bert_tiny_model: SparseEncoder):

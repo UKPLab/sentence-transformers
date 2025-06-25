@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentence_transformers.model_card import SentenceTransformerModelCardCallback, SentenceTransformerModelCardData
 from sentence_transformers.models import Asym, Module, Router
-from sentence_transformers.sparse_encoder.models import IDF, CSRSparsity, SpladePooling
+from sentence_transformers.sparse_encoder.models import SparseAutoEncoder, SparseStaticEmbedding, SpladePooling
 
 if TYPE_CHECKING:
     from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
@@ -97,13 +97,13 @@ class SparseEncoderModelCardData(SentenceTransformerModelCardData):
         if Asym in all_modules or Router in all_modules:
             model_type += ["Asymmetric"]
 
-        if IDF in all_modules:
+        if SparseStaticEmbedding in all_modules:
             model_type += ["Inference-free"]
 
         if SpladePooling in all_modules:
             model_type += ["SPLADE"]
 
-        if CSRSparsity in all_modules:
+        if SparseAutoEncoder in all_modules:
             model_type += ["CSR"]
 
         self.add_tags(map(str.lower, model_type))

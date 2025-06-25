@@ -13,12 +13,14 @@
 The <a href="../package_reference/sparse_encoder/losses.html#spladeloss"><code>SpladeLoss</code></a> implements a specialized loss function for SPLADE (Sparse Lexical and Expansion) models. It combines a main loss function with regularization terms to control efficiency:
 
 - Supports all the losses mention below as main loss but three principal loss types: <a href="../package_reference/sparse_encoder/losses.html#sparsemultiplenegativesrankingloss"><code>SparseMultipleNegativesRankingLoss</code></a>, <a href="../package_reference/sparse_encoder/losses.html#sparsemarginmseloss"><code>SparseMarginMSELoss</code></a> and <a href="../package_reference/sparse_encoder/losses.html#sparsedistilkldivloss"><code>SparseDistillKLDivLoss</code></a>.
-- Uses <a href="../package_reference/sparse_encoder/losses.html#flopsloss"><code>FlopsLoss</code></a> for regularization to control sparsity.
+- Uses <a href="../package_reference/sparse_encoder/losses.html#flopsloss"><code>FlopsLoss</code></a> for regularization to control sparsity by default, but supports custom regularizers.
 - Balances effectiveness (via the main loss) with efficiency by regularizing both query and document representations.
+- Allows using different regularizers for queries and documents via the `query_regularizer` and `corpus_regularizer` parameters, enabling fine-grained control over sparsity patterns for different types of inputs.
+- Supports separate threshold values for queries and documents via the `query_regularizer_threshold` and `corpus_regularizer_threshold` parameters, allowing different sparsity strictness levels for each input type.
 
 ### CSR Loss
 
-If you are using the <a href="../package_reference/sparse_encoder/models.html#csrsparsity"><code>CSRSparsity</code></a> module, then you have to use the <a href="../package_reference/sparse_encoder/losses.html#csrloss"><code>CSRLoss</code></a> (Contrastive Sparse Representation Loss). It combines two components:
+If you are using the <a href="../package_reference/sparse_encoder/models.html#sparseautoencoder"><code>SparseAutoEncoder</code></a> module, then you have to use the <a href="../package_reference/sparse_encoder/losses.html#csrloss"><code>CSRLoss</code></a> (Contrastive Sparse Representation Loss). It combines two components:
 
 - A reconstruction loss <a href="../package_reference/sparse_encoder/losses.html#csrreconstructionloss"><code>CSRReconstructionLoss</code></a> that ensures sparse representation can faithfully reconstruct original embeddings.
 - A main loss, which in the paper is a contrastive learning component using <a href="../package_reference/sparse_encoder/losses.html#sparsemultiplenegativesrankingloss">`SparseMultipleNegativesRankingLoss`</a> that ensures semanticallysimilar sentences have similar representations. But it's theorically possible to use all the losses mention below as main loss like for <a href="../package_reference/sparse_encoder/losses.html#spladeloss"><code>SpladeLoss</code></a> .

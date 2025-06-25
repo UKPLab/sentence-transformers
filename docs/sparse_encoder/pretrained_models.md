@@ -60,7 +60,7 @@ Note that all the numbers of below are extracted information from differents pap
 ## Inference-Free SPLADE Models
 
 ```{eval-rst}
-Inference-free Splade uses for the documents part a traditional Splade architecture and for the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query. So for this models we lose the query-expansion but we have now no models inference at the query time, which is very valuable for speed optimization.
+Inference-free Splade uses for the documents part a traditional Splade architecture and for the query part is an :class:`~sentence_transformers.sparse_encoder.models.SparseStaticEmbedding` module, which just returns a pre-computed score for every token in the query. So for this models we lose the query-expansion but we have now no models inference at the query time, which is very valuable for speed optimization.
 ```
 
 | Model Name                                                                                                                                                        | BEIR-13 avg nDCG@10 | Parameters |

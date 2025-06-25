@@ -25,7 +25,7 @@ Example scripts could be:
 
 * **[train_csr_nq.py](train_csr_nq.py)**:
     ```{eval-rst}
-    This example uses :class:`~sentence_transformers.sparse_encoder.losses.CSRLoss` (which internally uses :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`) for sparse retrievers. It trains on data from datasets like `NQ (natural questions) <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_. The script demonstrates how to train a sparse model with a CSRSparsity head on top of a SentenceTransformer model for retrieval tasks.
+    This example uses :class:`~sentence_transformers.sparse_encoder.losses.CSRLoss` (which internally uses :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`) for sparse retrievers. It trains on data from datasets like `NQ (natural questions) <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_. The script demonstrates how to train a sparse model with a SparseAutoEncoder head on top of a SentenceTransformer model for retrieval tasks.
     ```
 
 

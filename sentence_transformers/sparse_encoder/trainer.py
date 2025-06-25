@@ -13,7 +13,7 @@ from transformers.integrations import WandbCallback
 
 from sentence_transformers.evaluation import SentenceEvaluator, SequentialEvaluator
 from sentence_transformers.models import Router
-from sentence_transformers.sparse_encoder.callbacks.splade_callbacks import SpladeLambdaSchedulerCallback
+from sentence_transformers.sparse_encoder.callbacks.splade_callbacks import SpladeRegularizerWeightSchedulerCallback
 from sentence_transformers.sparse_encoder.data_collator import SparseEncoderDataCollator
 from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
 from sentence_transformers.sparse_encoder.model_card import SparseEncoderModelCardCallback
@@ -268,13 +268,13 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             logger.info(
                 "No `loss` passed, using `sentence_transformers.sparse_encoder.losses.SpladeLoss` as a default option. with "
                 "`SparseMultipleNegativesRankingLoss` as the default loss function."
-                "Be careful, we also set the `lambda_query` and `lambda_corpus`, but this are really sensitive parameters and should be tuned for your task."
+                "Be careful, we also set the `query_regularizer_weight` and `corpus_regularizer_weight`, but this are really sensitive parameters and should be tuned for your task."
             )
             loss = SpladeLoss(
                 model=model,
                 loss=SparseMultipleNegativesRankingLoss(model=model),
-                lambda_query=5e-5,  # Weight for query loss
-                lambda_corpus=3e-5,  # Weight for document loss
+                query_regularizer_weight=5e-5,  # Weight for query loss
+                corpus_regularizer_weight=3e-5,  # Weight for document loss
             )
 
         if isinstance(loss, dict):
@@ -351,7 +351,7 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
         is_splade_loss = isinstance(loss, SpladeLoss) if loss is not None else False
         splade_scheduler_callback_index = None
         for idx, callback in enumerate(self.callback_handler.callbacks):
-            if isinstance(callback, SpladeLambdaSchedulerCallback):
+            if isinstance(callback, SpladeRegularizerWeightSchedulerCallback):
                 splade_scheduler_callback_index = idx
                 break
 
@@ -362,12 +362,12 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
 
             else:
                 logger.warning(
-                    "SpladeLoss detected without SpladeLambdaSchedulerCallback. "
-                    "Adding default SpladeLambdaSchedulerCallback to gradually increase lambda values from 0 to their maximum."
+                    "SpladeLoss detected without SpladeRegularizerWeightSchedulerCallback. "
+                    "Adding default SpladeRegularizerWeightSchedulerCallback to gradually increase weight values from 0 to their maximum."
                 )
 
                 # Create and insert the callback after the default callback informing the trainer when to log, evaluate, save, etc.
-                splade_callback = SpladeLambdaSchedulerCallback(loss=loss)
+                splade_callback = SpladeRegularizerWeightSchedulerCallback(loss=loss)
             self.callback_handler.callbacks.insert(1, splade_callback)
 
         return loss

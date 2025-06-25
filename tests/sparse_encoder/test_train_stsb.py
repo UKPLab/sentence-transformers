@@ -93,7 +93,10 @@ def test_train_stsb_slow(
     )
 
     loss = losses.SpladeLoss(
-        model=model, loss=losses.SparseMultipleNegativesRankingLoss(model=model), lambda_corpus=3e-5, lambda_query=5e-5
+        model=model,
+        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
+        corpus_regularizer_weight=3e-5,
+        query_regularizer_weight=5e-5,
     )
 
     training_args = SparseEncoderTrainingArguments(
@@ -137,7 +140,10 @@ def test_train_stsb(
     train_dataset = Dataset.from_dict(train_dict)
 
     loss = losses.SpladeLoss(
-        model=model, loss=losses.SparseMultipleNegativesRankingLoss(model=model), lambda_corpus=3e-5, lambda_query=5e-5
+        model=model,
+        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
+        corpus_regularizer_weight=3e-5,
+        query_regularizer_weight=5e-5,
     )
 
     training_args = SparseEncoderTrainingArguments(

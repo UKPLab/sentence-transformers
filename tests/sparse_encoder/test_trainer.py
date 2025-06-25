@@ -57,8 +57,8 @@ def test_model_card_reuse(dummy_sparse_encoder_for_trainer: SparseEncoder):
         loss=losses.SpladeLoss(
             model=model,
             loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-            lambda_corpus=3e-5,
-            lambda_query=5e-5,
+            corpus_regularizer_weight=3e-5,
+            query_regularizer_weight=5e-5,
         ),
     )
 
@@ -92,7 +92,10 @@ def test_trainer(
     original_model_params = [p.clone() for p in model.parameters()]
 
     loss = losses.SpladeLoss(
-        model=model, loss=losses.SparseMultipleNegativesRankingLoss(model=model), lambda_corpus=3e-5, lambda_query=5e-5
+        model=model,
+        loss=losses.SparseMultipleNegativesRankingLoss(model=model),
+        corpus_regularizer_weight=3e-5,
+        query_regularizer_weight=5e-5,
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:
