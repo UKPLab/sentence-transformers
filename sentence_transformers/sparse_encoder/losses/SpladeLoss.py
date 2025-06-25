@@ -17,13 +17,13 @@ class SpladeLoss(nn.Module):
         self,
         model: SparseEncoder,
         loss: nn.Module,
-        lambda_corpus: float,
-        lambda_query: float | None = None,
-        all_docs: bool = False,
-        corpus_threshold: int | None = None,
-        query_threshold: int | None = None,
+        corpus_regularizer_weight: float,
+        query_regularizer_weight: float | None = None,
         corpus_regularizer: nn.Module | None = None,
         query_regularizer: nn.Module | None = None,
+        corpus_regularizer_threshold: int | None = None,
+        query_regularizer_threshold: int | None = None,
+        use_corpus_regularizer_only: bool = False,
     ):
         """
         SpladeLoss implements the loss function for the SPLADE (Sparse Lexical and Expansion) model,
@@ -36,23 +36,23 @@ class SpladeLoss(nn.Module):
         Args:
             model: SparseEncoder model
             loss: The principal loss function to use can be any of the SparseEncoder losses except CSR related losses and flops loss.
-            lambda_corpus: Weight for the corpus regularization term. This term encourages sparsity in the document embeddings.
+            corpus_regularizer_weight: Weight for the corpus regularization term. This term encourages sparsity in the document embeddings.
                 Will be applied to positive documents and all negatives one if some are provided.
-            lambda_query: Weight for the query regularization term. This term encourages sparsity in the query embeddings.
+            query_regularizer_weight: Weight for the query regularization term. This term encourages sparsity in the query embeddings.
                 If None, no query regularization will be applied, it's not a problem if you are in an inference-free setup or
-                if you are having all_docs=True. Else you should have a lambda_query > 0.
-            all_docs: If True, all input embeddings are treated as documents and regularized together with lambda_corpus.
-                Especially useful when training with symmetric texts (e.g. pairs of documents) or more.
-            corpus_threshold: Optional threshold for the number of non-zero (active) elements in the corpus embeddings to be considered in the FlopsLoss.
-                If specified, only corpus embeddings with more than this number of non-zero (active) elements will be considered.
-                Only used when corpus_regularizer is None (for the default FlopsLoss).
-            query_threshold: Optional threshold for the number of non-zero (active) elements in the query embeddings to be considered in the FlopsLoss.
-                If specified, only query embeddings with more than this number of non-zero (active) elements will be considered.
-                Only used when query_regularizer is None (for the default FlopsLoss).
+                if you are having use_corpus_regularizer_only=True. Else you should have a query_regularizer_weight > 0.
             corpus_regularizer: Optional regularizer to use specifically for corpus regularization instead of the default FlopsLoss.
                 This allows for different regularization strategies for documents vs queries.
             query_regularizer: Optional regularizer to use specifically for query regularization instead of the default FlopsLoss.
                 This allows for different regularization strategies for queries vs documents.
+            corpus_regularizer_threshold: Optional threshold for the number of non-zero (active) elements in the corpus embeddings to be considered in the FlopsLoss.
+                If specified, only corpus embeddings with more than this number of non-zero (active) elements will be considered.
+                Only used when corpus_regularizer is None (for the default FlopsLoss).
+            query_regularizer_threshold: Optional threshold for the number of non-zero (active) elements in the query embeddings to be considered in the FlopsLoss.
+                If specified, only query embeddings with more than this number of non-zero (active) elements will be considered.
+                Only used when query_regularizer is None (for the default FlopsLoss).
+            use_corpus_regularizer_only: If True, all input embeddings are treated as documents and regularized together with corpus_regularizer_weight.
+                Especially useful when training with symmetric texts (e.g. pairs of documents) or more.
 
         References:
             - For more details, see the paper "From Distillation to Hard Negative Sampling: Making Sparse Neural IR Models More Effective"
@@ -90,7 +90,10 @@ class SpladeLoss(nn.Module):
 
                 train_dataset = train_dataset.map(compute_labels, batched=True)
                 loss = losses.SpladeLoss(
-                    student_model, loss=losses.SparseMarginMSELoss(student_model), lambda_corpus=3e-5, lambda_query=5e-5
+                    student_model,
+                    loss=losses.SparseMarginMSELoss(student_model),
+                    corpus_regularizer_weight=3e-5,
+                    query_regularizer_weight=5e-5,
                 )
 
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
@@ -99,28 +102,30 @@ class SpladeLoss(nn.Module):
         super().__init__()
         self.model = model
         self.loss = loss
-        self.lambda_corpus = lambda_corpus
-        self.lambda_query = lambda_query
-        self.all_docs = all_docs
+        self.corpus_regularizer_weight = corpus_regularizer_weight
+        self.query_regularizer_weight = query_regularizer_weight
+        self.use_corpus_regularizer_only = use_corpus_regularizer_only
 
         # Set up regularizers with defaults to FlopsLoss using specific thresholds
         self.corpus_regularizer = (
-            corpus_regularizer if corpus_regularizer is not None else FlopsLoss(model, threshold=corpus_threshold)
+            corpus_regularizer
+            if corpus_regularizer is not None
+            else FlopsLoss(model, threshold=corpus_regularizer_threshold)
         )
         if query_regularizer is not None:
             self.query_regularizer = query_regularizer
-        elif not all_docs:
-            self.query_regularizer = FlopsLoss(model, threshold=query_threshold)
+        elif not use_corpus_regularizer_only:
+            self.query_regularizer = FlopsLoss(model, threshold=query_regularizer_threshold)
 
-        if self.lambda_query is None and not all_docs:
+        if self.query_regularizer_weight is None and not use_corpus_regularizer_only:
             logging.warning(
-                "lambda_query is None. This means that the query regularization will not be applied. If you are in an inference free set up it's fine else you should have a lambda_query > 0."
+                "query_regularizer_weight is None. This means that the query regularization will not be applied. If you are in an inference free set up it's fine else you should have a query_regularizer_weight > 0."
             )
-        if self.all_docs and self.lambda_query is not None:
+        if self.use_corpus_regularizer_only and self.query_regularizer_weight is not None:
             logging.warning(
-                "lambda_query should be None when all_docs is True. all_docs mean we consider all the input to be of the same type and so under the same regularization. lambda_query will be ignored."
+                "query_regularizer_weight should be None when use_corpus_regularizer_only is True. use_corpus_regularizer_only mean we consider all the input to be of the same type and so under the same regularization. query_regularizer_weight will be ignored."
             )
-            self.lambda_query = None
+            self.query_regularizer_weight = None
         if not hasattr(loss, "compute_loss_from_embeddings"):
             raise ValueError(
                 "The provided loss does not have a 'compute_loss_from_embeddings' method, which is required for SpladeLoss. "
@@ -140,17 +145,17 @@ class SpladeLoss(nn.Module):
         else:
             losses["base_loss"] = base_loss
 
-        if self.all_docs:
-            # If all_docs is True, we consider all the input to be of the same type and so under the same regularization
+        if self.use_corpus_regularizer_only:
+            # If use_corpus_regularizer_only is True, we consider all the input to be of the same type and so under the same regularization
             corpus_loss = self.corpus_regularizer.compute_loss_from_embeddings(torch.cat(embeddings))
         else:
             corpus_loss = self.corpus_regularizer.compute_loss_from_embeddings(torch.cat(embeddings[1:]))
-        losses["corpus_regularizer_loss"] = corpus_loss * self.lambda_corpus
+        losses["corpus_regularizer_loss"] = corpus_loss * self.corpus_regularizer_weight
 
         # Add query regularization if enabled
-        if self.lambda_query is not None:
+        if self.query_regularizer_weight is not None:
             query_loss = self.query_regularizer.compute_loss_from_embeddings(embeddings[0])
-            losses["query_regularizer_loss"] = query_loss * self.lambda_query
+            losses["query_regularizer_loss"] = query_loss * self.query_regularizer_weight
 
         return losses
 
@@ -163,22 +168,22 @@ class SpladeLoss(nn.Module):
         """
         config_dict = {
             "loss": self.loss,
-            "lambda_corpus": self.lambda_corpus,
+            "corpus_regularizer_weight": self.corpus_regularizer_weight,
         }
-        if self.lambda_query is not None:
-            config_dict["lambda_query"] = self.lambda_query
+        if self.query_regularizer_weight is not None:
+            config_dict["query_regularizer_weight"] = self.query_regularizer_weight
         # Include regularizer names (if not flops) and threshold information (if not None)
 
         if not isinstance(self.corpus_regularizer, FlopsLoss):
             config_dict["corpus_regularizer"] = self.corpus_regularizer.__class__.__name__
         if hasattr(self.corpus_regularizer, "threshold") and self.corpus_regularizer.threshold is not None:
-            config_dict["corpus_threshold"] = self.corpus_regularizer.threshold
+            config_dict["corpus_regularizer_threshold"] = self.corpus_regularizer.threshold
 
         if hasattr(self, "query_regularizer") and self.query_regularizer is not None:
             if not isinstance(self.query_regularizer, FlopsLoss):
                 config_dict["query_regularizer"] = self.query_regularizer.__class__.__name__
             if hasattr(self.query_regularizer, "threshold") and self.query_regularizer.threshold is not None:
-                config_dict["query_threshold"] = self.query_regularizer.threshold
+                config_dict["query_regularizer_threshold"] = self.query_regularizer.threshold
         return config_dict
 
     @property

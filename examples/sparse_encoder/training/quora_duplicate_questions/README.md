@@ -36,8 +36,8 @@ eval_dataset = dataset_dict["test"]
 loss = losses.SpladeLoss(
     model=model,
     loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-    lambda_query=lambda_query,  # Weight for query loss
-    lambda_corpus=lambda_corpus,  # Weight for document loss
+    query_regularizer_weight=query_regularizer_weight,  # Weight for query loss
+    corpus_regularizer_weight=corpus_regularizer_weight,  # Weight for document loss
 )
 ```
 

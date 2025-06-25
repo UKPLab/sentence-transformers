@@ -10,7 +10,7 @@ To train on NLI, see the following example file:
     ```{eval-rst}
     This script trains a `SparseEncoder` (specifically a SPLADE-like model, fine-tuning e.g., `naver/splade-cocondenser-ensembledistil`) for NLI. It uses the :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss`. This loss is designed for training SPLADE-style models and combines two main components:
     1. A ranking loss, typically :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, to ensure that relevant (e.g., entailment) pairs have higher similarity scores than irrelevant ones (in-batch negatives).
-    2. Regularization terms (controlled by `lambda_corpus` and potentially other parameters in the loss) to encourage sparsity in the learned term weightings in the sparse vectors. This is a key characteristic of SPLADE models, leading to highly efficient and effective sparse representations.
+    2. Regularization terms (controlled by `corpus_regularizer_weight` and potentially other parameters in the loss) to encourage sparsity in the learned term weightings in the sparse vectors. This is a key characteristic of SPLADE models, leading to highly efficient and effective sparse representations.
 
     The script uses the AllNLI dataset, likely with the "pair-score" or "pair" configuration to extract (anchor, positive) pairs (e.g., premise and entailment hypothesis) for the ranking component of the loss.
     ```
@@ -45,4 +45,4 @@ The underlying ranking loss operates on sentence pairs [(a<sub>1</sub>, b<sub>1<
 Using this with NLI data means defining entailment pairs as positive pairs. For example, (*"A soccer game with multiple males playing."*, *"Some men are playing a sport."*) should be close in the sparse vector space.
 
 ### Sparsity Regularization
-A key part of `SpladeLoss` is the regularization (e.g., FLOPS regularization via `lambda_corpus`) applied to the term weights in the sparse output vectors. This encourages the model to select only the most important terms for representation, leading to very sparse vectors, which is beneficial for efficient retrieval.
+A key part of `SpladeLoss` is the regularization (e.g., FLOPS regularization via `corpus_regularizer_weight`) applied to the term weights in the sparse output vectors. This encourages the model to select only the most important terms for representation, leading to very sparse vectors, which is beneficial for efficient retrieval.

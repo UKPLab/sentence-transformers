@@ -58,7 +58,9 @@ class SparseTripletLoss(TripletLoss):
                         "negative": ["It's quite rainy, sadly.", "She walked to the store."],
                     }
                 )
-                loss = losses.SpladeLoss(model=model, loss=losses.SparseTripletLoss(model), lambda_corpus=3e-5, lambda_query=5e-5)
+                loss = losses.SpladeLoss(
+                    model=model, loss=losses.SparseTripletLoss(model), corpus_regularizer_weight=3e-5, query_regularizer_weight=5e-5
+                )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
                 trainer.train()

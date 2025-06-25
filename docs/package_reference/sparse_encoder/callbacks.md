@@ -1,6 +1,6 @@
 # Callbacks
 
-## SpladeLambdaSchedulerCallback
+## SpladeWeightRegulizerSchedulerCallback
 ```{eval-rst}
-.. autoclass:: sentence_transformers.sparse_encoder.callbacks.splade_callbacks.SpladeLambdaSchedulerCallback
+.. autoclass:: sentence_transformers.sparse_encoder.callbacks.splade_callbacks.SpladeWeightRegulizerSchedulerCallback
 ``` 

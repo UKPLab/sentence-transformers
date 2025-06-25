@@ -16,7 +16,7 @@ The <a href="../package_reference/sparse_encoder/losses.html#spladeloss"><code>S
 - Uses <a href="../package_reference/sparse_encoder/losses.html#flopsloss"><code>FlopsLoss</code></a> for regularization to control sparsity by default, but supports custom regularizers.
 - Balances effectiveness (via the main loss) with efficiency by regularizing both query and document representations.
 - Allows using different regularizers for queries and documents via the `query_regularizer` and `corpus_regularizer` parameters, enabling fine-grained control over sparsity patterns for different types of inputs.
-- Supports separate threshold values for queries and documents via the `query_threshold` and `corpus_threshold` parameters, allowing different sparsity strictness levels for each input type.
+- Supports separate threshold values for queries and documents via the `query_regularizer_threshold` and `corpus_regularizer_threshold` parameters, allowing different sparsity strictness levels for each input type.
 
 ### CSR Loss
 
