@@ -55,35 +55,31 @@ class IDF(InputModule):
             self.weight = torch.nn.Parameter(weight, requires_grad=not frozen)
         else:
             self.weight = torch.nn.Parameter(torch.ones(len(self.tokenizer.get_vocab())), requires_grad=not frozen)
+
         self.frozen = frozen
-        self.word_embedding_dimension = self.weight.size(0)
+        self.num_dimensions = self.weight.size(0)
         self.max_seq_length = self.tokenizer.model_max_length
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        input_ids, attention_mask = features["input_ids"], features["attention_mask"]
+        input_ids = features["input_ids"]
+        attention_mask = features["attention_mask"]
+        sentence_embedding = features.get("sentence_embedding", None)
         batch_size = input_ids.shape[0]
 
-        multi_hot = torch.zeros(
-            batch_size, self.word_embedding_dimension, dtype=torch.float32, device=input_ids.device
-        )
-        batch_indices = torch.arange(batch_size, device=input_ids.device).unsqueeze(-1)
+        # Create binary mask where 1 indicates token presence, shape: (batch_size, num_dimensions)
+        token_presence = torch.zeros(batch_size, self.num_dimensions, device=input_ids.device, dtype=torch.int64)
 
-        valid_tokens = attention_mask == 1
-        valid_batch_indices = batch_indices.expand_as(input_ids)[valid_tokens]
-        valid_input_ids = input_ids[valid_tokens]
+        # Only consider tokens where attention_mask is 1 by using the attention_mask as scatter values
+        token_presence.scatter_(1, input_ids, attention_mask)
 
-        # If this module is used after a module has already computed a sentence embedding,
-        # then we simply use the existing sentence embedding value instead of setting it to 1 before
-        # multiplying with the IDF weight.
-        if "sentence_embedding" in features:
-            values = features["sentence_embedding"][valid_batch_indices, valid_input_ids]
-            multi_hot[valid_batch_indices, valid_input_ids] = values
-        else:
-            multi_hot[valid_batch_indices, valid_input_ids] = 1
+        # Multiply by weights to get final embeddings
+        embeddings = token_presence * self.weight
 
-        sentence_embedding = multi_hot * self.weight
+        # If we already have a sentence embedding, we can multiply it with the calculated embeddings
+        if sentence_embedding is not None:
+            embeddings = embeddings * sentence_embedding
 
-        features["sentence_embedding"] = sentence_embedding
+        features["sentence_embedding"] = embeddings
         return features
 
     def save(self, output_path: str, *args, safe_serialization: bool = True, **kwargs) -> None:
@@ -191,39 +187,14 @@ class IDF(InputModule):
 
     def __repr__(self) -> str:
         tokenizer_info = f", tokenizer={self.tokenizer.__class__.__name__}"
-        return f"IDF({self.get_config_dict()}, dim={self.word_embedding_dimension}{tokenizer_info})"
+        return f"IDF({self.get_config_dict()}, dim={self.num_dimensions}{tokenizer_info})"
 
     def get_sentence_embedding_dimension(self) -> int:
-        return self.word_embedding_dimension
+        return self.num_dimensions
 
     def tokenize(
         self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
     ) -> dict[str, torch.Tensor]:
-        """Tokenizes a text and maps tokens to token-ids"""
-        output = {}
-        if isinstance(texts[0], str):
-            to_tokenize = [texts]
-        elif isinstance(texts[0], dict):
-            to_tokenize = []
-            output["text_keys"] = []
-            for lookup in texts:
-                text_key, text = next(iter(lookup.items()))
-                to_tokenize.append(text)
-                output["text_keys"].append(text_key)
-            to_tokenize = [to_tokenize]
-        else:
-            batch1, batch2 = [], []
-            for text_tuple in texts:
-                batch1.append(text_tuple[0])
-                batch2.append(text_tuple[1])
-            to_tokenize = [batch1, batch2]
-        output.update(
-            self.tokenizer(
-                *to_tokenize,
-                padding=padding,
-                truncation="longest_first",
-                return_tensors="pt",
-                add_special_tokens=False,
-            )
+        return dict(
+            self.tokenizer(texts, padding=padding, truncation=True, return_tensors="pt", add_special_tokens=False)
         )
-        return output
