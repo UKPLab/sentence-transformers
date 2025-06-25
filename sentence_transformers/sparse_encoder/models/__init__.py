@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from .IDF import IDF
 from .MLMTransformer import MLMTransformer
 from .SparseAutoEncoder import SparseAutoEncoder
+from .SparseStaticEmbedding import SparseStaticEmbedding
 from .SpladePooling import SpladePooling
 
-__all__ = ["SparseAutoEncoder", "MLMTransformer", "SpladePooling", "IDF"]
+__all__ = ["SparseAutoEncoder", "MLMTransformer", "SpladePooling", "SparseStaticEmbedding"]

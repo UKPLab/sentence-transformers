@@ -57,19 +57,19 @@ class Router(InputModule, nn.Sequential):
             Additionally, it is common to use a different learning rate for the different routes. For this, you should
             use the ``learning_rate_mapping`` argument in the :class:`~sentence_transformers.training_args.SentenceTransformerTrainingArguments`
             or :class:`~sentence_transformers.sparse_encoder.training_args.SparseEncoderTrainingArguments` to map parameter patterns
-            to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for an IDF module and
+            to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for an SparseStaticEmbedding module and
             ``2e-5`` for the rest of the model, you can do this::
 
                 args = SparseEncoderTrainingArguments(
                     ...,
                     learning_rate=2e-5,
                     learning_rate_mapping={
-                        r"IDF\.*": 1e-3,
+                        r"SparseStaticEmbedding\.*": 1e-3,
                     }
                 )
 
         In the below examples, the ``Router`` model is used to create asymmetric models with different encoders for
-        queries and documents. In these examples, the "query" route is efficient (e.g., using IDF or static embeddings),
+        queries and documents. In these examples, the "query" route is efficient (e.g., using SparseStaticEmbedding),
         while the "document" route uses a more complex model (e.g. a Transformers module). This allows for efficient
         query encoding while still using a powerful document encoder, but the combinations are not limited to this.
 
@@ -103,13 +103,13 @@ class Router(InputModule, nn.Sequential):
 
                 from sentence_transformers.models import Router
                 from sentence_transformers.sparse_encoder import SparseEncoder
-                from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+                from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseStaticEmbedding, SpladePooling
 
                 # Load an asymmetric model with different encoders for queries and documents
                 doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill")
                 router = Router.for_query_document(
                     query_modules=[
-                        IDF.from_json(
+                        SparseStaticEmbedding.from_json(
                             "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill",
                             tokenizer=doc_encoder.tokenizer,
                             frozen=True,

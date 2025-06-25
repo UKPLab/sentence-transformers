@@ -21,23 +21,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class IDF(InputModule):
+class SparseStaticEmbedding(InputModule):
     """
-    IDF (Inverse Document Frequency) module for efficient sparse representations.
+    SparseStaticEmbedding module for efficient sparse representations.
 
-    This lightweight module applies IDF weights to token representations, emphasizing
-    rare terms while downweighting common ones. It creates sparse vectors where non-zero
-    values correspond to the IDF weights of tokens in the text.
+    This lightweight module computes sparse representations by mapping input tokens to static weights,
+    such as IDF (Inverse Document Frequency) weights. It is designed to encode queries or documents
+    into fixed-size embeddings based on the presence of tokens in the input.
 
-    Key benefits:
-    - Computationally efficient for both encoding and search
-    - Compatible with traditional inverted indices
-    - Can be used for inference-free query encoding when paired with pre-computed document embeddings
+    A common scenario is to use this module for encoding queries, and using a heavier module like
+    SPLADE (MLMTransformer + SpladePooling) for document encoding.
 
     Args:
-        weight: IDF weights for vocabulary tokens
-        tokenizer:  PreTrainedTokenizer to convert tokens to IDs
-        frozen: If True, weights are fixed. Defaults to False.
+        tokenizer (PreTrainedTokenizer): PreTrainedTokenizer to tokenize input texts into input IDs.
+        weight (torch.Tensor | None): Static weights for vocabulary tokens (e.g., IDF weights),
+            shape should be (vocab_size,). If None, initializes weights to a vector of ones.
+            Default is None.
+        frozen (bool): Whether the weights should be frozen (not trainable). Default is False.
     """
 
     config_keys: list[str] = ["frozen"]
@@ -90,7 +90,7 @@ class IDF(InputModule):
     @classmethod
     def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, **config):
         """
-        Create an IDF model from a JSON file containing token to IDF weight mappings.
+        Create an SparseStaticEmbedding module from a JSON file containing token to IDF weight mappings.
 
         Args:
             json_path (str): Path to the JSON file containing token to IDF weight mappings.
@@ -98,7 +98,7 @@ class IDF(InputModule):
             **config: Additional configuration options for the IDF model.
 
         Returns:
-            IDF: An initialized IDF model.
+            SparseStaticEmbedding: An initialized SparseStaticEmbedding model.
         """
         if not os.path.exists(json_path):
             try:
@@ -134,7 +134,7 @@ class IDF(InputModule):
         **kwargs,
     ) -> Self:
         """
-        Load the IDF model with its tokenizer.
+        Load the SparseStaticEmbedding module with its tokenizer.
 
         Args:
             model_name_or_path (str): Path to the directory containing the saved model.
@@ -146,7 +146,7 @@ class IDF(InputModule):
             **kwargs: Additional keyword arguments
 
         Returns:
-            IDF: The loaded IDF model.
+            SparseStaticEmbedding: The loaded SparseStaticEmbedding module.
         """
         config = cls.load_config(
             model_name_or_path=model_name_or_path,
@@ -187,7 +187,7 @@ class IDF(InputModule):
 
     def __repr__(self) -> str:
         tokenizer_info = f", tokenizer={self.tokenizer.__class__.__name__}"
-        return f"IDF({self.get_config_dict()}, dim={self.num_dimensions}{tokenizer_info})"
+        return f"SparseStaticEmbedding({self.get_config_dict()}, dim={self.num_dimensions}{tokenizer_info})"
 
     def get_sentence_embedding_dimension(self) -> int:
         return self.num_dimensions

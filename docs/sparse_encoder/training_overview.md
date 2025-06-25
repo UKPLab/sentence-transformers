@@ -98,7 +98,7 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 
 .. tab:: Inference-free Splade
 
-    Inference-free Splade uses a :class:`~sentence_transformers.models.Router` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional Splade architecture (a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` module) and the query part is an :class:`~sentence_transformers.sparse_encoder.models.IDF` module, which just returns a pre-computed score for every token in the query.
+    Inference-free Splade uses a :class:`~sentence_transformers.models.Router` module with different modules for queries and documents. Usually for this type of architecture, the documents part is a traditional Splade architecture (a :class:`~sentence_transformers.sparse_encoder.models.MLMTransformer` followed by a :class:`~sentence_transformers.sparse_encoder.models.SpladePooling` module) and the query part is an :class:`~sentence_transformers.sparse_encoder.models.SparseStaticEmbedding` module, which just returns a pre-computed score for every token in the query.
 
     .. raw:: html
 
@@ -106,7 +106,7 @@ But if instead you want to train from another checkpoint, or from scratch, then 
             <p class="sidebar-title">Documentation</p>
             <ul class="simple">
                 <li><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Router"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.models.Router</span></code></a></li>
-                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.IDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.IDF</span></code></a></li>
+                <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SparseStaticEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.SparseStaticEmbedding</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.MLMTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.MLMTransformer</span></code></a></li>
                 <li><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SpladePooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">sentence_transformers.sparse_encoder.models.SpladePooling</span></code></a></li>
             </ul>
@@ -116,14 +116,14 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 
         from sentence_transformers import SparseEncoder
         from sentence_transformers.models import Router
-        from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+        from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseStaticEmbedding, SpladePooling
 
         # Initialize MLM Transformer for document encoding
         doc_encoder = MLMTransformer("google-bert/bert-base-uncased")
 
         # Create a router model with different paths for queries and documents
         router = Router.for_query_document(
-            query_modules=[IDF(tokenizer=doc_encoder.tokenizer, frozen=False)],
+            query_modules=[SparseStaticEmbedding(tokenizer=doc_encoder.tokenizer, frozen=False)],
             # Document path: full MLM transformer + pooling
             document_modules=[doc_encoder, SpladePooling("max")],
         )
@@ -132,13 +132,13 @@ But if instead you want to train from another checkpoint, or from scratch, then 
         model = SparseEncoder(modules=[router], similarity_fn_name="dot")
         # SparseEncoder(
         #   (0): Router(
-        #     (query_0_IDF): IDF ({'frozen': False}, dim:30522, tokenizer: BertTokenizerFast)
+        #     (query_0_SparseStaticEmbedding): SparseStaticEmbedding({'frozen': False}, dim:30522, tokenizer: BertTokenizerFast)
         #     (document_0_MLMTransformer): MLMTransformer({'max_seq_length': 512, 'do_lower_case': False, 'architecture': 'BertForMaskedLM'})
         #     (document_1_SpladePooling): SpladePooling({'pooling_strategy': 'max', 'activation_function': 'relu', 'word_embedding_dimension': None})
         #   )
         # )
     
-    This architecture allows for fast query-time processing using the lightweight IDF approach, that can be trained and seen as a linear weights, while documents are processed with the full MLM transformer and SpladePooling.
+    This architecture allows for fast query-time processing using the lightweight SparseStaticEmbedding approach, that can be trained and seen as a linear weights, while documents are processed with the full MLM transformer and SpladePooling.
 
     .. tip::
 
@@ -156,13 +156,13 @@ But if instead you want to train from another checkpoint, or from scratch, then 
                 }
             )
         
-        Additionally, it is recommended to use a much higher learning rate for the IDF module than for the rest of the model. For this, you should use the ``learning_rate_mapping`` argument in the :class:`~sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments` to map parameter patterns to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for the IDF module and ``2e-5`` for the rest of the model, you can do this::
+        Additionally, it is recommended to use a much higher learning rate for the SparseStaticEmbedding module than for the rest of the model. For this, you should use the ``learning_rate_mapping`` argument in the :class:`~sentence_transformers.sparse_encoder.SparseEncoderTrainingArguments` to map parameter patterns to their learning rates. For example, if you want to use a learning rate of ``1e-3`` for the SparseStaticEmbedding module and ``2e-5`` for the rest of the model, you can do this::
 
             args = SparseEncoderTrainingArguments(
                 ...,
                 learning_rate=2e-5,
                 learning_rate_mapping={
-                    r"IDF\.*": 1e-3,
+                    r"SparseStaticEmbedding\.*": 1e-3,
                 }
             )
             
@@ -725,7 +725,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
             <ol class="arabic">
                 <li><p><a class="reference internal" href="../package_reference/sparse_encoder/SparseEncoder.html#sentence_transformers.sparse_encoder.SparseEncoder" title="sentence_transformers.sparse_encoder.SparseEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">SparseEncoder</span></code></a></p>
                 <ol class="loweralpha simple">
-                    <li><p><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.IDF" title="sentence_transformers.sparse_encoder.models.IDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">IDF</span></code></a></p></li>
+                    <li><p><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SparseStaticEmbedding" title="sentence_transformers.sparse_encoder.models.SparseStaticEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">SparseStaticEmbedding</span></code></a></p></li>
                     <li><p><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.MLMTransformer" title="sentence_transformers.sparse_encoder.models.MLMTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">MLMTransformer</span></code></a></p></li>
                     <li><p><a class="reference internal" href="../package_reference/sparse_encoder/models.html#sentence_transformers.sparse_encoder.models.SpladePooling" title="sentence_transformers.sparse_encoder.models.SpladePooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpladePooling</span></code></a></p></li>
                     <li><p><a class="reference internal" href="../package_reference/sentence_transformer/models.html#sentence_transformers.models.Router" title="sentence_transformers.models.Router"><code class="xref py py-class docutils literal notranslate"><span class="pre">Router</span></code></a></p></li>
@@ -760,7 +760,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
         from sentence_transformers.models import Router
         from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator
         from sentence_transformers.sparse_encoder.losses import SparseMultipleNegativesRankingLoss, SpladeLoss
-        from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+        from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseStaticEmbedding, SpladePooling
         from sentence_transformers.training_args import BatchSamplers
 
         logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
@@ -771,7 +771,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
             pooling_strategy="max", word_embedding_dimension=mlm_transformer.get_sentence_embedding_dimension()
         )
         router = Router.for_query_document(
-            query_modules=[IDF(tokenizer=mlm_transformer.tokenizer, frozen=False)],
+            query_modules=[SparseStaticEmbedding(tokenizer=mlm_transformer.tokenizer, frozen=False)],
             document_modules=[mlm_transformer, splade_pooling],
         )
 
@@ -810,7 +810,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
             per_device_train_batch_size=16,
             per_device_eval_batch_size=16,
             learning_rate=2e-5,
-            learning_rate_mapping={r"IDF\.weight": 1e-3},  # Set a higher learning rate for the IDF module
+            learning_rate_mapping={r"SparseStaticEmbedding\.weight": 1e-3},  # Set a higher learning rate for the SparseStaticEmbedding module
             warmup_ratio=0.1,
             fp16=True,  # Set to False if you get an error that your GPU can't run on FP16
             bf16=False,  # Set to True if you have a GPU that supports BF16

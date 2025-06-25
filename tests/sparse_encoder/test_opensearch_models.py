@@ -4,7 +4,7 @@ import torch
 
 from sentence_transformers.models import Router
 from sentence_transformers.sparse_encoder import SparseEncoder
-from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseStaticEmbedding, SpladePooling
 
 
 def test_opensearch_v2_distill_similarity():
@@ -13,7 +13,7 @@ def test_opensearch_v2_distill_similarity():
     doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill")
     router = Router.for_query_document(
         query_modules=[
-            IDF.from_json(
+            SparseStaticEmbedding.from_json(
                 "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill",
                 tokenizer=doc_encoder.tokenizer,
                 frozen=True,
@@ -86,7 +86,7 @@ def test_opensearch_v3_distill_similarity():
     doc_encoder = MLMTransformer("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill")
     router = Router.for_query_document(
         query_modules=[
-            IDF.from_json(
+            SparseStaticEmbedding.from_json(
                 "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill",
                 tokenizer=doc_encoder.tokenizer,
                 frozen=True,

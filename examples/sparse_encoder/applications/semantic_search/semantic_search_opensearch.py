@@ -17,7 +17,7 @@ from datasets import load_dataset
 
 from sentence_transformers import SparseEncoder
 from sentence_transformers.models import Router
-from sentence_transformers.sparse_encoder.models import IDF, MLMTransformer, SpladePooling
+from sentence_transformers.sparse_encoder.models import MLMTransformer, SparseStaticEmbedding, SpladePooling
 from sentence_transformers.sparse_encoder.search_engines import semantic_search_opensearch
 
 # 1. Load the natural-questions dataset with 100K answers
@@ -34,7 +34,7 @@ model_id = "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill"
 doc_encoder = MLMTransformer(model_id)
 router = Router.for_query_document(
     query_modules=[
-        IDF.from_json(
+        SparseStaticEmbedding.from_json(
             model_id,
             tokenizer=doc_encoder.tokenizer,
             frozen=True,
