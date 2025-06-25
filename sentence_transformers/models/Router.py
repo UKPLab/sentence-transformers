@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from collections import OrderedDict
+from pathlib import Path
 
 try:
     from typing import Self
@@ -358,11 +359,11 @@ class Router(InputModule, nn.Sequential):
             module_class: Module = import_from_string(model_type)
             try:
                 module = module_class.load(
-                    model_name_or_path, subfolder=os.path.join(subfolder, model_id), **hub_kwargs, **kwargs
+                    model_name_or_path, subfolder=Path(subfolder, model_id).as_posix(), **hub_kwargs, **kwargs
                 )
             except TypeError:
                 local_path = load_dir_path(
-                    model_name_or_path=model_name_or_path, subfolder=os.path.join(subfolder, model_id), **hub_kwargs
+                    model_name_or_path=model_name_or_path, subfolder=Path(subfolder, model_id).as_posix(), **hub_kwargs
                 )
                 module = module_class.load(local_path)
             modules[model_id] = module
