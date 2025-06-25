@@ -855,7 +855,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
 ```{eval-rst}
 This Sparse Encoder trainer integrates support for various :class:`transformers.TrainerCallback` subclasses, such as:
 
-- :class:`~sentence_transformers.sparse_encoder.callbacks.splade_callbacks.SpladeWeightRegulizerSchedulerCallback` to schedule
+- :class:`~sentence_transformers.sparse_encoder.callbacks.splade_callbacks.SpladeRegularizerWeightSchedulerCallback` to schedule
   the lambda parameters of the :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` loss during training.
 - :class:`~transformers.integrations.WandbCallback` to automatically log training metrics to W&B if ``wandb`` is installed
 - :class:`~transformers.integrations.TensorBoardCallback` to log training metrics to TensorBoard if ``tensorboard`` is accessible.

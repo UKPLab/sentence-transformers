@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from .splade_callbacks import SchedulerType, SpladeWeightRegulizerSchedulerCallback
+from .splade_callbacks import SchedulerType, SpladeRegularizerWeightSchedulerCallback
 
-__all__ = ["SpladeWeightRegulizerSchedulerCallback", "SchedulerType"]
+__all__ = ["SpladeRegularizerWeightSchedulerCallback", "SchedulerType"]

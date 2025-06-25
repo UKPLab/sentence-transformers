@@ -18,7 +18,7 @@ class SchedulerType(Enum):
     QUADRATIC = "quadratic"
 
 
-class SpladeWeightRegulizerSchedulerCallback(TrainerCallback):
+class SpladeRegularizerWeightSchedulerCallback(TrainerCallback):
     def __init__(
         self,
         loss: SpladeLoss,
@@ -58,7 +58,7 @@ class SpladeWeightRegulizerSchedulerCallback(TrainerCallback):
         # Validate loss is an instance of SpladeLoss
         if not isinstance(loss, SpladeLoss):
             logger.warning(
-                f"SpladeWeightRegulizerSchedulerCallback is only compatible with SpladeLoss, "
+                f"SpladeRegularizerWeightSchedulerCallback is only compatible with SpladeLoss, "
                 f"but got {type(loss).__name__}. This callback won't have any effect."
             )
             raise ValueError("loss must be an instance of SpladeLoss")
