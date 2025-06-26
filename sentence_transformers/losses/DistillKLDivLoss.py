@@ -9,7 +9,9 @@ from sentence_transformers import SentenceTransformer, util
 
 
 class DistillKLDivLoss(nn.Module):
-    def __init__(self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score) -> None:
+    def __init__(
+        self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score, temperature: float = 2.0
+    ) -> None:
         """
         Compute the KL divergence loss between probability distributions derived from student and teacher models' similarity scores.
         By default, similarity is calculated using the dot-product. This loss is designed for knowledge distillation
@@ -21,6 +23,8 @@ class DistillKLDivLoss(nn.Module):
         Args:
             model: SentenceTransformer model (student model)
             similarity_fct: Which similarity function to use for the student model
+            temperature: Temperature parameter to soften probability distributions (higher temperature = softer distributions)
+                When combined with other losses, a temperature of 1.0 is also viable. Defaults to 2.0.
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.11386
@@ -124,6 +128,7 @@ class DistillKLDivLoss(nn.Module):
         super().__init__()
         self.model = model
         self.similarity_fct = similarity_fct
+        self.temperature = temperature
         self.loss_fct = nn.KLDivLoss(reduction="batchmean")
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
@@ -139,14 +144,18 @@ class DistillKLDivLoss(nn.Module):
             [self.similarity_fct(embeddings_query, embeddings_other) for embeddings_other in embeddings[1:]],
             dim=1,
         )
+        # Scale student scores by temperature to soften distributions, then apply log-softmax
+        student_scores = student_scores / self.temperature
         student_log_probs = torch.log_softmax(student_scores, dim=1)
 
         # Compute teacher scores
-        teacher_scores = labels
+        teacher_scores = labels / self.temperature
         teacher_probs = torch.softmax(teacher_scores, dim=1)
 
         # Compute the KL Divergence
         loss = self.loss_fct(student_log_probs, teacher_probs)
+        # Scale the loss to counteract the temperature scaling
+        loss = loss * (self.temperature**2)
         return loss
 
     @property

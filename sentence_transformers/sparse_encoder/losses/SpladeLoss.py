@@ -37,10 +37,12 @@ class SpladeLoss(nn.Module):
             model: SparseEncoder model
             loss: The principal loss function to use can be any of the SparseEncoder losses except CSR related losses and flops loss.
             document_regularizer_weight: Weight for the corpus regularization term. This term encourages sparsity in the document embeddings.
-                Will be applied to positive documents and all negatives one if some are provided.
+                Will be applied to positive documents and all negatives one if some are provided. In some papers, this parameter is
+                referred to as "lambda_d" (document) or "lambda_c" (corpus).
             query_regularizer_weight: Weight for the query regularization term. This term encourages sparsity in the query embeddings.
                 If None, no query regularization will be applied, it's not a problem if you are in an inference-free setup or
                 if you are having use_document_regularizer_only=True. Else you should have a query_regularizer_weight > 0.
+                In some papers, this parameter is referred to as "lambda_q" (query).
             document_regularizer: Optional regularizer to use specifically for corpus regularization instead of the default FlopsLoss.
                 This allows for different regularization strategies for documents vs queries.
             query_regularizer: Optional regularizer to use specifically for query regularization instead of the default FlopsLoss.

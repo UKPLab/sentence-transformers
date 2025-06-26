@@ -35,13 +35,17 @@ class SparseMarginMSELoss(MarginMSELoss):
             3. Usually used with a finetuned teacher M in a knowledge distillation setup
 
         Inputs:
-            +------------------------------------------------+------------------------------------------------------------+
-            | Texts                                          | Labels                                                     |
-            +================================================+============================================================+
-            | (query, passage_one, passage_two) triplets     | M(query, passage_one) - M(query, passage_two)              |
-            +------------------------------------------------+------------------------------------------------------------+
-            | (query, positive, negative_1, ..., negative_n) | [M(query, positive) - M(query, negative_i) for i in 1..n]  |
-            +------------------------------------------------+------------------------------------------------------------+
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | Texts                                          | Labels                                                                 |
+            +================================================+========================================================================+
+            | (query, passage_one, passage_two) triplets     | M(query, passage_one) - M(query, passage_two)                          |
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | (query, passage_one, passage_two) triplets     | [M(query, passage_one), M(query, passage_two)]                         |
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [M(query, positive) - M(query, negative_i) for i in 1..n]              |
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [M(query, positive), M(query, negative_1), ..., M(query, negative_n)]  |
+            +------------------------------------------------+------------------------------------------------------------------------+
 
         Relations:
             - :class:`SparseMSELoss` is similar to this loss, but without a margin through the negative pair.
