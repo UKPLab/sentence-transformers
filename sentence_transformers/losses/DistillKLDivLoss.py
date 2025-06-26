@@ -144,10 +144,8 @@ class DistillKLDivLoss(nn.Module):
             [self.similarity_fct(embeddings_query, embeddings_other) for embeddings_other in embeddings[1:]],
             dim=1,
         )
-        # Apply temperature to soften the distributions
+        # Scale student scores by temperature to soften distributions, then apply log-softmax
         student_scores = student_scores / self.temperature
-
-        # Apply temperature
         student_log_probs = torch.log_softmax(student_scores, dim=1)
 
         # Compute teacher scores
