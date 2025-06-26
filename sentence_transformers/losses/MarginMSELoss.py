@@ -35,13 +35,17 @@ class MarginMSELoss(nn.Module):
             2. Usually used with a finetuned teacher M in a knowledge distillation setup
 
         Inputs:
-            +------------------------------------------------+------------------------------------------------------------+
-            | Texts                                          | Labels                                                     |
-            +================================================+============================================================+
-            | (query, passage_one, passage_two) triplets     | M(query, passage_one) - M(query, passage_two)              |
-            +------------------------------------------------+------------------------------------------------------------+
-            | (query, positive, negative_1, ..., negative_n) | [M(query, positive) - M(query, negative_i) for i in 1..n]  |
-            +------------------------------------------------+------------------------------------------------------------+
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | Texts                                          | Labels                                                                 |
+            +================================================+========================================================================+
+            | (query, passage_one, passage_two) triplets     | M(query, passage_one) - M(query, passage_two)                          |
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | (query, passage_one, passage_two) triplets     | [M(query, passage_one), M(query, passage_two)]                         |
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [M(query, positive) - M(query, negative_i) for i in 1..n]              |
+            +------------------------------------------------+------------------------------------------------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [M(query, positive), M(query, negative_1), ..., M(query, negative_n)]  |
+            +------------------------------------------------+------------------------------------------------------------------------+
 
         Relations:
             - :class:`MSELoss` is similar to this loss, but without a margin through the negative pair.
@@ -173,9 +177,23 @@ class MarginMSELoss(nn.Module):
         embeddings_query = embeddings[0]
         embeddings_pos = embeddings[1]
         embeddings_negs = embeddings[2:]
+        batch_size = embeddings_query.shape[0]
 
         # Compute similarity scores for positive passage
         scores_pos = self.similarity_fct(embeddings_query, embeddings_pos)
+
+        if labels.shape == (batch_size, len(embeddings_negs) + 1):
+            # If labels are given as a single score for positive and multiple negatives,
+            # we need to adjust the labels to be the difference between positive and negatives
+            labels = labels[:, 0].unsqueeze(1) - labels[:, 1:]
+
+        if labels.shape != (batch_size, len(embeddings_negs)):
+            raise ValueError(
+                f"Labels shape {labels.shape} does not match expected shape {(batch_size, len(embeddings_negs))}. "
+                "Ensure that your dataset labels/scores are 1) lists of differences between positive scores and "
+                "negatives scores (length `num_negatives`), or 2) lists of positive and negative scores "
+                "(length `num_negatives + 1`)."
+            )
 
         # Handle both single and multiple negative cases
         if len(embeddings_negs) == 1:

@@ -10,7 +10,7 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class SparseDistillKLDivLoss(DistillKLDivLoss):
-    def __init__(self, model: SparseEncoder, similarity_fct=util.pairwise_dot_score) -> None:
+    def __init__(self, model: SparseEncoder, similarity_fct=util.pairwise_dot_score, temperature: float = 1.0) -> None:
         """
         Compute the KL divergence loss between probability distributions derived from student and teacher models' similarity scores.
         By default, similarity is calculated using the dot-product. This loss is designed for knowledge distillation
@@ -22,6 +22,9 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
         Args:
             model: SentenceTransformer model (student model)
             similarity_fct: Which similarity function to use for the student model
+            temperature: Temperature parameter to soften probability distributions (higher temperature = softer distributions)
+                When combined with other losses, a temperature of 1.0 is also viable, but a higher temperature (e.g., 2.0 or 4.0)
+                can help prevent the student model from going to zero active dimensions. Defaults to 2.0.
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.11386
@@ -130,7 +133,7 @@ class SparseDistillKLDivLoss(DistillKLDivLoss):
                 trainer = SparseEncoderTrainer(model=student_model, train_dataset=train_dataset, loss=loss)
                 trainer.train()
         """
-        super().__init__(model, similarity_fct=similarity_fct)
+        super().__init__(model, similarity_fct=similarity_fct, temperature=temperature)
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         raise AttributeError("SparseDistillKLDivLoss should not be used alone. Use it with SpladeLoss or CSRLoss.")
