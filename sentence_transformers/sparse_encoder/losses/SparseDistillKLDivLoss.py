@@ -10,7 +10,7 @@ from sentence_transformers.sparse_encoder.SparseEncoder import SparseEncoder
 
 
 class SparseDistillKLDivLoss(DistillKLDivLoss):
-    def __init__(self, model: SparseEncoder, similarity_fct=util.pairwise_dot_score, temperature: float = 1.0) -> None:
+    def __init__(self, model: SparseEncoder, similarity_fct=util.pairwise_dot_score, temperature: float = 2.0) -> None:
         """
         Compute the KL divergence loss between probability distributions derived from student and teacher models' similarity scores.
         By default, similarity is calculated using the dot-product. This loss is designed for knowledge distillation
