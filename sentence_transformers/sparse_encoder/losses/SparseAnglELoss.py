@@ -66,7 +66,7 @@ class SparseAnglELoss(SparseCoSENTLoss):
                     }
                 )
                 loss = losses.SpladeLoss(
-                    model=model, loss=losses.SparseAnglELoss(model), corpus_regularizer_weight=5e-5, use_corpus_regularizer_only=True
+                    model=model, loss=losses.SparseAnglELoss(model), document_regularizer_weight=5e-5, use_document_regularizer_only=True
                 )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)

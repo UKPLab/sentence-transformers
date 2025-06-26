@@ -56,13 +56,13 @@ def main():
 
     # 3. Define our training loss.
     query_regularizer_weight = 5e-5
-    corpus_regularizer_weight = 3e-5
+    document_regularizer_weight = 3e-5
 
     loss = losses.SpladeLoss(
         model=model,
         loss=losses.SparseMultipleNegativesRankingLoss(model=model),
         query_regularizer_weight=query_regularizer_weight,  # Weight for query loss
-        corpus_regularizer_weight=corpus_regularizer_weight,  # Weight for document loss
+        document_regularizer_weight=document_regularizer_weight,  # Weight for document loss
     )
 
     # 4. Define evaluator. We use the SparseNanoBEIREvaluator, which is a light-weight evaluator

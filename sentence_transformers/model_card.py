@@ -254,8 +254,8 @@ def get_losses(loss: nn.Module | dict[nn.Module]) -> list[nn.Module]:
         loss = losses[loss_idx]
         if hasattr(loss, "loss") and loss.loss not in losses:
             losses.append(loss.loss)
-        if hasattr(loss, "corpus_regularizer") and loss.corpus_regularizer not in losses:
-            losses.append(loss.corpus_regularizer)
+        if hasattr(loss, "document_regularizer") and loss.document_regularizer not in losses:
+            losses.append(loss.document_regularizer)
         if hasattr(loss, "query_regularizer") and loss.query_regularizer not in losses:
             losses.append(loss.query_regularizer)
         loss_idx += 1

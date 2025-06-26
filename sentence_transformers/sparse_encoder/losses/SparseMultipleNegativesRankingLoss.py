@@ -76,7 +76,7 @@ class SparseMultipleNegativesRankingLoss(MultipleNegativesRankingLoss):
                     }
                 )
                 loss = losses.SpladeLoss(
-                    model=model, loss=losses.SparseMultipleNegativesRankingLoss(model), corpus_regularizer_weight=3e-5, query_regularizer_weight=5e-5
+                    model=model, loss=losses.SparseMultipleNegativesRankingLoss(model), document_regularizer_weight=3e-5, query_regularizer_weight=5e-5
                 )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)

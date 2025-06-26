@@ -37,7 +37,7 @@ loss = losses.SpladeLoss(
     model=model,
     loss=losses.SparseMultipleNegativesRankingLoss(model=model),
     query_regularizer_weight=query_regularizer_weight,  # Weight for query loss
-    corpus_regularizer_weight=corpus_regularizer_weight,  # Weight for document loss
+    document_regularizer_weight=document_regularizer_weight,  # Weight for document loss
 )
 ```
 

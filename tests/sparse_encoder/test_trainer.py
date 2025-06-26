@@ -57,7 +57,7 @@ def test_model_card_reuse(dummy_sparse_encoder_for_trainer: SparseEncoder):
         loss=losses.SpladeLoss(
             model=model,
             loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-            corpus_regularizer_weight=3e-5,
+            document_regularizer_weight=3e-5,
             query_regularizer_weight=5e-5,
         ),
     )
@@ -94,7 +94,7 @@ def test_trainer(
     loss = losses.SpladeLoss(
         model=model,
         loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-        corpus_regularizer_weight=3e-5,
+        document_regularizer_weight=3e-5,
         query_regularizer_weight=5e-5,
     )
 

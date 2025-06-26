@@ -376,7 +376,7 @@ Most loss functions can be initialized with just the :class:`~sentence_transform
         model=model,
         loss=SparseMultipleNegativesRankingLoss(model=model),
         query_regularizer_weight=5e-5,  # Weight for query loss
-        corpus_regularizer_weight=3e-5,
+        document_regularizer_weight=3e-5,
     ) 
 
     # Load an example training dataset that works with our loss function:
@@ -666,7 +666,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
             model=model,
             loss=SparseMultipleNegativesRankingLoss(model=model),
             query_regularizer_weight=5e-5,
-            corpus_regularizer_weight=3e-5,
+            document_regularizer_weight=3e-5,
         )
     
         # 5. (Optional) Specify training arguments
@@ -797,7 +797,7 @@ The :class:`~sentence_transformers.sparse_encoder.trainer.SparseEncoderTrainer` 
             model=model,
             loss=SparseMultipleNegativesRankingLoss(model=model),
             query_regularizer_weight=0,
-            corpus_regularizer_weight=3e-4,
+            document_regularizer_weight=3e-4,
         )
 
         # 5. (Optional) Specify training arguments
@@ -887,7 +887,7 @@ Each training/evaluation batch will only contain samples from one of the dataset
 ```{eval-rst}
 Sparse Encoder models have a few quirks that you should be aware of when training them:
 
-1. Sparse Encoder models should not be evaluated solely using the evaluation scores, but also with the sparsity of the embeddings. After all, a low sparsity means that the model embeddings are expensive to store and slow to retrieve. This also means that the parameters that determine sparsity (e.g. ``query_regularizer_weight``, ``corpus_regularizer_weight`` in :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` and ``beta`` and ``gamma`` in the :class:`~sentence_transformers.sparse_encoder.losses.CSRLoss`) should be tuned to achieve a good balance between performance and sparsity. Each `Evaluator <../package_reference/sparse_encoder/evaluation.html>`_ outputs the ``active_dims`` and ``sparsity_ratio`` metrics that can be used to assess the sparsity of the embeddings. 
+1. Sparse Encoder models should not be evaluated solely using the evaluation scores, but also with the sparsity of the embeddings. After all, a low sparsity means that the model embeddings are expensive to store and slow to retrieve. This also means that the parameters that determine sparsity (e.g. ``query_regularizer_weight``, ``document_regularizer_weight`` in :class:`~sentence_transformers.sparse_encoder.losses.SpladeLoss` and ``beta`` and ``gamma`` in the :class:`~sentence_transformers.sparse_encoder.losses.CSRLoss`) should be tuned to achieve a good balance between performance and sparsity. Each `Evaluator <../package_reference/sparse_encoder/evaluation.html>`_ outputs the ``active_dims`` and ``sparsity_ratio`` metrics that can be used to assess the sparsity of the embeddings. 
 2. It is not recommended to use an `Evaluator <../package_reference/sparse_encoder/evaluation.html>`_ on an untrained model prior to training, as the sparsity will be very low, and so the memory usage might be unexpectedly high.
 3. The stronger Sparse Encoder models are trained almost exclusively with distillation from a stronger teacher model (e.g. a `CrossEncoder model <../cross_encoder/usage/usage.html>`_), instead of training directly from text pairs or triplets. See for example the `SPLADE-v3 paper <https://arxiv.org/abs/2403.06789>`_, which uses :class:`~sentence_transformers.sparse_encoder.losses.SparseDistillKLDivLoss` and :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss` for distillation.
 

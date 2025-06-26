@@ -57,7 +57,7 @@ def main():
     logging.info(eval_dataset)
 
     # 3. Define our training loss.
-    corpus_regularizer_weight = 3e-3
+    document_regularizer_weight = 3e-3
 
     loss = losses.SpladeLoss(
         model=model,
@@ -66,8 +66,8 @@ def main():
             scale=1,  # need to be adapt if used cosine similarity
             similarity_fct=model.similarity,  # Use the same similarity function as the model
         ),
-        corpus_regularizer_weight=corpus_regularizer_weight,  # Weight for document loss
-        use_corpus_regularizer_only=True,
+        document_regularizer_weight=document_regularizer_weight,  # Weight for document loss
+        use_document_regularizer_only=True,
     )
 
     # 4. Define an evaluator for use during training. This is useful to keep track of alongside the evaluation loss.
