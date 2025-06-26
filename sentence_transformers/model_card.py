@@ -29,7 +29,7 @@ from transformers.trainer_callback import TrainerControl, TrainerState
 from typing_extensions import deprecated
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import Router, StaticEmbedding, Transformer
+from sentence_transformers.models import Router, StaticEmbedding
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
@@ -858,8 +858,8 @@ class SentenceTransformerModelCardData(CardData):
                 self.tags.append(tag)
 
     def try_to_set_base_model(self) -> None:
-        if isinstance(self.model[0], Transformer):
-            base_model = self.model[0].auto_model.config._name_or_path
+        if (transformers_model := self.model.transformers_model) is not None:
+            base_model = transformers_model.config._name_or_path
             base_model_path = Path(base_model)
             # Sometimes the name_or_path ends exactly with the model_id, e.g.
             # "C:\\Users\\tom/.cache\\torch\\sentence_transformers\\BAAI_bge-small-en-v1.5\\"

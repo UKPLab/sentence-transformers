@@ -70,8 +70,8 @@ from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("tomaarsen/mpnet-base-nli-adaptive-layer")
 
-# We can access the underlying model with `model[0].auto_model`
-print(model[0].auto_model)
+# We can access the underlying model with `model.transformers_model`
+print(model.transformers_model)
 ```
 ```
 MPNetModel(
@@ -114,11 +114,11 @@ MPNetModel(
   )
 )
 ```
-This output will differ depending on the model. We will look for the repeated layers in the encoder. For this MPNet model, this is stored under `model[0].auto_model.encoder.layer`. Then we can slice the model to only keep the first few layers to speed up the model:
+This output will differ depending on the model. We will look for the repeated layers in the encoder. For this MPNet model, this is stored under `model.transformers_model.encoder.layer`. Then we can slice the model to only keep the first few layers to speed up the model:
 
 ```python
 new_num_layers = 3
-model[0].auto_model.encoder.layer = model[0].auto_model.encoder.layer[:new_num_layers]
+model.transformers_model.encoder.layer = model.transformers_model.encoder.layer[:new_num_layers]
 ```
 
 Then we can run inference with it using <a href="../../../../docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode"><code>SentenceTransformers.encode</code></a>. 
@@ -128,7 +128,7 @@ from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer("tomaarsen/mpnet-base-nli-adaptive-layer")
 new_num_layers = 3
-model[0].auto_model.encoder.layer = model[0].auto_model.encoder.layer[:new_num_layers]
+model.transformers_model.encoder.layer = model.transformers_model.encoder.layer[:new_num_layers]
 
 embeddings = model.encode(
     [

@@ -4,8 +4,6 @@ from functools import wraps
 
 from transformers.integrations.peft import PeftAdapterMixin as PeftAdapterMixinTransformers
 
-from .models import Transformer
-
 
 def peft_wrapper(func):
     """Wrapper to call the method on the auto_model with a check for PEFT compatibility."""
@@ -13,7 +11,7 @@ def peft_wrapper(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         self.check_peft_compatible_model()
-        method = getattr(self[0].auto_model, func.__name__)
+        method = getattr(self.transformers_model, func.__name__)
         return method(*args, **kwargs)
 
     return wrapper
@@ -31,7 +29,7 @@ class PeftAdapterMixin:
     """
 
     def has_peft_compatible_model(self) -> bool:
-        return isinstance(self[0], Transformer) and isinstance(self[0].auto_model, PeftAdapterMixinTransformers)
+        return isinstance(self.transformers_model, PeftAdapterMixinTransformers)
 
     def check_peft_compatible_model(self) -> None:
         if not self.has_peft_compatible_model():

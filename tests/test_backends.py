@@ -39,7 +39,7 @@ def test_backend_export(backend, expected_auto_model_class, model_kwargs) -> Non
         "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend=backend, model_kwargs=model_kwargs
     )
     assert model.get_backend() == backend
-    assert isinstance(model[0].auto_model, expected_auto_model_class)
+    assert isinstance(model.transformers_model, expected_auto_model_class)
     embedding = model.encode("Hello, World!")
     assert embedding.shape == (model.get_sentence_embedding_dimension(),)
 
@@ -56,7 +56,7 @@ def test_backend_no_export_crash():
     model = SentenceTransformer(
         "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="openvino", model_kwargs={"export": False}
     )
-    assert isinstance(model[0].auto_model, OVModelForFeatureExtraction)
+    assert isinstance(model.transformers_model, OVModelForFeatureExtraction)
 
 
 ## Testing loading exported models:
@@ -101,7 +101,10 @@ def test_openvino_provider() -> None:
         backend="openvino",
         model_kwargs={"ov_config": {"INFERENCE_PRECISION_HINT": "precision_1"}},
     )
-    assert model[0].auto_model.ov_config == {"INFERENCE_PRECISION_HINT": "precision_1", "PERFORMANCE_HINT": "LATENCY"}
+    assert model.transformers_model.ov_config == {
+        "INFERENCE_PRECISION_HINT": "precision_1",
+        "PERFORMANCE_HINT": "LATENCY",
+    }
 
     with tempfile.TemporaryDirectory() as temp_dir:
         ov_config_path = os.path.join(temp_dir, "ov_config.json")
@@ -113,7 +116,7 @@ def test_openvino_provider() -> None:
             backend="openvino",
             model_kwargs={"ov_config": ov_config_path},
         )
-        assert model[0].auto_model.ov_config == {
+        assert model.transformers_model.ov_config == {
             "INFERENCE_PRECISION_HINT": "precision_2",
             "PERFORMANCE_HINT": "LATENCY",
         }
@@ -148,7 +151,7 @@ def test_openvino_backend() -> None:
             model_kwargs={"ov_config": config_file},
         )
         # The transformers model is an Optimum model with an OpenVINO inference request property
-        assert openvino_model_with_config[0].auto_model.request.get_property("NUM_STREAMS") == 2
+        assert openvino_model_with_config.transformers_model.request.get_property("NUM_STREAMS") == 2
 
         # Test that saving and loading local OpenVINO models works as expected
         openvino_model_with_config.save_pretrained(tmpdirname)
