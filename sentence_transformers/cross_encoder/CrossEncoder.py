@@ -905,6 +905,30 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
         return folder_url.commit_url
 
     @property
+    def transformers_model(self) -> PreTrainedModel | None:
+        """
+        Property to get the underlying transformers PreTrainedModel instance.
+
+        Returns:
+            PreTrainedModel or None: The underlying transformers model or None if not found.
+
+        Example:
+            ::
+
+                from sentence_transformers import CrossEncoder
+
+                model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+
+                # You can now access the underlying transformers model
+                transformers_model = model.transformers_model
+                print(type(transformers_model))
+                # => <class 'transformers.models.bert.modeling_bert.BertForSequenceClassification'>
+        """
+        # This property simply points to self.model, it exists primarily to have the same interface
+        # as SentenceTransformer and SparseEncoder models.
+        return self.model
+
+    @property
     def _target_device(self) -> torch.device:
         logger.warning(
             "`CrossEncoder._target_device` has been removed, please use `CrossEncoder.device` instead.",

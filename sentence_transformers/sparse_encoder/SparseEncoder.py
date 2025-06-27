@@ -11,6 +11,7 @@ import torch
 from torch import Tensor, nn
 from tqdm import trange
 from transformers import AutoConfig
+from transformers.modeling_utils import PreTrainedModel
 from typing_extensions import deprecated
 
 from sentence_transformers.models import Pooling, Transformer
@@ -1196,6 +1197,30 @@ class SparseEncoder(SentenceTransformer):
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
+
+    @property
+    def transformers_model(self) -> PreTrainedModel | None:
+        """
+        Property to get the underlying transformers PreTrainedModel instance, if it exists.
+        Note that it's possible for a model to have multiple underlying transformers models, but this property
+        will return the first one it finds in the module hierarchy.
+
+        Returns:
+            PreTrainedModel or None: The underlying transformers model or None if not found.
+
+        Example:
+            ::
+
+                from sentence_transformers import SparseEncoder
+
+                model = SparseEncoder("naver/splade-v3")
+
+                # You can now access the underlying transformers model
+                transformers_model = model.transformers_model
+                print(type(transformers_model))
+                # => <class 'transformers.models.bert.modeling_bert.BertForMaskedLM'>
+        """
+        return super().transformers_model
 
     @property
     def splade_pooling_chunk_size(self) -> int | None:

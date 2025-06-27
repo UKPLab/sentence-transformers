@@ -142,7 +142,7 @@ class Transformer(InputModule):
                 # TODO: Consider following these steps automatically so we can load PEFT models with other backends
                 raise ValueError(
                     "PEFT models can currently only be loaded with the `torch` backend. "
-                    'To use other backends, load the model with `backend="torch"`, call `model[0].auto_model.merge_and_unload()`, '
+                    'To use other backends, load the model with `backend="torch"`, call `model.transformers_model.merge_and_unload()`, '
                     "save that model with `model.save_pretrained()` and then load the model with the desired backend."
                 )
             from peft import PeftConfig

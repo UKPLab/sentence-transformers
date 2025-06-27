@@ -2287,9 +2287,9 @@ print(similarities)
         Get torch.device from module, assuming that the whole module has one device.
         In case there are no PyTorch parameters, fall back to CPU.
         """
-        for child in self.modules():
-            if isinstance(child, PreTrainedModel) and hasattr(child, "device"):
-                return child.device
+        if (transformers_model := self.transformers_model) is not None and hasattr(transformers_model, "device"):
+            return transformers_model.device
+
         try:
             return next(self.parameters()).device
         except StopIteration:
@@ -2345,6 +2345,33 @@ print(similarities)
         Property to set the maximal input sequence length for the model. Longer inputs will be truncated.
         """
         self._first_module().max_seq_length = value
+
+    @property
+    def transformers_model(self) -> PreTrainedModel | None:
+        """
+        Property to get the underlying transformers PreTrainedModel instance, if it exists.
+        Note that it's possible for a model to have multiple underlying transformers models, but this property
+        will return the first one it finds in the module hierarchy.
+
+        Returns:
+            PreTrainedModel or None: The underlying transformers model or None if not found.
+
+        Example:
+            ::
+
+                from sentence_transformers import SentenceTransformer
+
+                model = SentenceTransformer("all-mpnet-base-v2")
+
+                # You can now access the underlying transformers model
+                transformers_model = model.transformers_model
+                print(type(transformers_model))
+                # => <class 'transformers.models.mpnet.modeling_mpnet.MPNetModel'>
+        """
+        for module in self.modules():
+            if isinstance(module, PreTrainedModel):
+                return module
+        return None
 
     @property
     def _target_device(self) -> torch.device:
