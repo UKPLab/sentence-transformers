@@ -784,7 +784,7 @@ def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
     else:
         # output_hidden_states must be True for WeightedLayerPooling
         if isinstance(modules[1], WeightedLayerPooling):
-            modules.transformers_model.config.output_hidden_states = True
+            modules[0].auto_model.config.output_hidden_states = True
         model = SentenceTransformer(modules=modules)
     original_embedding = model.encode("Hello, World!")
 
