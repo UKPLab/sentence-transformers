@@ -26,7 +26,7 @@ class SpladeRegularizerWeightSchedulerCallback(TrainerCallback):
         warmup_ratio: float = 1 / 3,
     ):
         """
-        Callback that updates the query_regularizer_weight and corpus_regularizer_weight parameters of SpladeLoss
+        Callback that updates the query_regularizer_weight and document_regularizer_weight parameters of SpladeLoss
         based on a schedule.
 
         The scheduler gradually increases the weight values from 0 to their max value
@@ -63,11 +63,11 @@ class SpladeRegularizerWeightSchedulerCallback(TrainerCallback):
             )
             raise ValueError("loss must be an instance of SpladeLoss")
         self.loss = loss
-        self.max_corpus_regularizer_weight = self.loss.corpus_regularizer_weight
+        self.max_document_regularizer_weight = self.loss.document_regularizer_weight
         self.max_query_regularizer_weight = self.loss.query_regularizer_weight
         self.warmup_ratio = warmup_ratio
         self._current_query_regularizer_weight = 0.0 if self.max_query_regularizer_weight is not None else None
-        self._current_corpus_regularizer_weight = 0.0
+        self._current_document_regularizer_weight = 0.0
         self.total_steps = None
         self.warmup_steps = None
 
@@ -94,7 +94,7 @@ class SpladeRegularizerWeightSchedulerCallback(TrainerCallback):
 
         # Set initial weight values
         self.loss.query_regularizer_weight = self._current_query_regularizer_weight
-        self.loss.corpus_regularizer_weight = self._current_corpus_regularizer_weight
+        self.loss.document_regularizer_weight = self._current_document_regularizer_weight
 
     def _calculate_weight_value(self, step: int, max_value: float) -> float:
         """Calculate the weight value based on the current step and scheduler type."""
@@ -127,22 +127,22 @@ class SpladeRegularizerWeightSchedulerCallback(TrainerCallback):
 
         # Calculate new weight values
         new_query_regularizer_weight = self._calculate_weight_value(step, self.max_query_regularizer_weight)
-        new_corpus_regularizer_weight = self._calculate_weight_value(step, self.max_corpus_regularizer_weight)
+        new_document_regularizer_weight = self._calculate_weight_value(step, self.max_document_regularizer_weight)
 
         # Update weight values only if they've changed
         if (
             new_query_regularizer_weight != self._current_query_regularizer_weight
-            or new_corpus_regularizer_weight != self._current_corpus_regularizer_weight
+            or new_document_regularizer_weight != self._current_document_regularizer_weight
         ):
             self.loss.query_regularizer_weight = new_query_regularizer_weight
-            self.loss.corpus_regularizer_weight = new_corpus_regularizer_weight
+            self.loss.document_regularizer_weight = new_document_regularizer_weight
 
             # Store current values
             self._current_query_regularizer_weight = new_query_regularizer_weight
-            self._current_corpus_regularizer_weight = new_corpus_regularizer_weight
+            self._current_document_regularizer_weight = new_document_regularizer_weight
 
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Log the current weight values."""
-        logs["corpus_regularizer_weight"] = self._current_corpus_regularizer_weight
+        logs["document_regularizer_weight"] = self._current_document_regularizer_weight
         if self._current_query_regularizer_weight is not None:
             logs["query_regularizer_weight"] = self._current_query_regularizer_weight

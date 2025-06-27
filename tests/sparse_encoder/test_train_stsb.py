@@ -95,7 +95,7 @@ def test_train_stsb_slow(
     loss = losses.SpladeLoss(
         model=model,
         loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-        corpus_regularizer_weight=3e-5,
+        document_regularizer_weight=3e-5,
         query_regularizer_weight=5e-5,
     )
 
@@ -142,7 +142,7 @@ def test_train_stsb(
     loss = losses.SpladeLoss(
         model=model,
         loss=losses.SparseMultipleNegativesRankingLoss(model=model),
-        corpus_regularizer_weight=3e-5,
+        document_regularizer_weight=3e-5,
         query_regularizer_weight=5e-5,
     )
 

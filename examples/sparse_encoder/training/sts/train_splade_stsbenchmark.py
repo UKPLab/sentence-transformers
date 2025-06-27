@@ -54,12 +54,12 @@ def main():
     logging.info(train_dataset)
 
     # 3. Define our training loss.
-    corpus_regularizer_weight = 3e-3
+    document_regularizer_weight = 3e-3
     loss = losses.SpladeLoss(
         model=model,
         loss=losses.SparseCosineSimilarityLoss(model=model),
-        corpus_regularizer_weight=corpus_regularizer_weight,  # Weight for FLOPS (sparsity) loss, higher is sparser
-        use_corpus_regularizer_only=True,
+        document_regularizer_weight=document_regularizer_weight,  # Weight for FLOPS (sparsity) loss, higher is sparser
+        use_document_regularizer_only=True,
     )
 
     # 4. Before and during training, we use SparseEmbeddingSimilarityEvaluator to measure the performance on the dev set

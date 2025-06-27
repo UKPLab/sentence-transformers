@@ -268,13 +268,13 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             logger.info(
                 "No `loss` passed, using `sentence_transformers.sparse_encoder.losses.SpladeLoss` as a default option. with "
                 "`SparseMultipleNegativesRankingLoss` as the default loss function."
-                "Be careful, we also set the `query_regularizer_weight` and `corpus_regularizer_weight`, but this are really sensitive parameters and should be tuned for your task."
+                "Be careful, we also set the `query_regularizer_weight` and `document_regularizer_weight`, but this are really sensitive parameters and should be tuned for your task."
             )
             loss = SpladeLoss(
                 model=model,
                 loss=SparseMultipleNegativesRankingLoss(model=model),
                 query_regularizer_weight=5e-5,  # Weight for query loss
-                corpus_regularizer_weight=3e-5,  # Weight for document loss
+                document_regularizer_weight=3e-5,  # Weight for document loss
             )
 
         if isinstance(loss, dict):

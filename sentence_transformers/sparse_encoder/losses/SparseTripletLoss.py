@@ -59,7 +59,7 @@ class SparseTripletLoss(TripletLoss):
                     }
                 )
                 loss = losses.SpladeLoss(
-                    model=model, loss=losses.SparseTripletLoss(model), corpus_regularizer_weight=3e-5, query_regularizer_weight=5e-5
+                    model=model, loss=losses.SparseTripletLoss(model), document_regularizer_weight=3e-5, query_regularizer_weight=5e-5
                 )
 
                 trainer = SparseEncoderTrainer(model=model, train_dataset=train_dataset, loss=loss)
