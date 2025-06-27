@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from functools import wraps
 
+from typing import Any
+
 from transformers.integrations.peft import PeftAdapterMixin as PeftAdapterMixinTransformers
 
 from .models import Transformer
@@ -12,10 +14,28 @@ def peft_wrapper(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        self.check_peft_compatible_model()
-        method = getattr(self[0].auto_model, func.__name__)
-        return method(*args, **kwargs)
+        """
+        Ensures the backbone model is wrapped with PEFT at most once.
 
+        - If the model is not yet a PEFT model, it is wrapped with `get_peft_model`.
+        - If the model is already a PEFT model, this calls the underlying `PeftModel` method directly. This prevents nesting a second PEFT wrapper, which would alter parameter names and break checkpoint loading.
+        """
+        backbone: Any = self[0].auto_model
+
+        if not is_peft_available():
+            raise RuntimeError(
+                "PEFT is required for adapter operations but is not installed."
+            )
+
+        if isinstance(backbone, PeftModel):
+            # If model is already wrapped, delegate to existing method.
+            method = getattr(backbone, func.__name__)
+            return method(*args, **kwargs)
+
+        # If first operation, wrap the model into a PeftModel.
+        backbone = get_peft_model(backbone, *args, **kwargs)
+        self[0].auto_model = backbone
+        return backbone
     return wrapper
 
 
