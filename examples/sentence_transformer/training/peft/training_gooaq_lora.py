@@ -12,7 +12,7 @@ from sentence_transformers import (
     SentenceTransformerTrainingArguments,
 )
 from sentence_transformers.evaluation import NanoBEIREvaluator
-from sentence_transformers.losses import MultipleNegativesRankingLoss
+from sentence_transformers.losses import CachedMultipleNegativesRankingLoss
 from sentence_transformers.training_args import BatchSamplers
 
 # Set the log level to INFO to get more information
@@ -49,7 +49,7 @@ train_dataset: Dataset = dataset_dict["train"].select(range(1_000_000))
 eval_dataset: Dataset = dataset_dict["test"]
 
 # 4. Define a loss function
-loss = MultipleNegativesRankingLoss(model)
+loss = CachedMultipleNegativesRankingLoss(model, mini_batch_size=32)
 
 # 5. (Optional) Specify training arguments
 run_name = f"{model_name_only}-gooaq-peft"
@@ -78,7 +78,7 @@ args = SentenceTransformerTrainingArguments(
 
 # 6. (Optional) Create an evaluator & evaluate the base model
 # The full corpus, but only the evaluation queries
-dev_evaluator = NanoBEIREvaluator(batch_size=1024)
+dev_evaluator = NanoBEIREvaluator()
 dev_evaluator(model)
 
 # 7. Create a trainer & train

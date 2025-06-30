@@ -37,6 +37,7 @@ The :class:`~sentence_transformers.SentenceTransformer` supports 7 methods for i
    * :meth:`~sentence_transformers.SentenceTransformer.enable_adapters`: Enable all adapters.
    * :meth:`~sentence_transformers.SentenceTransformer.disable_adapters`: Disable all adapters.
    * :meth:`~sentence_transformers.SentenceTransformer.get_adapter_state_dict`: Get the adapter state dict with the weights.
+   * :meth:`~sentence_transformers.SentenceTransformer.delete_adapter`: Delete an adapter from the model.
 
 ```
 

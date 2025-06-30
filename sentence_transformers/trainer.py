@@ -1010,10 +1010,29 @@ class SentenceTransformerTrainer(Trainer):
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
 
     def _load_from_checkpoint(self, checkpoint_path: str) -> None:
-        from sentence_transformers import SentenceTransformer
+        model_class = self.model.__class__
+        loaded_model = model_class(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
 
-        loaded_model = SentenceTransformer(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
-        self.model.load_state_dict(loaded_model.state_dict())
+        # Let's try to load PEFT Adapters if they are present in the checkpoint.
+        try:
+            checkpoint_adapters = loaded_model.active_adapters()
+        except (ValueError, TypeError):
+            # If not, we can assume that the checkpoint is a full model without adapters,
+            # and we can move over the state dict directly.
+            self.model.load_state_dict(loaded_model.state_dict())
+        else:
+            # If we can load adapters, we should load them one by one, potentially removing
+            # identically named adapters from the model being trained.
+            # But first, because we might have non-transformers weights, we also non-strictly load the state dict
+            self.model.load_state_dict(loaded_model.state_dict(), strict=False)
+            try:
+                train_adapters = self.model.active_adapters()
+            except ValueError:
+                train_adapters = []
+            for adapter_idx, adapter_name in enumerate(checkpoint_adapters):
+                if adapter_name in train_adapters:
+                    self.model.delete_adapter(adapter_name)
+                self.model.load_adapter(checkpoint_path, adapter_name=adapter_name, is_trainable=(adapter_idx == 0))
 
     def _include_prompt_length(self) -> bool:
         """

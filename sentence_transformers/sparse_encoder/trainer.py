@@ -401,12 +401,6 @@ class SparseEncoderTrainer(SentenceTransformerTrainer):
             model=model, inputs=inputs, return_outputs=return_outputs, num_items_in_batch=num_items_in_batch
         )
 
-    def _load_from_checkpoint(self, checkpoint_path: str) -> None:
-        from sentence_transformers import SparseEncoder
-
-        loaded_model = SparseEncoder(checkpoint_path, trust_remote_code=self.model.trust_remote_code)
-        self.model.load_state_dict(loaded_model.state_dict())
-
     def get_optimizer_cls_and_kwargs(
         self, args: SparseEncoderTrainingArguments, model: SparseEncoder | None = None
     ) -> tuple[Any, Any]:

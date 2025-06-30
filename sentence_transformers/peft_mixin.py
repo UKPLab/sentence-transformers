@@ -25,7 +25,7 @@ class PeftAdapterMixin:
 
     Currently supported PEFT methods follow those supported by transformers library,
     you can find more information on:
-    https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin
+    https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin
     """
 
     def has_peft_compatible_model(self) -> bool:
@@ -48,10 +48,10 @@ class PeftAdapterMixin:
         Args:
             *args:
                 Positional arguments to pass to the underlying AutoModel `load_adapter` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.load_adapter
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.load_adapter
             **kwargs:
                 Keyword arguments to pass to the underlying AutoModel `load_adapter` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.load_adapter
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.load_adapter
         """
         ...  # Implementation handled by the wrapper
 
@@ -67,10 +67,10 @@ class PeftAdapterMixin:
         Args:
             *args:
                 Positional arguments to pass to the underlying AutoModel `add_adapter` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.add_adapter
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.add_adapter
             **kwargs:
                 Keyword arguments to pass to the underlying AutoModel `add_adapter` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.add_adapter
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.add_adapter
 
         """
         ...  # Implementation handled by the wrapper
@@ -83,10 +83,10 @@ class PeftAdapterMixin:
         Args:
             *args:
                 Positional arguments to pass to the underlying AutoModel `set_adapter` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.set_adapter
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.set_adapter
             **kwargs:
                 Keyword arguments to pass to the underlying AutoModel `set_adapter` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.set_adapter
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.set_adapter
         """
         ...  # Implementation handled by the wrapper
 
@@ -133,9 +133,26 @@ class PeftAdapterMixin:
         Args:
             *args:
                 Positional arguments to pass to the underlying AutoModel `get_adapter_state_dict` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.get_adapter_state_dict
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.get_adapter_state_dict
             **kwargs:
                 Keyword arguments to pass to the underlying AutoModel `get_adapter_state_dict` function. More information can be found in the transformers documentation
-                https://huggingface.co/docs/transformers/main/en/peft#transformers.integrations.PeftAdapterMixin.get_adapter_state_dict
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.get_adapter_state_dict
         """
         ...  # Implementation handled by the wrapper
+
+    @peft_wrapper
+    def delete_adapter(self, *args, **kwargs) -> None:
+        """
+        If you are not familiar with adapters and PEFT methods, we invite you to read more about them on the PEFT
+        official documentation: https://huggingface.co/docs/peft
+
+        Delete an adapter's LoRA layers from the underlying model.
+
+        Args:
+            *args:
+                Positional arguments to pass to the underlying AutoModel `delete_adapter` function. More information can be found in the transformers documentation
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.delete_adapter
+            **kwargs:
+                Keyword arguments to pass to the underlying AutoModel `delete_adapter` function. More information can be found in the transformers documentation
+                https://huggingface.co/docs/transformers/main/en/main_classes/peft#transformers.integrations.PeftAdapterMixin.delete_adapter
+        """
