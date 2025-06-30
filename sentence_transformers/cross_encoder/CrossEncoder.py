@@ -654,10 +654,12 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
             )
 
+        # If prompt_template is provided or default_prompt_template in config.json is set, use it to format the input sentence pairs
         final_prompt_template = prompt_template if prompt_template is not None else self.default_prompt_template
         if final_prompt_template:
             final_kwargs = self.default_prompt_template_kwargs.copy() if self.default_prompt_template_kwargs else {}
             if prompt_template_kwargs:
+                # Update final_kwargs with any additional keyword arguments provided in prompt_template_kwargs
                 final_kwargs.update(prompt_template_kwargs)
 
             formatted_sentences = []
@@ -666,6 +668,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                     all_kwargs = {"query": query, "document": doc, **final_kwargs}
                     formatted_sentences.append(final_prompt_template.format(**all_kwargs))
             except KeyError as e:
+                # If a placeholder in the prompt template is not valid, raise an error
                 available_keys = ["query", "document"] + list(final_kwargs.keys())
                 raise KeyError(
                     f"A placeholder in the prompt template is not valid. The placeholder {e} was not found. "
