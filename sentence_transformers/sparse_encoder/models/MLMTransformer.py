@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 try:
     from typing import Self
@@ -9,9 +9,14 @@ except ImportError:
     from typing_extensions import Self
 
 import torch
-from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForMaskedLM, AutoTokenizer, PretrainedConfig
+from transformers.utils.import_utils import is_peft_available
+from transformers.utils.peft_utils import find_adapter_config_file
 
 from sentence_transformers.models.InputModule import InputModule
+
+if TYPE_CHECKING and is_peft_available():
+    from peft import PeftConfig
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +70,6 @@ class MLMTransformer(InputModule):
         super().__init__()
         self.do_lower_case = do_lower_case
         self.backend = backend
-        if self.backend != "torch":
-            logger.warning(
-                f"MLMTransformer only supports torch backend. The provided backend '{self.backend}' will be ignored."
-            )
-            self.backend = "torch"
-
         if model_args is None:
             model_args = {}
         if tokenizer_args is None:
@@ -78,11 +77,8 @@ class MLMTransformer(InputModule):
         if config_args is None:
             config_args = {}
 
-        self.config = AutoConfig.from_pretrained(model_name_or_path, cache_dir=cache_dir, **config_args)
-
-        self.auto_model = AutoModelForMaskedLM.from_pretrained(
-            model_name_or_path, config=self.config, cache_dir=cache_dir, **model_args
-        )
+        self.config, is_peft_model = self._load_config(model_name_or_path, cache_dir, backend, config_args)
+        self._load_model(model_name_or_path, self.config, cache_dir, backend, is_peft_model, **model_args)
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
@@ -98,6 +94,83 @@ class MLMTransformer(InputModule):
         if max_seq_length is None:
             if hasattr(self.config, "max_position_embeddings") and hasattr(self.tokenizer, "model_max_length"):
                 self.max_seq_length = min(self.config.max_position_embeddings, self.tokenizer.model_max_length)
+
+    def _load_config(
+        self, model_name_or_path: str, cache_dir: str | None, backend: str, config_args: dict[str, Any]
+    ) -> tuple[PeftConfig | PretrainedConfig, bool]:
+        """Loads the transformers or PEFT configuration
+
+        Args:
+            model_name_or_path (str): The model name on Hugging Face (e.g. 'naver/splade-cocondenser-ensembledistil')
+                or the path to a local model directory.
+            cache_dir (str | None): The cache directory to store the model configuration.
+            backend (str): Backend used for model inference. Can be only `torch` for now for this class.
+            config_args (dict[str, Any]): Keyword arguments passed to the Hugging Face Transformers config.
+
+        Returns:
+            tuple[PretrainedConfig, bool]: The model configuration and a boolean indicating whether the model is a PEFT model.
+        """
+        if (
+            find_adapter_config_file(
+                model_name_or_path,
+                cache_dir=cache_dir,
+                token=config_args.get("token"),
+                revision=config_args.get("revision"),
+                local_files_only=config_args.get("local_files_only", False),
+            )
+            is not None
+        ):
+            if not is_peft_available():
+                raise Exception(
+                    "Loading a PEFT model requires installing the `peft` package. You can install it via `pip install peft`."
+                )
+            if backend != "torch":
+                # TODO: Consider following these steps automatically so we can load PEFT models with other backends
+                raise ValueError(
+                    "PEFT models can currently only be loaded with the `torch` backend. "
+                    'To use other backends, load the model with `backend="torch"`, call `model.transformers_model.merge_and_unload()`, '
+                    "save that model with `model.save_pretrained()` and then load the model with the desired backend."
+                )
+            from peft import PeftConfig
+
+            return PeftConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir), True
+
+        return AutoConfig.from_pretrained(model_name_or_path, **config_args, cache_dir=cache_dir), False
+
+    def _load_model(
+        self,
+        model_name_or_path: str,
+        config: PeftConfig | PretrainedConfig,
+        cache_dir: str,
+        backend: str,
+        is_peft_model: bool,
+        **model_args,
+    ) -> None:
+        """Loads the transformers or PEFT model into the `auto_model` attribute
+
+        Args:
+            model_name_or_path (str): The model name on Hugging Face (e.g. 'naver/splade-cocondenser-ensembledistil')
+                or the path to a local model directory.
+            config ("PeftConfig" | PretrainedConfig): The model configuration.
+            cache_dir (str | None): The cache directory to store the model configuration.
+            backend (str): Backend used for model inference. Can be only `torch` for now for this class.
+            is_peft_model (bool): Whether the model is a PEFT model.
+            model_args (dict[str, Any]): Keyword arguments passed to the Hugging Face Transformers model.
+        """
+        if backend == "torch":
+            # When loading a PEFT model, we need to load the base model first,
+            # but some model_args are only for the adapter
+            if is_peft_model:
+                for adapter_only_kwarg in ["revision"]:
+                    model_args.pop(adapter_only_kwarg, None)
+
+            self.auto_model = AutoModelForMaskedLM.from_pretrained(
+                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+            )
+        else:
+            raise ValueError(
+                f"Backend '{backend}' is not yet supported. MLMTransformer currently only works with the 'torch' backend."
+            )
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Returns the MLM head logits for the input features as token embeddings."""
