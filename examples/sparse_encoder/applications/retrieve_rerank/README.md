@@ -80,13 +80,13 @@ docs = [
     "My first paragraph. That contains information",
     "Python is a programming language.",
 ]
-document_embeddings = model.encode(docs)
+document_embeddings = model.encode_document(docs)
 
 query = "What is Python?"
-query_embedding = model.encode(query)
+query_embedding = model.encode_query(query)
 ```
 
-For more details on comparing embeddings, see [semantic search](../semantic-search/README.md).
+For pre-trained Sparse Encoder models, see:  [Pretrained Sparse-Encoders](../../../../docs/sparse_encoder/pretrained_models.md).
 
 ### Cross-Encoders (Re-Ranker)
 

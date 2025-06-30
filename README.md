@@ -14,9 +14,9 @@
 
 # Sentence Transformers: Embeddings, Retrieval, and Reranking
 
-This framework provides an easy method to compute embeddings for accessing, using, and training state-of-the-art embedding and reranker models. It compute embeddings using Sentence Transformer models ([quickstart](https://sbert.net/docs/quickstart.html#sentence-transformer)) or to calculate similarity scores using Cross-Encoder (a.k.a. reranker) models ([quickstart](https://sbert.net/docs/quickstart.html#cross-encoder)). This unlocks a wide range of applications, including [semantic search](https://sbert.net/examples/applications/semantic-search/README.html), [semantic textual similarity](https://sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html), and [paraphrase mining](https://sbert.net/examples/applications/paraphrase-mining/README.html).
+This framework provides an easy method to compute embeddings for accessing, using, and training state-of-the-art embedding and reranker models. It can be used to compute embeddings using Sentence Transformer models ([quickstart](https://sbert.net/docs/quickstart.html#sentence-transformer)), to calculate similarity scores using Cross-Encoder (a.k.a. reranker) models ([quickstart](https://sbert.net/docs/quickstart.html#cross-encoder)) or to generate sparse embeddings using Sparse Encoder models ([quickstart](https://sbert.net/docs/quickstart.html#sparse-encoder)). This unlocks a wide range of applications, including [semantic search](https://sbert.net/examples/applications/semantic-search/README.html), [semantic textual similarity](https://sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html), and [paraphrase mining](https://sbert.net/examples/applications/paraphrase-mining/README.html).
 
-A wide selection of over [10,000 pre-trained Sentence Transformers models](https://huggingface.co/models?library=sentence-transformers) are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the [Massive Text Embeddings Benchmark (MTEB) leaderboard](https://huggingface.co/spaces/mteb/leaderboard). Additionally, it is easy to train or finetune your own [embedding models](https://sbert.net/docs/sentence_transformer/training_overview.html) or [reranker models](https://sbert.net/docs/cross_encoder/training_overview.html) using Sentence Transformers, enabling you to create custom models for your specific use cases.
+A wide selection of over [15,000 pre-trained Sentence Transformers models](https://huggingface.co/models?library=sentence-transformers) are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the [Massive Text Embeddings Benchmark (MTEB) leaderboard](https://huggingface.co/spaces/mteb/leaderboard). Additionally, it is easy to train or finetune your own [embedding models](https://sbert.net/docs/sentence_transformer/training_overview.html), [reranker models](https://sbert.net/docs/cross_encoder/training_overview.html) or [sparse encoder models](https://sbert.net/docs/sparse_encoder/training_overview.html) using Sentence Transformers, enabling you to create custom models for your specific use cases.
 
 For the **full documentation**, see **[www.SBERT.net](https://www.sbert.net)**.
 
@@ -130,6 +130,41 @@ Query: How many people live in Berlin?
 - #1 (5.51): Berlin has a yearly total of about 135 million day visitors, making it one of the most-visited cities in the European Union.
 """
 ```
+### Sparse Encoder Models
+
+First download a pretrained sparse embedding a.k.a. Sparse Encoder model.
+
+```python
+
+from sentence_transformers import SparseEncoder
+
+# 1. Load a pretrained SparseEncoder model
+model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+# The sentences to encode
+sentences = [
+    "The weather is lovely today.",
+    "It's so sunny outside!",
+    "He drove to the stadium.",
+]
+
+# 2. Calculate sparse embeddings by calling model.encode()
+embeddings = model.encode(sentences)
+print(embeddings.shape)
+# [3, 30522] - sparse representation with vocabulary size dimensions
+
+# 3. Calculate the embedding similarities
+similarities = model.similarity(embeddings, embeddings)
+print(similarities)
+# tensor([[   35.629,     9.154,     0.098],
+#         [    9.154,    27.478,     0.019],
+#         [    0.098,     0.019,    29.553]])
+
+# 4. Check sparsity stats
+stats = SparseEncoder.sparsity(embeddings)
+print(f"Sparsity: {stats['sparsity_ratio']:.2%}")
+# Sparsity: 99.84%
+```
 
 ## Pre-Trained Models
 
@@ -137,6 +172,7 @@ We provide a large list of pretrained models for more than 100 languages. Some m
 
 * [Pretrained Sentence Transformer (Embedding) Models](https://sbert.net/docs/sentence_transformer/pretrained_models.html)
 * [Pretrained Cross Encoder (Reranker) Models](https://sbert.net/docs/cross_encoder/pretrained_models.html)
+* [Pretrained Sparse Encoder (Sparse Embeddings) Models](https://sbert.net/docs/sparse_encoder/pretrained_models.html)
 
 ## Training
 
@@ -148,21 +184,36 @@ This framework allows you to fine-tune your own sentence embedding methods, so t
 * Reranker Models
     * [Cross Encoder > Training Overview](https://www.sbert.net/docs/cross_encoder/training_overview.html)
     * [Cross Encoder > Training Examples](https://www.sbert.net/docs/cross_encoder/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/cross_encoder/training).
+* Sparse Embedding Models
+    * [Sparse Encoder > Training Overview](https://www.sbert.net/docs/sparse_encoder/training_overview.html)
+    * [Sparse Encoder > Training Examples](https://www.sbert.net/docs/sparse_encoder/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sparse_encoder/training).
 
-Some highlights across both types of training are:
+Some highlights across the different types of training are:
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
-- [20+ loss functions](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html) for embedding models and [10+ loss functions](https://www.sbert.net/docs/package_reference/cross_encoder/losses.html) for reranker models, allowing you to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss, etc.
+- [20+ loss functions](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html) for embedding models, [10+ loss functions](https://www.sbert.net/docs/package_reference/cross_encoder/losses.html) for reranker models and [10+ loss functions](https://www.sbert.net/docs/package_reference/sparse_encoder/losses.html) for sparse embedding model, allowing you to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss, etc.
 
 ## Application Examples
 
 You can use this framework for:
 
-- [Computing Sentence Embeddings](https://www.sbert.net/examples/sentence_transformer/applications/computing-embeddings/README.html)
-- [Semantic Textual Similarity](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
-- [Semantic Search](https://www.sbert.net/examples/sentence_transformer/applications/semantic-search/README.html)
-- [Retrieve & Re-Rank](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html) 
+- **Computing Sentence Embeddings**
+  - [Dense Embeddings](https://www.sbert.net/examples/sentence_transformer/applications/computing-embeddings/README.html)
+  - [Sparse Embeddings](https://www.sbert.net/examples/sparse_encoder/applications/computing_embeddings/README.html)
+
+- **Semantic Textual Similarity** 
+  - [Dense STS](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
+  - [Sparse STS](https://www.sbert.net/examples/sparse_encoder/applications/semantic_textual_similarity/README.html)
+
+- **Semantic Search**
+  - [Dense Search](https://www.sbert.net/examples/sentence_transformer/applications/semantic-search/README.html)  
+  - [Sparse Search](https://www.sbert.net/examples/sparse_encoder/applications/semantic_search/README.html)
+
+- **Retrieve & Re-Rank**
+  - [Dense only Retrieval](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html)
+  - [Sparse/Dense/Hybrid Retrieval](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html)
+
 - [Clustering](https://www.sbert.net/examples/sentence_transformer/applications/clustering/README.html)
 - [Paraphrase Mining](https://www.sbert.net/examples/sentence_transformer/applications/paraphrase-mining/README.html)
 - [Translated Sentence Mining](https://www.sbert.net/examples/sentence_transformer/applications/parallel-sentence-mining/README.html)
