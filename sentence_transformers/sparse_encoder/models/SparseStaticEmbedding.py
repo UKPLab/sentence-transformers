@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 try:
     from typing import Self
@@ -88,13 +88,26 @@ class SparseStaticEmbedding(InputModule):
         self.save_config(output_path)
 
     @classmethod
-    def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, hub_kwargs: dict[str, Any], **config):
+    def from_json(
+        cls,
+        json_path: str,
+        tokenizer: PreTrainedTokenizer,
+        token: bool | str | None = None,
+        cache_folder: str | None = None,
+        revision: str | None = None,
+        local_files_only: bool = False,
+        **config,
+    ):
         """
         Create an SparseStaticEmbedding module from a JSON file containing token to IDF weight mappings.
 
         Args:
             json_path (str): Path to the JSON file containing token to IDF weight mappings.
             tokenizer (PreTrainedTokenizer): Tokenizer to use for converting tokens to IDs.
+            token (bool | str | None): Token for Hugging Face authentication
+            cache_folder (str | None): Cache folder for Hugging Face
+            revision (str | None): Model revision
+            local_files_only (bool): Whether to only load local files
             **config: Additional configuration options for the IDF model.
 
         Returns:
@@ -104,7 +117,14 @@ class SparseStaticEmbedding(InputModule):
             try:
                 from huggingface_hub import hf_hub_download
 
-                json_path = hf_hub_download(repo_id=json_path, filename="idf.json", **hub_kwargs)
+                json_path = hf_hub_download(
+                    repo_id=json_path,
+                    filename="idf.json",
+                    token=token,
+                    cache_dir=cache_folder,
+                    revision=revision,
+                    local_files_only=local_files_only,
+                )
             except ValueError:
                 raise ValueError(f"IDF JSON file not found at {json_path}. Please provide a valid path.")
 
@@ -173,12 +193,10 @@ class SparseStaticEmbedding(InputModule):
             return cls.from_json(
                 path,
                 tokenizer,
-                hub_kwargs={
-                    "token": token,
-                    "cache_dir": cache_folder,
-                    "revision": revision,
-                    "local_files_only": local_files_only,
-                },
+                token=token,
+                cache_dir=cache_folder,
+                revision=revision,
+                local_files_only=local_files_only,
                 **config,
             )
 
