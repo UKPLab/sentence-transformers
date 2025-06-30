@@ -1,6 +1,6 @@
 .. tip::
 
-   Sentence Transformers v5.0 just released, introducing SparseEncoder models, a new class of models. Read `Sparse Encoder > Usage <docs/sparse_encoder/usage.html>`_ to learn more about how to used them, and check out `v5.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.0.0>`_ for details on the other changes.
+   Sentence Transformers v5.0 just released, introducing SparseEncoder models, a new class of models. Read `Sparse Encoder > Usage <docs/sparse_encoder/usge/usage.html>`_ to learn more about how to used them, and check out `v5.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.0.0>`_ for details on the other changes.
 
 SentenceTransformers Documentation
 ==================================
