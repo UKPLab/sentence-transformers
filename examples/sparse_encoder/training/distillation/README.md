@@ -5,7 +5,7 @@ This page contains an example of knowledge distillation for SparseEncoder models
 Knowledge distillation allows us to compress knowledge from larger, more computationally expensive models (teacher models) into smaller, more efficient sparse models (student models). This approach can leverage bigger model results, including non-sparse models like Cross-Encoders and dense bi-encoders, to compress the knowledge into our small sparse model while maintaining much of the original performance.
 
 ## MarginMSE
-**Training code: [train_splade_msmarco_margin.py](train_splade_msmarco_margin.py)**
+**Training code: [train_splade_msmarco_margin_mse.py](train_splade_msmarco_margin_mse.py)**
 
 ```{eval-rst}
 :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss` is based on the paper of `Hofstätter et al <https://arxiv.org/abs/2010.02666>`_. Like when training with :class:`~sentence_transformers.sparse_encoder.losses.SparseMultipleNegativesRankingLoss`, we can use triplets: ``(query, passage1, passage2)``. However, in contrast to :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, we use a similarity score for ``passage1`` and ``passage2``, so these do not have to be strictly positive/negative, both can be relevant or not relevant for a given query.
