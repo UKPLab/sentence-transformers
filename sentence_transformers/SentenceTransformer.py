@@ -1666,7 +1666,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             "pytorch": torch.__version__,
         }
 
-        with open(os.path.join(path, "config_sentence_transformers.json"), "w") as fOut:
+        with open(os.path.join(path, "config_sentence_transformers.json"), "w", encoding="utf8") as fOut:
             config = self._model_config.copy()
             config["prompts"] = self.prompts
             config["default_prompt_name"] = self.default_prompt_name
@@ -1717,7 +1717,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 module_config["kwargs"] = module_kwargs
             modules_config.append(module_config)
 
-        with open(os.path.join(path, "modules.json"), "w") as fOut:
+        with open(os.path.join(path, "modules.json"), "w", encoding="utf8") as fOut:
             json.dump(modules_config, fOut, indent=2)
 
         # Create model card
@@ -2138,7 +2138,7 @@ print(similarities)
             local_files_only=local_files_only,
         )
         if config_sentence_transformers_json_path is not None:
-            with open(config_sentence_transformers_json_path) as fIn:
+            with open(config_sentence_transformers_json_path, encoding="utf8") as fIn:
                 self._model_config = json.load(fIn)
 
             if (
@@ -2190,7 +2190,7 @@ print(similarities)
             revision=revision,
             local_files_only=local_files_only,
         )
-        with open(modules_json_path) as fIn:
+        with open(modules_json_path, encoding="utf8") as fIn:
             modules_config = json.load(fIn)
 
         modules = OrderedDict()
@@ -2455,6 +2455,6 @@ print(similarities)
         if config_sentence_transformers_json_path is None:
             return "SentenceTransformer"
 
-        with open(config_sentence_transformers_json_path) as fIn:
+        with open(config_sentence_transformers_json_path, encoding="utf8") as fIn:
             config = json.load(fIn)
             return config.get("model_type", "SentenceTransformer")  # Default to "SentenceTransformer" if not specified
