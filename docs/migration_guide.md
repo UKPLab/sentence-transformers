@@ -696,6 +696,42 @@ The :meth:`~sentence_transformers.SentenceTransformer.encode_query` and :meth:`~
 
             loss = CustomLoss(model, ...)
 
+.. collapse:: Accessing the underlying Transformer model
+
+   .. list-table::
+      :widths: 50 50
+      :header-rows: 1
+
+      * - v4.x
+        - v5.x (recommended)
+      * - .. code-block:: python
+           :emphasize-lines: 8
+
+           from sentence_transformers import SentenceTransformer
+           
+           # Sometimes, for one reason or another, you need to access the underlying
+           # Transformer directly. This was previously commonly done by accessing
+           # the first module, often 'Transformer', and then accessing the
+           # `auto_model` attribute.
+           model = SentenceTransformer("all-MiniLM-L6-v2")
+           print(model[0].auto_model)
+           # BertModel(
+           #   (embeddings): BertEmbeddings(
+           # ...
+
+        - .. code-block:: python
+           :emphasize-lines: 6
+
+           from sentence_transformers import SentenceTransformer
+           
+           # Now, you can just use the `transformers_model` attribute on the model itself
+           # even if your model has non-standard modules.
+           model = SentenceTransformer("all-MiniLM-L6-v2")
+           print(model.transformers_model)
+           # BertModel(
+           #   (embeddings): BertEmbeddings(
+           # ...
+
 ```
 
 <br>
