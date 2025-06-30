@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 try:
     from typing import Self
@@ -88,7 +88,7 @@ class SparseStaticEmbedding(InputModule):
         self.save_config(output_path)
 
     @classmethod
-    def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, **config):
+    def from_json(cls, json_path: str, tokenizer: PreTrainedTokenizer, hub_kwargs: dict[str, Any], **config):
         """
         Create an SparseStaticEmbedding module from a JSON file containing token to IDF weight mappings.
 
@@ -104,7 +104,7 @@ class SparseStaticEmbedding(InputModule):
             try:
                 from huggingface_hub import hf_hub_download
 
-                json_path = hf_hub_download(repo_id=json_path, filename="idf.json")
+                json_path = hf_hub_download(repo_id=json_path, filename="idf.json", **hub_kwargs)
             except ValueError:
                 raise ValueError(f"IDF JSON file not found at {json_path}. Please provide a valid path.")
 
@@ -170,7 +170,17 @@ class SparseStaticEmbedding(InputModule):
         # Check if we have a JSON path in config
         path = config.pop("path", None)
         if path is not None and path.endswith(".json"):
-            return cls.from_json(path, tokenizer, **config)
+            return cls.from_json(
+                path,
+                tokenizer,
+                hub_kwargs={
+                    "token": token,
+                    "cache_dir": cache_folder,
+                    "revision": revision,
+                    "local_files_only": local_files_only,
+                },
+                **config,
+            )
 
         # Load model weights
         model = cls(weight=None, tokenizer=tokenizer, **config)
