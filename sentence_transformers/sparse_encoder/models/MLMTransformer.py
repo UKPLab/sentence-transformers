@@ -169,7 +169,7 @@ class MLMTransformer(InputModule):
             )
         else:
             raise ValueError(
-                f"Unsupported backend '{backend}'. `backend` should be `torch` for MLMTransformer that only supports torch backend for now."
+                f"Backend '{backend}' is not yet supported. MLMTransformer currently only works with the 'torch' backend."
             )
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
