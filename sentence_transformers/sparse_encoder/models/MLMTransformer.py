@@ -160,11 +160,9 @@ class MLMTransformer(InputModule):
         if backend == "torch":
             # When loading a PEFT model, we need to load the base model first,
             # but some model_args are only for the adapter
-            adapter_only_kwargs = {}
             if is_peft_model:
                 for adapter_only_kwarg in ["revision"]:
-                    if adapter_only_kwarg in model_args:
-                        adapter_only_kwargs[adapter_only_kwarg] = model_args.pop(adapter_only_kwarg)
+                    model_args.pop(adapter_only_kwarg, None)
 
             self.auto_model = AutoModelForMaskedLM.from_pretrained(
                 model_name_or_path, config=config, cache_dir=cache_dir, **model_args
