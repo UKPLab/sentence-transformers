@@ -176,7 +176,7 @@ The usage for Sparse Encoder models follows a similar pattern to Sentence Transf
    - `SparseEncoder > Pretrained Models <./sparse_encoder/pretrained_models.html>`_
    - `SparseEncoder > Training Overview <./sparse_encoder/training_overview.html>`_
    - `SparseEncoder > Loss Overview <./sparse_encoder/loss_overview.html>`_
-   - `SparseEncoder > Search Integration <./sparse_encoder/search_integration.html>`_
+   - `Sparse Encoder > Vector Database Integration <../examples/sparse_encoder/applications/semantic_search/README.html#vector-database-search>`_
 
 ::
 
@@ -224,5 +224,5 @@ Consider reading one of the following sections next:
 * `Cross Encoder > Pretrained Models <./cross_encoder/pretrained_models.html>`_
 * `Sparse Encoder > Usage <./sparse_encoder/usage/usage.html>`_
 * `Sparse Encoder > Pretrained Models <./sparse_encoder/pretrained_models.html>`_
-* `Sparse Encoder > Search Integration <./sparse_encoder/usage/search_integration.html>`_
+* `Sparse Encoder > Vector Database Integration <../examples/sparse_encoder/applications/semantic_search/README.html#vector-database-search>`_
 

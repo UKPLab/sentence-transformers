@@ -149,7 +149,7 @@ Consider reading one of the following sections to answer the related questions:
    * How to **use** Sparse Encoder models? `Sparse Encoder > Usage <docs/sparse_encoder/usage/usage.html>`_
    * What Sparse Encoder **models** can I use? `Sparse Encoder > Pretrained Models <docs/sparse_encoder/pretrained_models.html>`_
    * How do I **train/finetune** a Sparse Encoder model? `Sparse Encoder > Training Overview <docs/sparse_encoder/training_overview.html>`_
-   * How do I **integrate** Sparse Encoder models with search engines? `Sparse Encoder > Search Integration <docs/sparse_encoder/search_integration.html>`_
+   * How do I **integrate** Sparse Encoder models with search engines? `Sparse Encoder > Vector Database Integration <examples/sparse_encoder/applications/semantic_search/README.html#vector-database-search>`_
 
 Citing
 ======
