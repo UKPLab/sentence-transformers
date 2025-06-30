@@ -61,3 +61,14 @@ wandb
 checkpoints
 tmp
 .DS_Store
+
+# Database
+/qdrant_storage
+/runs
+/datasets
+corpus_embeddings.pt
+draft.py
+tmp_trainer/
+trainer_output/
+/models
+/tb_logs

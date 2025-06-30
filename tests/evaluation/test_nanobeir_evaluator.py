@@ -22,7 +22,7 @@ if is_ci():
     )
 
 
-def test_nanobeir_evaluator(stsb_bert_tiny_model_reused: SentenceTransformer):
+def test_nanobeir_evaluator(stsb_bert_tiny_model: SentenceTransformer):
     """Tests that the NanoBERTEvaluator can be loaded and produces expected metrics"""
     datasets = ["QuoraRetrieval", "MSMARCO"]
     query_prompts = {
@@ -30,7 +30,7 @@ def test_nanobeir_evaluator(stsb_bert_tiny_model_reused: SentenceTransformer):
         "MSMARCO": "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery: ",
     }
 
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
 
     evaluator = NanoBEIREvaluator(
         dataset_names=datasets,

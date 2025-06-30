@@ -73,7 +73,7 @@ First install the Sentence Transformers library:
 ```bash
 pip install -U sentence-transformers
 ```
-
+{% if not ir_model %}
 Then you can load this model and run inference.
 ```python
 from sentence_transformers import SentenceTransformer
@@ -92,10 +92,38 @@ print(embeddings.shape)
 
 # Get the similarity scores for the embeddings
 similarities = model.similarity(embeddings, embeddings)
-print(similarities.shape)
-# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]
+{% if similarities %}print(similarities)
+{{ similarities }}{% else %}print(similarities.shape)
+# [{{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}, {{ (predict_example or ["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."]) | length}}]{% endif %}
 ```
+{% else %}
+Then you can load this model and run inference.
+```python
+from sentence_transformers import SentenceTransformer
 
+# Download from the {{ hf_emoji }} Hub
+model = SentenceTransformer("{{ model_id | default('sentence_transformers_model_id', true) }}")
+# Run inference
+queries = [
+    {{ predict_example | first | tojson }},
+]
+documents = [
+{%- for text in predict_example[1:] %}
+    {{ "%r" | format(text) }},
+{%- endfor %}
+]
+query_embeddings = model.encode_query(queries)
+document_embeddings = model.encode_document(documents)
+print(query_embeddings.shape, document_embeddings.shape)
+# [1, {{ output_dimensionality | default(1024, true) }}] [{{ (predict_example | length) - 1 }}, {{ output_dimensionality | default(1024, true) }}]
+
+# Get the similarity scores for the embeddings
+similarities = model.similarity(query_embeddings, document_embeddings)
+{% if similarities %}print(similarities)
+{{ similarities }}{% else %}print(similarities.shape)
+# [1, {{ (predict_example | length) - 1 }}]{% endif %}
+```
+{% endif %}
 <!--
 ### Direct Usage (Transformers)
 

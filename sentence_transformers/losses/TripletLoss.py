@@ -8,14 +8,15 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import pairwise_cos_sim, pairwise_euclidean_sim, pairwise_manhattan_sim
 
 
 class TripletDistanceMetric(Enum):
     """The metric for the triplet loss"""
 
-    COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
-    EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
-    MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
+    COSINE = lambda x, y: 1 - pairwise_cos_sim(x, y)
+    EUCLIDEAN = lambda x, y: pairwise_euclidean_sim(x, y)
+    MANHATTAN = lambda x, y: pairwise_manhattan_sim(x, y)
 
 
 class TripletLoss(nn.Module):
@@ -79,9 +80,21 @@ class TripletLoss(nn.Module):
         self.triplet_margin = triplet_margin
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
+        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
-        rep_anchor, rep_pos, rep_neg = reps
+        return self.compute_loss_from_embeddings(embeddings, labels)
+
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
+        """
+        Compute the CoSENT loss from embeddings.
+
+        Args:
+            embeddings: List of embeddings
+
+        Returns:
+            Loss value
+        """
+        rep_anchor, rep_pos, rep_neg = embeddings
         distance_pos = self.distance_metric(rep_anchor, rep_pos)
         distance_neg = self.distance_metric(rep_anchor, rep_neg)
 

@@ -4,7 +4,6 @@ import csv
 import logging
 import os
 from collections import defaultdict
-from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -93,8 +92,8 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
     def __init__(
         self,
         sentences_map: dict[str, str],
-        duplicates_list: list[tuple[str, str]] = None,
-        duplicates_dict: dict[str, dict[str, bool]] = None,
+        duplicates_list: list[tuple[str, str]] | None = None,
+        duplicates_dict: dict[str, dict[str, bool]] | None = None,
         add_transitive_closure: bool = False,
         query_chunk_size: int = 5000,
         corpus_chunk_size: int = 100000,
@@ -155,7 +154,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.primary_metric = "average_precision"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -170,17 +169,17 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         logger.info(f"Paraphrase Mining Evaluation of the model on the {self.name} dataset{out_txt}:")
 
         # Compute embedding for the sentences
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            pairs_list = paraphrase_mining(
-                model,
-                self.sentences,
-                self.show_progress_bar,
-                self.batch_size,
-                self.query_chunk_size,
-                self.corpus_chunk_size,
-                self.max_pairs,
-                self.top_k,
-            )
+        pairs_list = paraphrase_mining(
+            model,
+            self.sentences,
+            show_progress_bar=self.show_progress_bar,
+            batch_size=self.batch_size,
+            query_chunk_size=self.query_chunk_size,
+            corpus_chunk_size=self.corpus_chunk_size,
+            max_pairs=self.max_pairs,
+            top_k=self.top_k,
+            truncate_dim=self.truncate_dim,
+        )
 
         logger.info("Number of candidate pairs: " + str(len(pairs_list)))
 

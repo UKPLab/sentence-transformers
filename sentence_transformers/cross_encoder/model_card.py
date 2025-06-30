@@ -72,14 +72,17 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         default_factory=lambda: [
             "sentence-transformers",
             "cross-encoder",
+            "reranker",
         ]
     )
 
     # Automatically filled by `CrossEncoderModelCardCallback` and the Trainer directly
     predict_example: list[list[str]] | None = field(default=None, init=False)
+    ir_model: bool | None = field(default=True, init=False, repr=False)
 
     # Computed once, always unchanged
     pipeline_tag: str = field(default=None, init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False, repr=False)
 
     # Passed via `register_model` only
     model: CrossEncoder | None = field(default=None, init=False, repr=False)
@@ -141,8 +144,13 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
         if self.pipeline_tag is None:
             self.pipeline_tag = "text-ranking" if model.num_labels == 1 else "text-classification"
 
-    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
+    def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
         return self.model.tokenizer(text)
+
+    def run_usage_snippet(self) -> dict[str, Any]:
+        # At the moment, we don't run the usage snippet for CrossEncoder models,
+        # although we could.
+        return
 
     def get_model_specific_metadata(self) -> dict[str, Any]:
         return {
@@ -152,6 +160,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
 
 
 def generate_model_card(model: CrossEncoder) -> str:
-    template_path = Path(__file__).parent / "model_card_template.md"
-    model_card = ModelCard.from_template(card_data=model.model_card_data, template_path=template_path, hf_emoji="🤗")
+    model_card = ModelCard.from_template(
+        card_data=model.model_card_data, template_path=model.model_card_data.template_path, hf_emoji="🤗"
+    )
     return model_card.content

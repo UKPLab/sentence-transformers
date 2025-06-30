@@ -9,6 +9,7 @@ from copy import copy
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from platform import python_version
+from pprint import pformat
 from textwrap import indent
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -28,7 +29,7 @@ from transformers.trainer_callback import TrainerControl, TrainerState
 from typing_extensions import deprecated
 
 from sentence_transformers import __version__ as sentence_transformers_version
-from sentence_transformers.models import StaticEmbedding, Transformer
+from sentence_transformers.models import Router, StaticEmbedding
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sentence_transformers.util import fullname, is_accelerate_available, is_datasets_available
 
@@ -57,8 +58,6 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
         trainer: SentenceTransformerTrainer,
         **kwargs,
     ) -> None:
-        from sentence_transformers.losses import AdaptiveLayerLoss, Matryoshka2dLoss, MatryoshkaLoss
-
         model.model_card_data.add_tags("generated_from_trainer")
 
         # Try to set the code carbon callback if it exists
@@ -79,22 +78,7 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
                 trainer.eval_dataset, model.model_card_data.eval_datasets, trainer.loss, "eval"
             )
 
-        if isinstance(trainer.loss, dict):
-            losses = list(trainer.loss.values())
-        else:
-            losses = [trainer.loss]
-        # Some losses are known to use other losses internally, e.g. MatryoshkaLoss, AdaptiveLayerLoss and Matryoshka2dLoss
-        # So, verify for `loss` attributes in the losses
-        loss_idx = 0
-        while loss_idx < len(losses):
-            loss = losses[loss_idx]
-            if (
-                isinstance(loss, (MatryoshkaLoss, AdaptiveLayerLoss, Matryoshka2dLoss))
-                and hasattr(loss, "loss")
-                and loss.loss not in losses
-            ):
-                losses.append(loss.loss)
-            loss_idx += 1
+        losses = get_losses(trainer.loss)
 
         model.model_card_data.set_losses(losses)
 
@@ -153,7 +137,11 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
         metrics: dict[str, float],
         **kwargs,
     ) -> None:
-        loss_dict = {" ".join(key.split("_")[1:]): metrics[key] for key in metrics if key.endswith("_loss")}
+        loss_dict = {
+            " ".join(key.split("_")[1:]): metrics[key]
+            for key in metrics
+            if key.startswith("eval_") and key.endswith("_loss")
+        }
         if len(loss_dict) == 1 and "loss" in loss_dict:
             loss_dict = {"Validation Loss": loss_dict["loss"]}
         if (
@@ -194,6 +182,12 @@ class SentenceTransformerModelCardCallback(TrainerCallback):
                         "Training Loss": logs[keys.pop()],
                     }
                 )
+
+        # Set the ir_model flag so we can generate the model card with the encode_query/encode_document methods
+        if model.model_card_data.ir_model is None:
+            for key in keys:
+                if "ndcg" in key:
+                    model.model_card_data.ir_model = True
 
 
 @deprecated(
@@ -248,6 +242,26 @@ def format_log(value: float | int | str) -> Any:
     return value
 
 
+def get_losses(loss: nn.Module | dict[nn.Module]) -> list[nn.Module]:
+    if isinstance(loss, dict):
+        losses = list(loss.values())
+    else:
+        losses = [loss]
+    # Some losses are known to use other losses internally
+    # So, verify for `loss` attributes in the losses
+    loss_idx = 0
+    while loss_idx < len(losses):
+        loss = losses[loss_idx]
+        if hasattr(loss, "loss") and loss.loss not in losses:
+            losses.append(loss.loss)
+        if hasattr(loss, "document_regularizer") and loss.document_regularizer not in losses:
+            losses.append(loss.document_regularizer)
+        if hasattr(loss, "query_regularizer") and loss.query_regularizer not in losses:
+            losses.append(loss.query_regularizer)
+        loss_idx += 1
+    return losses
+
+
 @dataclass
 class SentenceTransformerModelCardData(CardData):
     """A dataclass storing data used in the model card.
@@ -270,6 +284,8 @@ class SentenceTransformerModelCardData(CardData):
             e.g. ["sentence-transformers", "sentence-similarity", "feature-extraction"].
         local_files_only (`bool`): If True, don't attempt to find dataset or base model information on the Hub.
             Defaults to False.
+        generate_widget_examples (`bool`): If True, generate widget examples from the evaluation or training dataset,
+            and compute their similarities. Defaults to True.
 
     .. tip::
 
@@ -305,10 +321,11 @@ class SentenceTransformerModelCardData(CardData):
             "sentence-transformers",
             "sentence-similarity",
             "feature-extraction",
+            "dense",
         ]
     )
     local_files_only: bool = False
-    generate_widget_examples: Literal["deprecated"] = "deprecated"
+    generate_widget_examples: bool = field(default=True)
 
     # Automatically filled by `SentenceTransformerModelCardCallback` and the Trainer directly
     base_model: str | None = field(default=None, init=False)
@@ -324,6 +341,8 @@ class SentenceTransformerModelCardData(CardData):
     citations: dict[str, str] = field(default_factory=dict, init=False)
     best_model_step: int | None = field(default=None, init=False)
     datasets: list[str] = field(default_factory=list, init=False, repr=False)
+    ir_model: bool | None = field(default=None, init=False, repr=False)
+    similarities: str | None = field(default=None, init=False, repr=False)
 
     # Utility fields
     first_save: bool = field(default=True, init=False)
@@ -333,7 +352,7 @@ class SentenceTransformerModelCardData(CardData):
     pipeline_tag: str = field(default="sentence-similarity", init=False)
     library_name: str = field(default="sentence-transformers", init=False)
     version: dict[str, str] = field(default_factory=get_versions, init=False)
-    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False)
+    template_path: Path = field(default=Path(__file__).parent / "model_card_template.md", init=False, repr=False)
 
     # Passed via `register_model` only
     model: SentenceTransformer | None = field(default=None, init=False, repr=False)
@@ -459,11 +478,7 @@ class SentenceTransformerModelCardData(CardData):
             for idx, sample in enumerate(
                 str_dataset.select(random.sample(range(dataset_size), k=min(num_samples_to_check, dataset_size)))
             ):
-                lengths[idx] = sum(
-                    len(value)
-                    for key, value in sample.items()
-                    if key != "dataset_name" and not key.endswith("_prompt_length")
-                )
+                lengths[idx] = sum(len(value) for key, value in sample.items() if key != "dataset_name")
 
             indices, _ = zip(*sorted(lengths.items(), key=lambda x: x[1]))
             target_indices, backup_indices = indices[:num_samples], list(indices[num_samples:][::-1])
@@ -471,17 +486,11 @@ class SentenceTransformerModelCardData(CardData):
             # We want 4 texts, so we take texts from the backup indices, short texts first
             for idx in target_indices:
                 # This is anywhere between 1 and n texts
-                sentences = [
-                    sentence
-                    for key, sentence in str_dataset[idx].items()
-                    if key != "dataset_name" and not key.endswith("_prompt_length")
-                ]
+                sentences = [sentence for key, sentence in str_dataset[idx].items() if key != "dataset_name"]
                 while len(sentences) < 4 and backup_indices:
                     backup_idx = backup_indices.pop()
                     backup_sample = [
-                        sentence
-                        for key, sentence in str_dataset[backup_idx].items()
-                        if key != "dataset_name" and not key.endswith("_prompt_length")
+                        sentence for key, sentence in str_dataset[backup_idx].items() if key != "dataset_name"
                     ]
                     if len(backup_sample) == 1:
                         # If there is only one text in the backup sample, we take it
@@ -493,10 +502,23 @@ class SentenceTransformerModelCardData(CardData):
                 if len(sentences) < 4:
                     continue
 
-                self.widget.append(
-                    {"source_sentence": sentences[0], "sentences": random.sample(sentences[1:], k=len(sentences) - 1)}
-                )
-                self.predict_example = sentences[:3]
+                # When training with a Router (or Asym) module, you might be using backwards compatible training,
+                # i.e. with a dictionary with a mapping of Router keys to texts, so let's grab the texts
+                sentences = [
+                    list(sentence.values())[0] if isinstance(sentence, dict) else sentence for sentence in sentences
+                ]
+
+                if self.pipeline_tag == "sentence-similarity":
+                    self.widget.append(
+                        {
+                            "source_sentence": sentences[0],
+                            "sentences": random.sample(sentences[1:], k=len(sentences) - 1),
+                        }
+                    )
+                else:
+                    # If we have e.g. feature-extraction, we just want individual sentences
+                    self.widget.append({"text": random.choice(sentences)})
+                self.predict_example = sentences[:4]
 
     def set_evaluation_metrics(
         self, evaluator: SentenceEvaluator, metrics: dict[str, Any], epoch: int = 0, step: int = 0
@@ -577,8 +599,12 @@ class SentenceTransformerModelCardData(CardData):
 
         return [dataset_output]
 
-    def tokenize(self, text: str | list[str]) -> dict[str, Any]:
-        return self.model.tokenize(text)
+    def tokenize(self, text: str | list[str], **kwargs) -> dict[str, Any]:
+        try:
+            return self.model.tokenize(text, **kwargs)
+        except TypeError:
+            # Fallback for backwards compatibility with modules that don't yet support kwargs
+            return self.model.tokenize(text)
 
     def compute_dataset_metrics(
         self,
@@ -612,7 +638,7 @@ class SentenceTransformerModelCardData(CardData):
                 subsection = dataset[:1000][column]
                 first = subsection[0]
                 if isinstance(first, str):
-                    tokenized = self.tokenize(subsection)
+                    tokenized = self.tokenize(subsection, task="document")
                     if isinstance(tokenized, dict) and "attention_mask" in tokenized:
                         lengths = tokenized["attention_mask"].sum(dim=1).tolist()
                         suffix = "tokens"
@@ -699,10 +725,33 @@ class SentenceTransformerModelCardData(CardData):
         }
         if hasattr(loss, "get_config_dict"):
             config = loss.get_config_dict()
+
+            def format_config_value(value: Any) -> str:
+                if not isinstance(value, nn.Module):
+                    return value
+                module_name = value.__class__.__name__
+                module_args_str = []
+
+                # E.g. SentenceTransformer, SparseEncoder, etc.
+                if hasattr(value, "model_card_data") and hasattr(value.model_card_data, "base_model"):
+                    module_args_str.append(repr(value.model_card_data.base_model))
+                if hasattr(value, "trust_remote_code") and value.trust_remote_code:
+                    module_args_str.append("trust_remote_code=True")
+                # E.g. MultipleNegativesRankingLoss, CosineSimilarityLoss, etc.
+                if hasattr(value, "get_config_dict"):
+                    for key, val in value.get_config_dict().items():
+                        module_args_str.append(f"{key}={repr(val)}")
+
+                if module_args_str:
+                    return f"{module_name}({', '.join(module_args_str)})"
+                return module_name
+
+            config = {key: format_config_value(value) for key, value in config.items()}
+
             try:
                 str_config = json.dumps(config, indent=4)
             except TypeError:
-                str_config = str(config)
+                str_config = pformat(config, indent=4)
             dataset_info["loss"]["config_code"] = indent(f"```json\n{str_config}\n```", "  ")
         return dataset_info
 
@@ -747,10 +796,32 @@ class SentenceTransformerModelCardData(CardData):
             if num_training_samples:
                 self.add_tags(f"dataset_size:{num_training_samples}")
 
+            if self.ir_model is None:
+                if isinstance(dataset, dict):
+                    column_names = set(
+                        column for sub_dataset in dataset.values() for column in sub_dataset.column_names
+                    )
+                else:
+                    column_names = set(dataset.column_names)
+                if {"query", "question"} & column_names:
+                    self.ir_model = True
+
         return self.validate_datasets(dataset_metadata)
 
     def register_model(self, model: SentenceTransformer) -> None:
         self.model = model
+
+        if self.ir_model is not None:
+            return
+
+        if Router in [module.__class__ for module in model.children()]:
+            self.ir_model = True
+            return
+
+        for ir_prompt_name in ["query", "document", "passage", "corpus"]:
+            if ir_prompt_name in model.prompts and len(model.prompts[ir_prompt_name]) > 0:
+                self.ir_model = True
+                return
 
     def set_model_id(self, model_id: str) -> None:
         self.model_id = model_id
@@ -787,8 +858,8 @@ class SentenceTransformerModelCardData(CardData):
                 self.tags.append(tag)
 
     def try_to_set_base_model(self) -> None:
-        if isinstance(self.model[0], Transformer):
-            base_model = self.model[0].auto_model.config._name_or_path
+        if (transformers_model := self.model.transformers_model) is not None:
+            base_model = transformers_model.config._name_or_path
             base_model_path = Path(base_model)
             # Sometimes the name_or_path ends exactly with the model_id, e.g.
             # "C:\\Users\\tom/.cache\\torch\\sentence_transformers\\BAAI_bge-small-en-v1.5\\"
@@ -975,6 +1046,41 @@ class SentenceTransformerModelCardData(CardData):
             "explain_bold_in_eval": "**" in eval_lines,
         }
 
+    def run_usage_snippet(self) -> dict[str, Any]:
+        if self.predict_example is None:
+            if self.ir_model:
+                self.predict_example = [
+                    "Which planet is known as the Red Planet?",
+                    "Venus is often called Earth's twin because of its similar size and proximity.",
+                    "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
+                    "Saturn, famous for its rings, is sometimes mistaken for the Red Planet.",
+                ]
+            else:
+                self.predict_example = [
+                    "The weather is lovely today.",
+                    "It's so sunny outside!",
+                    "He drove to the stadium.",
+                ]
+
+        if not self.generate_widget_examples:
+            return
+
+        if self.ir_model:
+            query_embeddings = self.model.encode_query(
+                self.predict_example[0], convert_to_tensor=True, show_progress_bar=False
+            )
+            document_embeddings = self.model.encode_document(
+                self.predict_example[1:], convert_to_tensor=True, show_progress_bar=False
+            )
+            similarity = self.model.similarity(query_embeddings, document_embeddings)
+        else:
+            self.predict_example = self.predict_example[:3]  # Limit to 3 examples for standard similarity
+            embeddings = self.model.encode(self.predict_example, convert_to_tensor=True, show_progress_bar=False)
+            similarity = self.model.similarity(embeddings, embeddings)
+
+        with torch._tensor_str.printoptions(precision=4, sci_mode=False):
+            self.similarities = "\n".join(f"# {line}" for line in str(similarity.cpu()).splitlines())
+
     def get_codecarbon_data(self) -> dict[Literal["co2_eq_emissions"], dict[str, Any]]:
         emissions_data = self.code_carbon_callback.tracker._prepare_emissions_data()
         results = {
@@ -1010,6 +1116,12 @@ class SentenceTransformerModelCardData(CardData):
             "similarity_fn_name": similarity_fn_name,
         }
 
+    def get_default_model_name(self) -> None:
+        if self.base_model:
+            return f"{self.model.__class__.__name__} based on {self.base_model}"
+        else:
+            return self.model.__class__.__name__
+
     def to_dict(self) -> dict[str, Any]:
         # Try to set the base model
         if self.first_save and not self.base_model:
@@ -1020,10 +1132,13 @@ class SentenceTransformerModelCardData(CardData):
 
         # Set the model name
         if not self.model_name:
-            if self.base_model:
-                self.model_name = f"{self.model.__class__.__name__} based on {self.base_model}"
-            else:
-                self.model_name = self.model.__class__.__name__
+            self.model_name = self.get_default_model_name()
+
+        # Compute the similarity scores for the usage snippet
+        try:
+            self.run_usage_snippet()
+        except Exception as exc:
+            logger.warning(f"Error while computing usage snippet output: {exc}")
 
         super_dict = {field.name: getattr(self, field.name) for field in fields(self)}
 

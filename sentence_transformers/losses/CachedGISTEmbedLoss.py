@@ -9,9 +9,10 @@ import torch
 import tqdm
 from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
+from transformers import PreTrainedTokenizerBase
 
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.models import StaticEmbedding, Transformer
+from sentence_transformers.models import StaticEmbedding
 
 
 class RandContext:
@@ -166,9 +167,13 @@ class CachedGISTEmbedLoss(nn.Module):
         self.guide = guide
         self.temperature = temperature
         self.similarity_fct = nn.CosineSimilarity(dim=-1)
-        if not isinstance(model[0], Transformer) or not isinstance(guide[0], Transformer):
+        if not hasattr(model, "tokenizer") or not hasattr(guide, "tokenizer"):
+            raise ValueError("Both the training model and the guiding model must have a tokenizer attribute.")
+        if not isinstance(model.tokenizer, PreTrainedTokenizerBase) or not isinstance(
+            guide.tokenizer, PreTrainedTokenizerBase
+        ):
             raise ValueError(
-                "Both the training model and the guiding model must be based on the `transformers` architecture."
+                "Both the training model and the guiding model must use a PreTrainedTokenizer from transformers."
             )
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size

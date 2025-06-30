@@ -69,7 +69,6 @@ def export_optimized_onnx_model(
         None
     """
     from sentence_transformers import CrossEncoder, SentenceTransformer
-    from sentence_transformers.models.Transformer import Transformer
 
     try:
         from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTModelForSequenceClassification, ORTOptimizer
@@ -84,8 +83,7 @@ def export_optimized_onnx_model(
     viable_st_model = (
         isinstance(model, SentenceTransformer)
         and len(model)
-        and isinstance(model[0], Transformer)
-        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
+        and isinstance(model.transformers_model, ORTModelForFeatureExtraction)
     )
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
     if not (viable_st_model or viable_ce_model):
@@ -94,7 +92,7 @@ def export_optimized_onnx_model(
         )
 
     if viable_st_model:
-        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+        ort_model: ORTModelForFeatureExtraction = model.transformers_model
     else:
         ort_model: ORTModelForSequenceClassification = model.model
     optimizer = ORTOptimizer.from_pretrained(ort_model)
@@ -162,7 +160,6 @@ def export_dynamic_quantized_onnx_model(
         None
     """
     from sentence_transformers import CrossEncoder, SentenceTransformer
-    from sentence_transformers.models.Transformer import Transformer
 
     try:
         from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTModelForSequenceClassification, ORTQuantizer
@@ -177,8 +174,7 @@ def export_dynamic_quantized_onnx_model(
     viable_st_model = (
         isinstance(model, SentenceTransformer)
         and len(model)
-        and isinstance(model[0], Transformer)
-        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
+        and isinstance(model.transformers_model, ORTModelForFeatureExtraction)
     )
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
     if not (viable_st_model or viable_ce_model):
@@ -187,7 +183,7 @@ def export_dynamic_quantized_onnx_model(
         )
 
     if viable_st_model:
-        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+        ort_model: ORTModelForFeatureExtraction = model.transformers_model
     else:
         ort_model: ORTModelForSequenceClassification = model.model
     quantizer = ORTQuantizer.from_pretrained(ort_model)
@@ -265,7 +261,6 @@ def export_static_quantized_openvino_model(
         None
     """
     from sentence_transformers import CrossEncoder, SentenceTransformer
-    from sentence_transformers.models.Transformer import Transformer
 
     try:
         from optimum.intel import (
@@ -288,8 +283,7 @@ def export_static_quantized_openvino_model(
     viable_st_model = (
         isinstance(model, SentenceTransformer)
         and len(model)
-        and isinstance(model[0], Transformer)
-        and isinstance(model[0].auto_model, OVModelForFeatureExtraction)
+        and isinstance(model.transformers_model, OVModelForFeatureExtraction)
     )
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, OVModelForSequenceClassification)
     if not (viable_st_model or viable_ce_model):
@@ -301,7 +295,7 @@ def export_static_quantized_openvino_model(
         quantization_config = OVQuantizationConfig()
 
     if viable_st_model:
-        ov_model: OVModelForFeatureExtraction = model[0].auto_model
+        ov_model: OVModelForFeatureExtraction = model.transformers_model
     else:
         ov_model: OVModelForSequenceClassification = model.model
     ov_config = OVConfig(quantization_config=quantization_config)

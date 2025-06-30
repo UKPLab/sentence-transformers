@@ -3,16 +3,20 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
-from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 from sentence_transformers.readers import InputExample
 from sentence_transformers.similarity_functions import SimilarityFunction
+from sentence_transformers.util import (
+    pairwise_cos_sim,
+    pairwise_dot_score,
+    pairwise_euclidean_sim,
+    pairwise_manhattan_sim,
+)
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
@@ -67,7 +71,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             results = dev_evaluator(model)
             '''
             EmbeddingSimilarityEvaluator: Evaluating the model on the sts-dev dataset:
-            Cosine-Similarity :  Pearson: 0.8806 Spearman: 0.8810
+            Cosine-Similarity:  Pearson: 0.8806 Spearman: 0.8810
             '''
             print(dev_evaluator.primary_metric)
             # => "sts_dev_pearson_cosine"
@@ -102,6 +106,9 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         self.main_similarity = SimilarityFunction(main_similarity) if main_similarity else None
         self.similarity_fn_names = similarity_fn_names or []
+        if self.similarity_fn_names == [] and self.main_similarity is not None:
+            self.similarity_fn_names = [self.main_similarity.value]
+
         self.name = name
 
         self.batch_size = batch_size
@@ -144,7 +151,7 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         return cls(sentences1, sentences2, scores, **kwargs)
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -158,23 +165,8 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
 
         logger.info(f"EmbeddingSimilarityEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            embeddings1 = model.encode(
-                self.sentences1,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
-                convert_to_numpy=True,
-                precision=self.precision,
-                normalize_embeddings=bool(self.precision),
-            )
-            embeddings2 = model.encode(
-                self.sentences2,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
-                convert_to_numpy=True,
-                precision=self.precision,
-                normalize_embeddings=bool(self.precision),
-            )
+        embeddings1 = self.embed_inputs(model, self.sentences1)
+        embeddings2 = self.embed_inputs(model, self.sentences2)
         # Binary and ubinary embeddings are packed, so we need to unpack them for the distance metrics
         if self.precision == "binary":
             embeddings1 = (embeddings1 + 128).astype(np.uint8)
@@ -190,22 +182,22 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
             self._append_csv_headers(self.similarity_fn_names)
 
         similarity_functions = {
-            "cosine": lambda x, y: 1 - paired_cosine_distances(x, y),
-            "manhattan": lambda x, y: -paired_manhattan_distances(x, y),
-            "euclidean": lambda x, y: -paired_euclidean_distances(x, y),
-            "dot": lambda x, y: [np.dot(emb1, emb2) for emb1, emb2 in zip(x, y)],
+            "cosine": lambda x, y: pairwise_cos_sim(x, y),
+            "manhattan": lambda x, y: pairwise_manhattan_sim(x, y),
+            "euclidean": lambda x, y: pairwise_euclidean_sim(x, y),
+            "dot": lambda x, y: pairwise_dot_score(x, y),
         }
 
         metrics = {}
         for fn_name in self.similarity_fn_names:
             if fn_name in similarity_functions:
-                scores = similarity_functions[fn_name](embeddings1, embeddings2)
+                scores = similarity_functions[fn_name](embeddings1, embeddings2).detach().cpu().numpy()
                 eval_pearson, _ = pearsonr(labels, scores)
                 eval_spearman, _ = spearmanr(labels, scores)
                 metrics[f"pearson_{fn_name}"] = eval_pearson
                 metrics[f"spearman_{fn_name}"] = eval_spearman
                 logger.info(
-                    f"{fn_name.capitalize()}-Similarity :\tPearson: {eval_pearson:.4f}\tSpearman: {eval_spearman:.4f}"
+                    f"{fn_name.capitalize()}-Similarity:\tPearson: {eval_pearson:.4f}\tSpearman: {eval_spearman:.4f}"
                 )
 
         if output_path is not None and self.write_csv:
@@ -248,6 +240,23 @@ class EmbeddingSimilarityEvaluator(SentenceEvaluator):
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        return model.encode(
+            sentences,
+            batch_size=self.batch_size,
+            show_progress_bar=self.show_progress_bar,
+            convert_to_numpy=True,
+            precision=self.precision,
+            normalize_embeddings=bool(self.precision),
+            truncate_dim=self.truncate_dim,
+            **kwargs,
+        )
 
     @property
     def description(self) -> str:

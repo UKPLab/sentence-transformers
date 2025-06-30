@@ -40,7 +40,7 @@ if __name__ == "__main__":
     for i, batch in enumerate(tqdm(dataloader)):
         # Compute the embeddings using the multi-process pool
         sentences = batch["best_answer"]
-        batch_emb = model.encode_multi_process(sentences, pool, chunk_size=chunk_size, batch_size=encode_batch_size)
+        batch_emb = model.encode(sentences, batch_size=encode_batch_size, pool=pool, chunk_size=chunk_size)
         print("Embeddings computed for 1 batch. Shape:", batch_emb.shape)
 
     # Optional: Stop the processes in the pool

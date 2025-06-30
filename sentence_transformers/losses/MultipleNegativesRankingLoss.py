@@ -16,7 +16,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         Given a list of (anchor, positive) pairs or (anchor, positive, negative) triplets, this loss optimizes the following:
 
         1. Given an anchor (e.g. a question), assign the highest similarity to the corresponding positive (i.e. answer)
-            out of every single positive and negative (e.g. all answers) in the batch.
+           out of every single positive and negative (e.g. all answers) in the batch.
 
         If you provide the optional negatives, they will all be used as extra options from which the model must pick the
         correct positive. Within reason, the harder this "picking" is, the stronger the model will become. Because of
@@ -100,6 +100,20 @@ class MultipleNegativesRankingLoss(nn.Module):
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Compute the embeddings and distribute them to anchor and candidates (positive and optionally negatives)
         embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
+
+        return self.compute_loss_from_embeddings(embeddings, labels)
+
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
+        """
+        Compute the multiple negatives ranking loss from embeddings.
+
+        Args:
+            embeddings: List of embeddings
+
+        Returns:
+            Loss value
+        """
+
         anchors = embeddings[0]  # (batch_size, embedding_dim)
         candidates = torch.cat(embeddings[1:])  # (batch_size * (1 + num_negatives), embedding_dim)
 

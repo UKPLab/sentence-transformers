@@ -74,7 +74,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
     This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of Information Retrieval datasets.
 
     The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
-    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    be used for quickly evaluating the retrieval performance of a model before committing to a full evaluation.
     The datasets are available on Hugging Face in the `NanoBEIR collection <https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6>`_.
     This evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
 
@@ -95,6 +95,8 @@ class NanoBEIREvaluator(SentenceEvaluator):
         aggregate_key (str): The key to use for the aggregated score. Defaults to "mean".
         query_prompts (str | dict[str, str], optional): The prompts to add to the queries. If a string, will add the same prompt to all queries. If a dict, expects that all datasets in dataset_names are keys.
         corpus_prompts (str | dict[str, str], optional): The prompts to add to the corpus. If a string, will add the same prompt to all corpus. If a dict, expects that all datasets in dataset_names are keys.
+        write_predictions (bool): Whether to write the predictions to a JSONL file. Defaults to False.
+            This can be useful for downstream evaluation as it can be used as input to the :class:`~sentence_transformers.sparse_encoder.evaluation.ReciprocalRankFusionEvaluator` that accept precomputed predictions.
 
     Example:
         ::
@@ -186,6 +188,8 @@ class NanoBEIREvaluator(SentenceEvaluator):
             # => 0.8084508771660436
     """
 
+    information_retrieval_class = InformationRetrievalEvaluator
+
     def __init__(
         self,
         dataset_names: list[DatasetNameType] | None = None,
@@ -198,12 +202,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
         batch_size: int = 32,
         write_csv: bool = True,
         truncate_dim: int | None = None,
-        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = None,
+        score_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] | None = None,
         main_score_function: str | SimilarityFunction | None = None,
         aggregate_fn: Callable[[list[float]], float] = np.mean,
         aggregate_key: str = "mean",
         query_prompts: str | dict[str, str] | None = None,
         corpus_prompts: str | dict[str, str] | None = None,
+        write_predictions: bool = False,
     ):
         super().__init__()
         if dataset_names is None:
@@ -245,8 +250,8 @@ class NanoBEIREvaluator(SentenceEvaluator):
             "truncate_dim": truncate_dim,
             "score_functions": score_functions,
             "main_score_function": main_score_function,
+            "write_predictions": write_predictions,
         }
-
         self.evaluators = [
             self._load_dataset(name, **ir_evaluator_kwargs)
             for name in tqdm(self.dataset_names, desc="Loading NanoBEIR datasets", leave=False)
@@ -276,7 +281,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
                 self.csv_headers.append(f"{score_name}-MAP@{k}")
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self,
+        model: SentenceTransformer,
+        output_path: str | None = None,
+        epoch: int = -1,
+        steps: int = -1,
+        *args,
+        **kwargs,
     ) -> dict[str, float]:
         per_metric_results = {}
         per_dataset_results = {}
@@ -296,18 +307,17 @@ class NanoBEIREvaluator(SentenceEvaluator):
             self.score_function_names = [model.similarity_fn_name]
             self._append_csv_headers(self.score_function_names)
 
+        num_underscores_in_name = self.name.count("_")
         for evaluator in tqdm(self.evaluators, desc="Evaluating datasets", disable=not self.show_progress_bar):
             logger.info(f"Evaluating {evaluator.name}")
             evaluation = evaluator(model, output_path, epoch, steps)
-            for k in evaluation:
-                if self.truncate_dim:
-                    dataset, _, metric = k.split("_", maxsplit=2)
-                else:
-                    dataset, metric = k.split("_", maxsplit=1)
+            for full_key, metric_value in evaluation.items():
+                splits = full_key.split("_", maxsplit=num_underscores_in_name)
+                metric = splits[-1]
                 if metric not in per_metric_results:
                     per_metric_results[metric] = []
-                per_dataset_results[dataset + "_" + metric] = evaluation[k]
-                per_metric_results[metric].append(evaluation[k])
+                per_dataset_results[full_key] = metric_value
+                per_metric_results[metric].append(metric_value)
 
         agg_results = {}
         for metric in per_metric_results:
@@ -375,6 +385,9 @@ class NanoBEIREvaluator(SentenceEvaluator):
             for k in self.ndcg_at_k:
                 logger.info("NDCG@{}: {:.4f}".format(k, agg_results[f"{name}_ndcg@{k}"]))
 
+            for k in self.map_at_k:
+                logger.info("MAP@{}: {:.4f}".format(k, agg_results[f"{name}_map@{k}"]))
+
         agg_results = self.prefix_name_to_metrics(agg_results, self.name)
         self.store_metrics_in_model_card_data(model, agg_results, epoch, steps)
 
@@ -412,7 +425,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
         if self.corpus_prompts is not None:
             ir_evaluator_kwargs["corpus_prompt"] = self.corpus_prompts.get(dataset_name, None)
         human_readable_name = self._get_human_readable_name(dataset_name)
-        return InformationRetrievalEvaluator(
+        return self.information_retrieval_class(
             queries=queries_dict,
             corpus=corpus_dict,
             relevant_docs=qrels_dict,
@@ -451,6 +464,13 @@ class NanoBEIREvaluator(SentenceEvaluator):
 
         if error_msg:
             raise ValueError(error_msg.strip())
+
+    def store_metrics_in_model_card_data(self, *args, **kwargs):
+        # Only store metrics in the model card data if there is more than one dataset.
+        # Otherwise the e.g. mean scores for NanoBEIR are the same as the scores for
+        # the single dataset, and we'd end up with duplicate entries.
+        if len(self.dataset_names) > 1:
+            super().store_metrics_in_model_card_data(*args, **kwargs)
 
     def get_config_dict(self) -> dict[str, Any]:
         config_dict = {"dataset_names": self.dataset_names}

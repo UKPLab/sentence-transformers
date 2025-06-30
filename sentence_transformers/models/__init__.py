@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from .Asym import Asym
+import sys
+
 from .BoW import BoW
 from .CLIPModel import CLIPModel
 from .CNN import CNN
@@ -12,11 +13,14 @@ from .LSTM import LSTM
 from .Module import Module
 from .Normalize import Normalize
 from .Pooling import Pooling
+from .Router import Asym, Router
 from .StaticEmbedding import StaticEmbedding
 from .Transformer import Transformer
 from .WeightedLayerPooling import WeightedLayerPooling
 from .WordEmbeddings import WordEmbeddings
 from .WordWeights import WordWeights
+
+sys.modules["sentence_transformers.models.Asym"] = sys.modules["sentence_transformers.models.Router"]
 
 __all__ = [
     "Transformer",
@@ -36,4 +40,5 @@ __all__ = [
     "CLIPModel",
     "Module",
     "InputModule",
+    "Router",
 ]

@@ -70,7 +70,7 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
     This class evaluates a CrossEncoder model on the NanoBEIR collection of Information Retrieval datasets.
 
     The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
-    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    be used for quickly evaluating the retrieval performance of a model before committing to a full evaluation.
     The datasets are available on Hugging Face in the `NanoBEIR with BM25 collection <https://huggingface.co/collections/sentence-transformers/nanobeir-with-bm25-rankings-67bdcbc629f007c15bf358d8>`_.
     This evaluator will return the same metrics as the CrossEncoderRerankingEvaluator (i.e., MRR@k, nDCG@k, MAP), for each dataset and on average.
 
@@ -211,7 +211,7 @@ class CrossEncoderNanoBEIREvaluator(SentenceEvaluator):
         self.primary_metric = f"ndcg@{self.at_k}"
 
     def __call__(
-        self, model: CrossEncoder, output_path: str = None, epoch: int = -1, steps: int = -1, *args, **kwargs
+        self, model: CrossEncoder, output_path: str | None = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         per_metric_results = {}
         per_dataset_results = {}

@@ -136,7 +136,7 @@ class WordEmbeddings(Module):
         update_embeddings: bool = False,
         item_separator: str = " ",
         tokenizer=WhitespaceTokenizer(),
-        max_vocab_size: int = None,
+        max_vocab_size: int | None = None,
     ):
         logger.info(f"Read in embeddings file {embeddings_file_path}")
 

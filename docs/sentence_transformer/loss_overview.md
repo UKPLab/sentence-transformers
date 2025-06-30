@@ -42,6 +42,9 @@ For example, when finetuning a small model to behave more like a larger & strong
 | `sentence`                                   | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.html#mseloss">`MSELoss`</a>             |
 | `sentence_1, sentence_2, ..., sentence_N`    | `model sentence embeddings`                                   | <a href="../package_reference/sentence_transformer/losses.html#mseloss">`MSELoss`</a>             |
 | `(query, passage_one, passage_two) triplets` | `gold_sim(query, passage_one) - gold_sim(query, passage_two)` | <a href="../package_reference/sentence_transformer/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative_1, ..., negative_n)` | `[gold_sim(query, positive) - gold_sim(query, negative_i) for i in 1..n]` | <a href="../package_reference/sentence_transformer/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative)` | `[gold_sim(query, positive), gold_sim(query, negative)]` | <a href="../package_reference/sentence_transformer/losses.html#distilkldivloss">`DistillKLDivLoss`</a> |
+| `(query, positive, negative_1, ..., negative_n) ` | `[gold_sim(query, positive), gold_sim(query, negative_i)...] ` | <a href="../package_reference/sentence_transformer/losses.html#distilkldivloss">`DistillKLDivLoss`</a> |
 
 ## Commonly used Loss Functions
 In practice, not all loss functions get used equally often. The most common scenarios are:
@@ -56,7 +59,7 @@ Advanced users can create and train with their own loss functions. Custom loss f
 
 - They must be a subclass of :class:`torch.nn.Module`.
 - They must have ``model`` as the first argument in the constructor.
-- They must implement a ``forward`` method that accepts ``sentence_features`` and ``labels``. The former is a list of tokenized batches, one element for each column. These tokenized batches can be fed directly to the ``model`` being trained to produce embeddings. The latter is an optional tensor of labels. The method must return a single loss value.
+- They must implement a ``forward`` method that accepts ``sentence_features`` and ``labels``. The former is a list of tokenized batches, one element for each column. These tokenized batches can be fed directly to the ``model`` being trained to produce embeddings. The latter is an optional tensor of labels. The method must return a single loss value or a dictionary of loss components (component names to loss values) that will be summed to produce the final loss value. When returning a dictionary, the individual components will be logged separately in addition to the summed loss, allowing you to monitor the individual components of the loss.
 
 To get full support with the automatic model card generation, you may also wish to implement:
 

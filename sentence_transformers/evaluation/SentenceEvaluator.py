@@ -4,6 +4,9 @@ import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    import numpy as np
+    from torch import Tensor
+
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
@@ -25,7 +28,7 @@ class SentenceEvaluator:
         self.primary_metric = None
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> float | dict[str, float]:
         """
         This is called during training to evaluate the model.
@@ -97,3 +100,21 @@ class SentenceEvaluator:
         Return a dictionary with all meaningful configuration values of the evaluator to store in the model card.
         """
         return {}
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        **kwargs,
+    ) -> list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]:
+        """
+        Call the encoder method of the model pass
+
+        Args:
+            model (SentenceTransformer): Model we are evaluating
+            sentences (str | list[str] | np.ndarray): Text that we are embedding
+
+        Returns:
+            list[Tensor] | np.ndarray | Tensor | dict[str, Tensor] | list[dict[str, Tensor]]: The associated embedding
+        """
+        return model.encode(sentences, **kwargs)

@@ -83,7 +83,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
         self.encoder = model  # This will be the final model used during the inference time.
         self.tokenizer_encoder = model.tokenizer
 
-        encoder_name_or_path = model[0].auto_model.config._name_or_path
+        encoder_name_or_path = model.transformers_model.config._name_or_path
         if decoder_name_or_path is None:
             assert (
                 tie_encoder_decoder
@@ -107,7 +107,7 @@ class DenoisingAutoEncoderLoss(nn.Module):
                 f'Model name or path "{decoder_name_or_path}" does not support being as a decoder. Please make sure the decoder model has an "XXXLMHead" class.'
             )
             raise e
-        assert model[0].auto_model.config.hidden_size == decoder_config.hidden_size, "Hidden sizes do not match!"
+        assert model.transformers_model.config.hidden_size == decoder_config.hidden_size, "Hidden sizes do not match!"
         if self.tokenizer_decoder.pad_token is None:
             # Needed by GPT-2, etc.
             self.tokenizer_decoder.pad_token = self.tokenizer_decoder.eos_token
@@ -130,14 +130,14 @@ class DenoisingAutoEncoderLoss(nn.Module):
             try:
                 # Compatibility with transformers <4.40.0
                 PreTrainedModel._tie_encoder_decoder_weights(
-                    model[0].auto_model,
+                    model.transformers_model,
                     self.decoder._modules[decoder_base_model_prefix],
                     self.decoder.base_model_prefix,
                 )
             except TypeError:
                 # Compatibility with transformers >=4.40.0
                 PreTrainedModel._tie_encoder_decoder_weights(
-                    model[0].auto_model,
+                    model.transformers_model,
                     self.decoder._modules[decoder_base_model_prefix],
                     self.decoder.base_model_prefix,
                     encoder_name_or_path,

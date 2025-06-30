@@ -101,7 +101,7 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
     def __init__(
         self,
         model: CrossEncoder | None = None,
-        args: CrossEncoderTrainingArguments = None,
+        args: CrossEncoderTrainingArguments | None = None,
         train_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         eval_dataset: Dataset | DatasetDict | dict[str, Dataset] | None = None,
         loss: nn.Module
@@ -224,6 +224,10 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
         if self.eval_dataset == "dummy":
             self.eval_dataset = None
 
+        # If losses return dictionaries, then we want to be able to accumulate the loss components
+        # before merging them into a single loss (required by the base Trainer)
+        self.accum_loss_components = {"train": {}, "eval": {}}
+
         # Every Sentence Transformer model can always return a loss, so we set this to True
         # to avoid having to specify it in the data collator or model's forward
         self.can_return_loss = True
@@ -268,12 +272,12 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
         self.evaluator = evaluator
 
         if self.train_dataset is not None:
-            self.train_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                train_dataset, args.prompts, dataset_name="train"
+            self.train_dataset = self.preprocess_dataset(
+                train_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="train"
             )
         if self.eval_dataset is not None:
-            self.eval_dataset = self.maybe_add_prompts_or_dataset_name_column(
-                eval_dataset, args.prompts, dataset_name="eval"
+            self.eval_dataset = self.preprocess_dataset(
+                eval_dataset, prompts=args.prompts, router_mapping=args.router_mapping, dataset_name="eval"
             )
         self.add_model_card_callback(default_args_dict)
 
@@ -290,7 +294,7 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
 
         .. note::
 
-            This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
+            This method can be overridden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
         model_card_callback = CrossEncoderModelCardCallback(default_args_dict)

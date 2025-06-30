@@ -12,11 +12,13 @@ from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Callable, Literal, cast
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
+from tokenizers.processors import TemplateProcessing
 from torch import nn
 from transformers import BertModel
 from transformers.utils import is_peft_available
@@ -306,7 +308,7 @@ def test_load_local_without_normalize_directory(stsb_bert_tiny_model: SentenceTr
 
 def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCaptureFixture) -> None:
     model = stsb_bert_tiny_model
-    assert model.prompts == {}
+    assert model.prompts == {"query": "", "document": ""}
     assert model.default_prompt_name is None
     texts = ["How to bake a chocolate cake", "Symptoms of the flu"]
     no_prompt_embedding = model.encode(texts)
@@ -315,11 +317,11 @@ def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCa
 
     for query in ["query: ", "query:", "query:   "]:
         # Test prompt="... {}"
-        model.prompts = {}
+        model.prompts = {"query": "", "document": ""}
         assert np.array_equal(model.encode(texts, prompt=query), prompt_embedding)
 
         # Test prompt_name="..."
-        model.prompts = {"query": query}
+        model.prompts = {"query": query, "document": ""}
         assert np.array_equal(model.encode(texts, prompt_name="query"), prompt_embedding)
 
         caplog.clear()
@@ -336,7 +338,7 @@ def test_prompts(stsb_bert_tiny_model: SentenceTransformer, caplog: pytest.LogCa
         with pytest.raises(
             ValueError,
             match=re.escape(
-                "Prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+                "Prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query', 'document']."
             ),
         ):
             model.encode(texts, prompt_name="invalid_prompt_name")
@@ -346,7 +348,7 @@ def test_save_load_prompts() -> None:
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Default prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query']."
+            "Default prompt name 'invalid_prompt_name' not found in the configured prompts dictionary with keys ['query', 'document']."
         ),
     ):
         model = SentenceTransformer(
@@ -360,7 +362,7 @@ def test_save_load_prompts() -> None:
         prompts={"query": "query: "},
         default_prompt_name="query",
     )
-    assert model.prompts == {"query": "query: "}
+    assert model.prompts == {"query": "query: ", "document": ""}
     assert model.default_prompt_name == "query"
 
     with SafeTemporaryDirectory() as tmp_folder:
@@ -370,16 +372,16 @@ def test_save_load_prompts() -> None:
         assert config_path.exists()
         with open(config_path, encoding="utf8") as f:
             saved_config = json.load(f)
-        assert saved_config["prompts"] == {"query": "query: "}
+        assert saved_config["prompts"] == {"query": "query: ", "document": ""}
         assert saved_config["default_prompt_name"] == "query"
 
         fresh_model = SentenceTransformer(str(model_path))
-        assert fresh_model.prompts == {"query": "query: "}
+        assert fresh_model.prompts == {"query": "query: ", "document": ""}
         assert fresh_model.default_prompt_name == "query"
 
 
-def test_prompt_output_value_None(stsb_bert_tiny_model_reused) -> None:
-    model = stsb_bert_tiny_model_reused
+def test_prompt_output_value_None(stsb_bert_tiny_model) -> None:
+    model = stsb_bert_tiny_model
     outputs = model.encode(
         ["Text one", "Text two"],
         prompt="query: ",
@@ -397,6 +399,70 @@ def test_prompt_output_value_None(stsb_bert_tiny_model_reused) -> None:
     }
     assert set(outputs[0].keys()) == expected_keys
     assert set(outputs[1].keys()) == expected_keys
+
+
+@pytest.mark.parametrize("has_bos_token", [True, False])
+@pytest.mark.parametrize("has_eos_token", [True, False])
+def test_prompt_length_calculation(
+    stsb_bert_tiny_model: SentenceTransformer,
+    has_bos_token: bool,
+    has_eos_token: bool,
+) -> None:
+    # This test checks that the prompt length is calculated correctly, regardless of whether the tokenizer has a
+    # beginning-of-sequence or end-of-sequence token.
+    model = stsb_bert_tiny_model
+    model.prompts = {"query": "Prompt: ", "document": ""}
+    # We need to set this to False, otherwise the prompt length wont be needed:
+    model.set_pooling_include_prompt(False)
+    dummy_bos_token_id = 400
+    dummy_eos_token_id = 500
+    model.tokenizer.cls_token_id = dummy_bos_token_id if has_bos_token else None
+    model.tokenizer.sep_token_id = dummy_eos_token_id if has_eos_token else None
+    if has_bos_token:
+        if has_eos_token:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="[CLS] $0 [SEP]",
+                special_tokens=[
+                    ("[CLS]", dummy_bos_token_id),
+                    ("[SEP]", dummy_eos_token_id),
+                ],
+            )
+        else:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="[CLS] $0",
+                special_tokens=[("[CLS]", dummy_bos_token_id)],
+            )
+    else:
+        if has_eos_token:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="$0 [SEP]",
+                special_tokens=[("[SEP]", dummy_eos_token_id)],
+            )
+        else:
+            model.tokenizer._tokenizer.post_processor = TemplateProcessing(
+                single="$0",
+                special_tokens=[],
+            )
+
+    # Check that we can update the tokenizer in this way
+    if has_eos_token:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[-1] == dummy_eos_token_id
+    else:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[-1] != dummy_eos_token_id
+
+    if has_bos_token:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[0] == dummy_bos_token_id
+    else:
+        assert model.tokenize(["dummy text"])["input_ids"].flatten()[0] != dummy_bos_token_id
+
+    # This should populate _prompt_length_mapping
+    model.encode_query("This is a test sentence")
+
+    only_prompt_length = len(model.tokenizer(["Prompt: "], add_special_tokens=False)["input_ids"][0])
+    if has_bos_token:
+        only_prompt_length += 1
+
+    assert model._prompt_length_mapping == {("Prompt: ", "query"): only_prompt_length}
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA must be available to test float16 support.")
@@ -493,7 +559,7 @@ def test_encode_fp16() -> None:
     ],
 )
 def test_encode_quantization(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     precision: str,
@@ -501,7 +567,7 @@ def test_encode_quantization(
     expected_numpy_dtype,
     raises: bool,
 ) -> None:
-    tiny_model = stsb_bert_tiny_model_reused
+    tiny_model = stsb_bert_tiny_model
     with pytest.raises(ValueError, match=f"Precision '{precision}' is not supported") if raises else nullcontext():
         embeddings = tiny_model.encode(
             ["One sentence", "Another sentence"],
@@ -528,14 +594,14 @@ def test_encode_quantization(
 @pytest.mark.parametrize("normalize_embeddings", [True, False])
 @pytest.mark.parametrize("output_value", ["sentence_embedding", None])
 def test_encode_truncate(
-    stsb_bert_tiny_model_reused: SentenceTransformer,
+    stsb_bert_tiny_model: SentenceTransformer,
     sentences: str | list[str],
     convert_to_tensor: bool,
     convert_to_numpy: bool,
     normalize_embeddings: bool,
     output_value: Literal["sentence_embedding"] | None,
 ) -> None:
-    model = stsb_bert_tiny_model_reused
+    model = stsb_bert_tiny_model
     embeddings_full_unnormalized: torch.Tensor = model.encode(
         sentences, convert_to_numpy=False, convert_to_tensor=True
     )  # These are raw embeddings which serve as the reference to test against
@@ -616,8 +682,8 @@ def test_encode_truncate(
 
 
 @pytest.mark.parametrize("similarity_fn_name", SimilarityFunction.possible_values())
-def test_similarity_score(stsb_bert_tiny_model_reused: SentenceTransformer, similarity_fn_name: str) -> None:
-    model = stsb_bert_tiny_model_reused
+def test_similarity_score(stsb_bert_tiny_model: SentenceTransformer, similarity_fn_name: str) -> None:
+    model = stsb_bert_tiny_model
     model.similarity_fn_name = similarity_fn_name
     sentences = [
         "The weather is so nice!",
@@ -848,3 +914,207 @@ def test_clip():
     tokenized = model.tokenize(["This is my text sentence"])
     assert "input_ids" in tokenized
     assert tokenized["input_ids"].shape == (1, 5)
+
+
+@pytest.mark.parametrize("sentences", ["Hello world", ["Hello world", "This is a test"], [], [""]])
+@pytest.mark.parametrize("prompt_name", [None, "query", "custom"])
+@pytest.mark.parametrize("prompt", [None, "Custom prompt: "])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+def test_encode_query(
+    stsb_bert_tiny_model: SentenceTransformer,
+    sentences: str | list[str],
+    prompt_name: str | None,
+    prompt: str | None,
+    convert_to_numpy: bool,
+    convert_to_tensor: bool,
+):
+    model = stsb_bert_tiny_model
+    # Create a mock model with required prompts
+    model.prompts = {"query": "query: ", "custom": "custom: "}
+
+    # Create a mock for the encode method
+    with patch.object(model, "encode", autospec=True) as mock_encode:
+        # Call encode_query
+        model.encode_query(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=32,
+            convert_to_numpy=convert_to_numpy,
+            convert_to_tensor=convert_to_tensor,
+        )
+
+        # Verify that encode was called with the correct parameters
+        expected_prompt_name = prompt_name if prompt_name else "query"
+
+        mock_encode.assert_called_once()
+        args, kwargs = mock_encode.call_args
+
+        # Check that sentences were passed correctly
+        assert kwargs["sentences"] == sentences
+
+        # Check prompt handling
+        assert kwargs["prompt"] == prompt
+        assert kwargs["prompt_name"] == expected_prompt_name
+
+        # Check other parameters
+        assert kwargs["convert_to_numpy"] == convert_to_numpy
+        assert kwargs["convert_to_tensor"] == convert_to_tensor
+        assert kwargs["task"] == "query"
+
+
+@pytest.mark.parametrize("sentences", ["Hello world", ["Hello world", "This is a test"], [], [""]])
+@pytest.mark.parametrize("prompt_name", [None, "document", "passage", "corpus", "custom"])
+@pytest.mark.parametrize("prompt", [None, "Custom prompt: "])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+def test_encode_document(
+    stsb_bert_tiny_model: SentenceTransformer,
+    sentences: str | list[str],
+    prompt_name: str | None,
+    prompt: str | None,
+    convert_to_numpy: bool,
+    convert_to_tensor: bool,
+):
+    # Create a mock model with required prompts
+    model = stsb_bert_tiny_model
+    model.prompts = {"document": "document: ", "passage": "passage: ", "corpus": "corpus: ", "custom": "custom: "}
+
+    # Create a mock for the encode method
+    with patch.object(model, "encode", autospec=True) as mock_encode:
+        # Call encode_document
+        model.encode_document(
+            sentences=sentences,
+            prompt_name=prompt_name,
+            prompt=prompt,
+            batch_size=32,
+            convert_to_numpy=convert_to_numpy,
+            convert_to_tensor=convert_to_tensor,
+        )
+
+        # Verify that encode was called with the correct parameters
+        mock_encode.assert_called_once()
+        args, kwargs = mock_encode.call_args
+
+        expected_prompt_name = prompt_name if prompt_name else "document"
+
+        # Check that sentences were passed correctly
+        assert kwargs["sentences"] == sentences
+
+        # Check prompt handling
+        assert kwargs["prompt"] == prompt
+        assert kwargs["prompt_name"] == expected_prompt_name
+
+        # Check other parameters
+        assert kwargs["convert_to_numpy"] == convert_to_numpy
+        assert kwargs["convert_to_tensor"] == convert_to_tensor
+        assert kwargs["task"] == "document"
+
+
+def test_encode_document_prompt_priority(stsb_bert_tiny_model: SentenceTransformer):
+    """Test that proper prompt priority is respected when multiple options are available"""
+    model = stsb_bert_tiny_model
+    model.prompts = {
+        "document": "document: ",
+        "passage": "passage: ",
+        "corpus": "corpus: ",
+    }
+
+    # Create a mock for the encode method
+    with patch.object(model, "encode", autospec=True) as mock_encode:
+        # Call encode_document with no explicit prompt
+        model.encode_document("test")
+
+        # It should select "document" by default since that's first in the priority list
+        args, kwargs = mock_encode.call_args
+        assert kwargs["prompt_name"] == "document"
+
+        # Remove document, should fall back to passage
+        mock_encode.reset_mock()
+        model.prompts = {
+            "passage": "passage: ",
+            "corpus": "corpus: ",
+        }
+        model.encode_document("test")
+        args, kwargs = mock_encode.call_args
+        assert kwargs["prompt_name"] == "passage"
+
+        # Remove passage, should fall back to corpus
+        mock_encode.reset_mock()
+        model.prompts = {
+            "corpus": "corpus: ",
+        }
+        model.encode_document("test")
+        args, kwargs = mock_encode.call_args
+        assert kwargs["prompt_name"] == "corpus"
+
+        # No relevant prompts defined
+        mock_encode.reset_mock()
+        model.prompts = {
+            "query": "query: ",
+        }
+        model.encode_document("test")
+        args, kwargs = mock_encode.call_args
+        assert kwargs["prompt_name"] is None
+
+
+def test_encode_advanced_parameters(stsb_bert_tiny_model: SentenceTransformer):
+    """Test that additional parameters are correctly passed to encode"""
+    model = stsb_bert_tiny_model
+
+    # Create a mock for the encode method
+    with patch.object(model, "encode", autospec=True) as mock_encode:
+        # Call with advanced parameters
+        model.encode_query(
+            "test",
+            normalize_embeddings=True,
+            batch_size=64,
+            show_progress_bar=True,
+            output_value="token_embeddings",
+            precision="uint8",
+            truncate_dim=128,
+            chunk_size=10,
+            custom_param="value",
+        )
+
+        # Verify all parameters were passed correctly
+        args, kwargs = mock_encode.call_args
+        assert kwargs["normalize_embeddings"] is True
+        assert kwargs["batch_size"] == 64
+        assert kwargs["show_progress_bar"] is True
+        assert kwargs["output_value"] == "token_embeddings"
+        assert kwargs["precision"] == "uint8"
+        assert kwargs["truncate_dim"] == 128
+        assert kwargs["chunk_size"] == 10
+        assert kwargs["custom_param"] == "value"
+
+
+@pytest.mark.parametrize("inputs", ["test sentence", ["test sentence"]])
+def test_encode_query_document_vs_encode(stsb_bert_tiny_model: SentenceTransformer, inputs: str | list[str]):
+    """Test the actual integration with encode vs encode_query/encode_document"""
+    # This test requires a real model, but we'll use a small one
+    model = stsb_bert_tiny_model
+    model.prompts = {"query": "query: ", "document": "document: "}
+
+    # Get embeddings with encode_query and encode_document
+    query_embeddings = model.encode_query(inputs)
+    document_embeddings = model.encode_document(inputs)
+
+    # And the same but with encode via prompts (task doesn't help here)
+    encode_query_embeddings = model.encode(inputs, prompt_name="query")
+    encode_document_embeddings = model.encode(inputs, prompt_name="document")
+
+    # With prompts they should be the same
+    np.testing.assert_allclose(query_embeddings, encode_query_embeddings)
+    np.testing.assert_allclose(document_embeddings, encode_document_embeddings)
+
+    # Without prompts they should be different
+    query_embeddings_without_prompt = model.encode(inputs)
+    document_embeddings_without_prompt = model.encode(inputs)
+
+    # Embeddings should differ when different prompts are used
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(query_embeddings_without_prompt, query_embeddings)
+    with pytest.raises(AssertionError):
+        np.testing.assert_allclose(document_embeddings_without_prompt, document_embeddings)

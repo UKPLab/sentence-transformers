@@ -218,11 +218,7 @@ class NoDuplicatesBatchSampler(DefaultBatchSampler):
             batch_values = set()
             batch_indices = []
             for index in remaining_indices:
-                sample_values = {
-                    str(value)
-                    for key, value in self.dataset[index].items()
-                    if not key.endswith("_prompt_length") and key != "dataset_name"
-                }
+                sample_values = {str(value) for key, value in self.dataset[index].items() if key != "dataset_name"}
                 if sample_values & batch_values:
                     continue
 

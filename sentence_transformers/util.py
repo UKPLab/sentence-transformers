@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import functools
 import hashlib
 import heapq
@@ -18,6 +19,8 @@ import numpy as np
 import requests
 import torch
 from huggingface_hub import hf_hub_download, snapshot_download
+from scipy.sparse import coo_matrix
+from sklearn.metrics import pairwise_distances
 from torch import Tensor, device
 from tqdm import trange
 from tqdm.autonotebook import tqdm
@@ -35,6 +38,7 @@ if TYPE_CHECKING:
 def _convert_to_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     """
     Converts the input `a` to a PyTorch tensor if it is not already a tensor.
+    Handles lists of sparse tensors by stacking them.
 
     Args:
         a (Union[list, np.ndarray, Tensor]): The input array or tensor.
@@ -42,8 +46,17 @@ def _convert_to_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     Returns:
         Tensor: The converted tensor.
     """
-    if not isinstance(a, Tensor):
+    if isinstance(a, list):
+        # Check if list contains sparse tensors
+        if all(isinstance(x, Tensor) and x.is_sparse for x in a):
+            # Stack sparse tensors while preserving sparsity
+            return torch.stack([x.coalesce().to(dtype=torch.float32) for x in a])
+        else:
+            a = torch.tensor(a)
+    elif not isinstance(a, Tensor):
         a = torch.tensor(a)
+    if a.is_sparse:
+        return a.to(dtype=torch.float32)
     return a
 
 
@@ -65,6 +78,7 @@ def _convert_to_batch(a: Tensor) -> Tensor:
 def _convert_to_batch_tensor(a: list | np.ndarray | Tensor) -> Tensor:
     """
     Converts the input data to a tensor with a batch dimension.
+    Handles lists of sparse tensors by stacking them.
 
     Args:
         a (Union[list, np.ndarray, Tensor]): The input data to be converted.
@@ -73,7 +87,8 @@ def _convert_to_batch_tensor(a: list | np.ndarray | Tensor) -> Tensor:
         Tensor: The converted tensor with a batch dimension.
     """
     a = _convert_to_tensor(a)
-    a = _convert_to_batch(a)
+    if a.dim() == 1:
+        a = a.unsqueeze(0)
     return a
 
 
@@ -107,7 +122,7 @@ def cos_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Ten
 
     a_norm = normalize_embeddings(a)
     b_norm = normalize_embeddings(b)
-    return torch.mm(a_norm, b_norm.transpose(0, 1))
+    return torch.mm(a_norm, b_norm.transpose(0, 1)).to_dense()
 
 
 def pairwise_cos_sim(a: Tensor, b: Tensor) -> Tensor:
@@ -124,7 +139,13 @@ def pairwise_cos_sim(a: Tensor, b: Tensor) -> Tensor:
     a = _convert_to_tensor(a)
     b = _convert_to_tensor(b)
 
-    return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b))
+    # Handle sparse tensors
+    if a.is_sparse or b.is_sparse:
+        a_norm = normalize_embeddings(a)
+        b_norm = normalize_embeddings(b)
+        return (a_norm * b_norm).sum(dim=-1).to_dense()
+    else:
+        return pairwise_dot_score(normalize_embeddings(a), normalize_embeddings(b)).to_dense()
 
 
 def dot_score(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
@@ -141,7 +162,7 @@ def dot_score(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> T
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 
-    return torch.mm(a, b.transpose(0, 1))
+    return torch.mm(a, b.transpose(0, 1)).to_dense()
 
 
 def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
@@ -158,12 +179,20 @@ def pairwise_dot_score(a: Tensor, b: Tensor) -> Tensor:
     a = _convert_to_tensor(a)
     b = _convert_to_tensor(b)
 
-    return (a * b).sum(dim=-1)
+    return (a * b).sum(dim=-1).to_dense()
+
+
+def to_scipy_coo(x: Tensor) -> coo_matrix:
+    x = x.coalesce()
+    indices = x.indices().cpu().numpy()
+    values = x.values().cpu().numpy()
+    return coo_matrix((values, (indices[0], indices[1])), shape=x.shape)
 
 
 def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the manhattan similarity (i.e., negative distance) between two tensors.
+    Handles sparse tensors without converting to dense when possible.
 
     Args:
         a (Union[list, np.ndarray, Tensor]): The first tensor.
@@ -175,7 +204,16 @@ def manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) 
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 
-    return -torch.cdist(a, b, p=1.0)
+    if a.is_sparse or b.is_sparse:
+        logger.warning("Using scipy for sparse Manhattan similarity computation.")
+
+        a_coo = to_scipy_coo(a)
+        b_coo = to_scipy_coo(b)
+        dist = pairwise_distances(a_coo, b_coo, metric="manhattan")
+        return torch.from_numpy(-dist).float().to(a.device).to_dense()
+
+    else:
+        return -torch.cdist(a, b, p=1.0).to_dense()
 
 
 def pairwise_manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor):
@@ -192,12 +230,13 @@ def pairwise_manhattan_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray |
     a = _convert_to_tensor(a)
     b = _convert_to_tensor(b)
 
-    return -torch.sum(torch.abs(a - b), dim=-1)
+    return -torch.sum(torch.abs(a - b), dim=-1).to_dense()
 
 
 def euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) -> Tensor:
     """
     Computes the euclidean similarity (i.e., negative distance) between two tensors.
+    Handles sparse tensors without converting to dense when possible.
 
     Args:
         a (Union[list, np.ndarray, Tensor]): The first tensor.
@@ -209,7 +248,20 @@ def euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor) 
     a = _convert_to_batch_tensor(a)
     b = _convert_to_batch_tensor(b)
 
-    return -torch.cdist(a, b, p=2.0)
+    if a.is_sparse:
+        a_norm_sq = torch.sparse.sum(a * a, dim=1).to_dense().unsqueeze(1)  # Shape (N, 1)
+        b_norm_sq = torch.sparse.sum(b * b, dim=1).to_dense().unsqueeze(0)  # Shape (1, M)
+        dot_product = torch.matmul(a, b.t()).to_dense()  # Shape (N, M)
+
+        # Calculate squared distance
+        squared_dist = a_norm_sq - 2 * dot_product + b_norm_sq
+
+        # Ensure no negative values before square root (due to numerical precision)
+        squared_dist = torch.clamp(squared_dist, min=0.0)
+
+        return -torch.sqrt(squared_dist).to_dense()
+    else:
+        return -torch.cdist(a, b, p=2.0)
 
 
 def pairwise_euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray | Tensor):
@@ -226,7 +278,7 @@ def pairwise_euclidean_sim(a: list | np.ndarray | Tensor, b: list | np.ndarray |
     a = _convert_to_tensor(a)
     b = _convert_to_tensor(b)
 
-    return -torch.sqrt(torch.sum((a - b) ** 2, dim=-1))
+    return -torch.sqrt(torch.sum((a - b) ** 2, dim=-1)).to_dense()
 
 
 def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
@@ -241,6 +293,10 @@ def pairwise_angle_sim(x: Tensor, y: Tensor) -> Tensor:
     Returns:
         Tensor: Vector with res[i] = angle_sim(a[i], b[i])
     """
+    if x.is_sparse:
+        logger.warning("Pairwise angle similarity does not support sparse tensors. Converting to dense.")
+        x = x.coalesce().to_dense()
+        y = y.coalesce().to_dense()
 
     x = _convert_to_tensor(x)
     y = _convert_to_tensor(y)
@@ -273,7 +329,23 @@ def normalize_embeddings(embeddings: Tensor) -> Tensor:
     Returns:
         Tensor: The normalized embeddings matrix.
     """
-    return torch.nn.functional.normalize(embeddings, p=2, dim=1)
+    if not embeddings.is_sparse:
+        return torch.nn.functional.normalize(embeddings, p=2, dim=1)
+
+    embeddings = embeddings.coalesce()
+    indices, values = embeddings.indices(), embeddings.values()
+
+    # Compute row norms efficiently
+    row_norms = torch.zeros(embeddings.size(0), device=embeddings.device)
+    row_norms.index_add_(0, indices[0], values**2)
+    row_norms = torch.sqrt(row_norms).index_select(0, indices[0])
+
+    # Normalize values where norm > 0
+    mask = row_norms > 0
+    normalized_values = values.clone()
+    normalized_values[mask] /= row_norms[mask]
+
+    return torch.sparse_coo_tensor(indices, normalized_values, embeddings.size())
 
 
 @overload
@@ -316,6 +388,40 @@ def truncate_embeddings(embeddings: np.ndarray | torch.Tensor, truncate_dim: int
     return embeddings[..., :truncate_dim]
 
 
+def select_max_active_dims(embeddings: np.ndarray | torch.Tensor, max_active_dims: int | None) -> torch.Tensor:
+    """
+    Keeps only the top-k values (in absolute terms) for each embedding and creates a sparse tensor.
+
+    Args:
+        embeddings (Union[np.ndarray, torch.Tensor]): Embeddings to sparsify by keeping only top_k values.
+        max_active_dims (int): Number of values to keep as non-zeros per embedding.
+
+    Returns:
+        torch.Tensor: A sparse tensor containing only the top-k values per embedding.
+    """
+    if max_active_dims is None:
+        return embeddings
+    # Convert to tensor if numpy array
+    if isinstance(embeddings, np.ndarray):
+        embeddings = torch.tensor(embeddings)
+
+    batch_size, dim = embeddings.shape
+    device = embeddings.device
+
+    # Get the top-k indices for each embedding (by absolute value)
+    _, top_indices = torch.topk(torch.abs(embeddings), k=min(max_active_dims, dim), dim=1)
+
+    # Create a mask of zeros, then set the top-k positions to 1
+    mask = torch.zeros_like(embeddings, dtype=torch.bool)
+    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand(-1, min(max_active_dims, dim))
+    mask[batch_indices.flatten(), top_indices.flatten()] = True
+
+    # Create a sparse tensor with only the top values
+    embeddings[~mask] = 0
+
+    return embeddings
+
+
 def paraphrase_mining(
     model,
     sentences: list[str],
@@ -326,6 +432,7 @@ def paraphrase_mining(
     max_pairs: int = 500000,
     top_k: int = 100,
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
+    truncate_dim: int | None = None,
     prompt_name: str | None = None,
     prompt: str | None = None,
 ) -> list[list[float | int]]:
@@ -343,6 +450,7 @@ def paraphrase_mining(
         max_pairs (int, optional): Maximal number of text pairs returned. Defaults to 500000.
         top_k (int, optional): For each sentence, we retrieve up to top_k other sentences. Defaults to 100.
         score_function (Callable[[Tensor, Tensor], Tensor], optional): Function for computing scores. By default, cosine similarity. Defaults to cos_sim.
+        truncate_dim (int, optional): The dimension to truncate sentence embeddings to. If None, uses the model's ones. Defaults to None.
         prompt_name (Optional[str], optional): The name of a predefined prompt to use when encoding the sentence.
             It must match a key in the model `prompts` dictionary, which can be set during model initialization
             or loaded from the model configuration.
@@ -365,6 +473,7 @@ def paraphrase_mining(
         show_progress_bar=show_progress_bar,
         batch_size=batch_size,
         convert_to_tensor=True,
+        truncate_dim=truncate_dim,
         prompt_name=prompt_name,
         prompt=prompt,
     )
@@ -466,12 +575,12 @@ def semantic_search(
     score_function: Callable[[Tensor, Tensor], Tensor] = cos_sim,
 ) -> list[list[dict[str, int | float]]]:
     """
-    This function performs a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
+    This function performs by default a cosine similarity search between a list of query embeddings  and a list of corpus embeddings.
     It can be used for Information Retrieval / Semantic Search for corpora up to about 1 Million entries.
 
     Args:
-        query_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the query embeddings.
-        corpus_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the corpus embeddings.
+        query_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the query embeddings. Can be a sparse tensor.
+        corpus_embeddings (:class:`~torch.Tensor`): A 2 dimensional tensor with the corpus embeddings. Can be a sparse tensor.
         query_chunk_size (int, optional): Process 100 queries simultaneously. Increasing that value increases the speed, but requires more memory. Defaults to 100.
         corpus_chunk_size (int, optional): Scans the corpus 100k entries at a time. Increasing that value increases the speed, but requires more memory. Defaults to 500000.
         top_k (int, optional): Retrieve top k matching entries. Defaults to 10.
@@ -501,13 +610,24 @@ def semantic_search(
     queries_result_list = [[] for _ in range(len(query_embeddings))]
 
     for query_start_idx in range(0, len(query_embeddings), query_chunk_size):
+        query_end_idx = min(query_start_idx + query_chunk_size, len(query_embeddings))
+        if query_embeddings.is_sparse:
+            indices = torch.arange(query_start_idx, query_end_idx, device=query_embeddings.device)
+            query_chunk = query_embeddings.index_select(0, indices)
+        else:
+            query_chunk = query_embeddings[query_start_idx:query_end_idx]
+
         # Iterate over chunks of the corpus
         for corpus_start_idx in range(0, len(corpus_embeddings), corpus_chunk_size):
+            corpus_end_idx = min(corpus_start_idx + corpus_chunk_size, len(corpus_embeddings))
+            if corpus_embeddings.is_sparse:
+                indices = torch.arange(corpus_start_idx, corpus_end_idx, device=corpus_embeddings.device)
+                corpus_chunk = corpus_embeddings.index_select(0, indices)
+            else:
+                corpus_chunk = corpus_embeddings[corpus_start_idx:corpus_end_idx]
+
             # Compute cosine similarities
-            cos_scores = score_function(
-                query_embeddings[query_start_idx : query_start_idx + query_chunk_size],
-                corpus_embeddings[corpus_start_idx : corpus_start_idx + corpus_chunk_size],
-            )
+            cos_scores = score_function(query_chunk, corpus_chunk)
 
             # Get top-k scores
             cos_scores_top_k_values, cos_scores_top_k_idx = torch.topk(
@@ -875,21 +995,23 @@ def mine_hard_negatives(
                 target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
             )
             if corpus_embeddings is None:
-                corpus_embeddings = model.encode_multi_process(
+                corpus_embeddings = model.encode(
                     corpus,
-                    pool,
+                    pool=pool,
                     batch_size=batch_size,
                     normalize_embeddings=True,
+                    convert_to_numpy=True,
                     show_progress_bar=True,
                     prompt_name=corpus_prompt_name,
                     prompt=corpus_prompt,
                 )
             if query_embeddings is None:
-                query_embeddings = model.encode_multi_process(
+                query_embeddings = model.encode(
                     queries,
-                    pool,
+                    pool=pool,
                     batch_size=batch_size,
                     normalize_embeddings=True,
+                    convert_to_numpy=True,
                     show_progress_bar=True,
                     prompt_name=query_prompt_name,
                     prompt=query_prompt,
@@ -1761,3 +1883,21 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+def append_to_last_row(csv_path, additional_data):
+    # Read the entire CSV file
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if len(rows) > 1:  # Make sure there's at least one data row (after the header)
+        # Append the additional data to the last row
+        rows[-1].extend(additional_data)
+
+        # Write the entire file back
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+        return True
+    return False
