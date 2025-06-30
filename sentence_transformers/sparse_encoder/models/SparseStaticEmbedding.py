@@ -104,6 +104,10 @@ class SparseStaticEmbedding(InputModule):
         Args:
             json_path (str): Path to the JSON file containing token to IDF weight mappings.
             tokenizer (PreTrainedTokenizer): Tokenizer to use for converting tokens to IDs.
+            token (bool | str | None): Token for Hugging Face authentication
+            cache_folder (str | None): Cache folder for Hugging Face
+            revision (str | None): Model revision
+            local_files_only (bool): Whether to only load local files
             **config: Additional configuration options for the IDF model.
 
         Returns:
