@@ -188,22 +188,12 @@ class Transformer(InputModule):
                 self.auto_model = AutoModel.from_pretrained(
                     model_name_or_path, config=config, cache_dir=cache_dir, **model_args
                 )
-
-            if is_peft_model:
-                self._load_peft_model(model_name_or_path, config, cache_dir, **model_args, **adapter_only_kwargs)
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
             self._load_openvino_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
-
-    def _load_peft_model(self, model_name_or_path: str, config: PeftConfig, cache_dir: str, **model_args) -> None:
-        from peft import PeftModel
-
-        self.auto_model = PeftModel.from_pretrained(
-            self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
-        )
 
     def _load_openvino_model(
         self, model_name_or_path: str, config: PretrainedConfig, cache_dir: str, **model_args
