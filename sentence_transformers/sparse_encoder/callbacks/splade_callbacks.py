@@ -32,10 +32,10 @@ class SpladeRegularizerWeightSchedulerCallback(TrainerCallback):
         The scheduler gradually increases the weight values from 0 to their max value
         within the specified warmup ratio of the total training steps.
 
-         Args:
-                loss: SpladeLoss instance to be updated
-                scheduler_type: Type of scheduler ('linear' or 'quadratic')
-                warmup_ratio: Ratio of total steps to reach max weight values (default: 1/3)
+        Args:
+            loss (SpladeLoss): SpladeLoss instance to be updated
+            scheduler_type (str): Type of scheduler ('linear' or 'quadratic')
+            warmup_ratio (float): Ratio of total steps to reach max weight values (default: 1/3)
         """
         super().__init__()
 
