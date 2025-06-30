@@ -226,9 +226,10 @@ class SparseEncoder(SentenceTransformer):
                 because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
             batch_size (int, optional): The batch size used for the computation. Defaults to 32.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
-            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
-                Defaults to False.
-            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
+            convert_to_tensor (bool, optional): Whether the output should be a single stacked tensor (True) or a list
+                of individual tensors (False). Sparse tensors may be challenging to slice, so this allows you to
+                output lists of tensors instead. Defaults to True.
+            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse (COO) tensor.
                 Defaults to True.
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
@@ -339,9 +340,10 @@ class SparseEncoder(SentenceTransformer):
                 because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
             batch_size (int, optional): The batch size used for the computation. Defaults to 32.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
-            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
-                Defaults to False.
-            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
+            convert_to_tensor (bool, optional): Whether the output should be a single stacked tensor (True) or a list
+                of individual tensors (False). Sparse tensors may be challenging to slice, so this allows you to
+                output lists of tensors instead. Defaults to True.
+            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse (COO) tensor.
                 Defaults to True.
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
@@ -448,9 +450,10 @@ class SparseEncoder(SentenceTransformer):
                 because the sentence is appended to the prompt. If ``prompt`` is set, ``prompt_name`` is ignored. Defaults to None.
             batch_size (int, optional): The batch size used for the computation. Defaults to 32.
             show_progress_bar (bool, optional): Whether to output a progress bar when encode sentences. Defaults to None.
-            convert_to_tensor (bool, optional): Whether the output should be one large tensor. Overwrites `convert_to_numpy`.
-                Defaults to False.
-            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse tensor.
+            convert_to_tensor (bool, optional): Whether the output should be a single stacked tensor (True) or a list
+                of individual tensors (False). Sparse tensors may be challenging to slice, so this allows you to
+                output lists of tensors instead. Defaults to True.
+            convert_to_sparse_tensor (bool, optional): Whether the output should be in the format of a sparse (COO) tensor.
                 Defaults to True.
             save_to_cpu (bool, optional):  Whether the output should be moved to cpu or stay on the device it has been computed on.
                 Defaults to False
