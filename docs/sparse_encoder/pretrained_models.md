@@ -39,7 +39,7 @@ print(similarities)
 
 [BEIR (Benchmarking IR)](https://github.com/beir-cellar/beir) provides a heterogeneous benchmark for evaluation of information retrieval models across in our case 13 diverse datasets. The avg nDCG@10 scores represent the average performance across all 13 datasets.
 
-Note that all the numbers of below are extracted information from differents papers. These models represent the backbone of sparse neural retrieval:
+Note that all the numbers of below are extracted information from different papers. These models represent the backbone of sparse neural retrieval:
 
 | Model Name                                                                                                                                                | MS MARCO MRR@10 | BEIR-13 avg nDCG@10 | Parameters |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------:|:-------------------:|-----------:|
@@ -60,7 +60,7 @@ Note that all the numbers of below are extracted information from differents pap
 ## Inference-Free SPLADE Models
 
 ```{eval-rst}
-Inference-free Splade uses for the documents part a traditional Splade architecture and for the query part is an :class:`~sentence_transformers.sparse_encoder.models.SparseStaticEmbedding` module, which just returns a pre-computed score for every token in the query. So for this models we lose the query-expansion but we have now no models inference at the query time, which is very valuable for speed optimization.
+Inference-free Splade uses for the documents part a traditional Splade architecture and for the query part is an :class:`~sentence_transformers.sparse_encoder.models.SparseStaticEmbedding` module, which just returns a pre-computed score for every token in the query. So for these models we lose the query expansion, but query inference becomes near instant, which is very valuable for speed optimization.
 ```
 
 | Model Name                                                                                                                                                        | BEIR-13 avg nDCG@10 | Parameters |
