@@ -76,5 +76,5 @@ Inference-free Splade uses for the documents part a traditional Splade architect
 
 These are collections of models that are available on the Hugging Face Hub:
 
-- [**SPLADE Models**](https://huggingface.co/collections/arthurbresnu/splade-models-6850b6f81b29d17efc0171de)
-- [**Inference-Free SPLADE Models**](https://huggingface.co/collections/arthurbresnu/inference-free-splade-models-6850b79e9becbb2eb0bbbd28)
+- [**SPLADE Models**](https://huggingface.co/collections/sparse-encoder/splade-models-6862be100374b320d826eeaa)
+- [**Inference-Free SPLADE Models**](https://huggingface.co/collections/sparse-encoder/inference-free-splade-models-6862be3a1d72eab38920bc6a)
