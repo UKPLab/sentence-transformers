@@ -11,13 +11,14 @@ import re
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Literal, cast
+from typing import Callable, Literal, cast
 
 import numpy as np
 import pytest
 import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
 from torch import nn
+from transformers import BertModel
 from transformers.utils import is_peft_available
 
 from sentence_transformers import SentenceTransformer, util
@@ -442,7 +443,7 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test PEFT support.")
 def test_load_checkpoint_with_peft_and_lora() -> None:
-    from peft import LoraConfig, PeftModel, TaskType
+    from peft import LoraConfig, TaskType
 
     peft_config = LoraConfig(
         target_modules=["query", "key", "value"],
@@ -462,8 +463,10 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
         loaded_peft_model = SentenceTransformer(tmp_folder)
         actuals = loaded_peft_model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
 
-        assert isinstance(model._modules["0"].auto_model, nn.Module)
-        assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
+        assert isinstance(model[0].auto_model, nn.Module)
+        assert isinstance(loaded_peft_model[0].auto_model, BertModel)
+        assert loaded_peft_model[0].auto_model._hf_peft_config_loaded
+        assert loaded_peft_model[0].auto_model.active_adapters() == ["default"]
         assert torch.equal(expecteds, actuals)
 
 
@@ -694,31 +697,36 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
 @pytest.mark.parametrize(
     "modules",
     [
-        [
+        lambda: [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
             Pooling(128, "mean"),
             Dense(128, 128),
         ],
-        [Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"), CNN(128, 128), Pooling(128, "mean")],
-        [
+        lambda: [
+            Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
+            CNN(128, 128),
+            Pooling(128, "mean"),
+        ],
+        lambda: [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
             Pooling(128, "mean"),
             LayerNorm(128),
         ],
-        [
+        lambda: [
             SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")[0],
             LSTM(300, 128),
             Pooling(128, "mean"),
         ],
-        [
+        lambda: [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
             WeightedLayerPooling(128, num_hidden_layers=2, layer_start=1),
             Pooling(128, "mean"),
         ],
-        SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
+        lambda: SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
     ],
 )
-def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
+def test_safetensors(modules: Callable[[], list[nn.Module] | SentenceTransformer]) -> None:
+    modules = modules()  # Call the lambda to get the actual modules
     if isinstance(modules, SentenceTransformer):
         model = modules
     else:
