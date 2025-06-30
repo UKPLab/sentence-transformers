@@ -203,7 +203,7 @@ You can use this framework for:
   - [Sparse Embeddings](https://www.sbert.net/examples/sparse_encoder/applications/computing_embeddings/README.html)
 
 - **Semantic Textual Similarity** 
-  - [Dense STS](https://www.sbert.net/docs/usage/semantic_textual_similarity.html)
+  - [Dense STS](https://www.sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html)
   - [Sparse STS](https://www.sbert.net/examples/sparse_encoder/applications/semantic_textual_similarity/README.html)
 
 - **Semantic Search**
