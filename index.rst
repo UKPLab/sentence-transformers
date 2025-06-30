@@ -1,10 +1,6 @@
 .. tip::
 
-   Sentence Transformers v4.1 just released, bringing the ONNX and OpenVINO backends to CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Usage > Speeding up Inference <docs/cross_encoder/usage/efficiency.html>`_ to read more about the performance boosts that you can expect.
-
-.. tip::
-
-   Sentence Transformers v4.0 recently released, introducing a new training API for CrossEncoder (a.k.a. reranker) models. Read `Cross Encoder > Training Overview <docs/cross_encoder/training_overview.html>`_ to learn more about the training API, and check out `v4.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v4.0.1>`_ for details on the other changes.
+   Sentence Transformers v5.0 just released, introducing SparseEncoder models, a new class of models. Read `Sparse Encoder > Usage <docs/sparse_encoder/usage.html>`_ to learn more about how to used them, and check out `v5.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.0.0>`_ for details on the other changes.
 
 SentenceTransformers Documentation
 ==================================
