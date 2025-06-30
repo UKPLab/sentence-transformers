@@ -788,7 +788,6 @@ class SparseEncoder(SentenceTransformer):
                     print(embeddings.shape)
                     # => (4000, 30522)
 
-
                 if __name__ == "__main__":
                     main()
         """
