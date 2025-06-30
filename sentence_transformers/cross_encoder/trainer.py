@@ -294,7 +294,7 @@ class CrossEncoderTrainer(SentenceTransformerTrainer):
 
         .. note::
 
-            This method can be overriden by subclassing the trainer to remove/customize this callback in custom uses cases
+            This method can be overridden by subclassing the trainer to remove/customize this callback in custom uses cases
         """
 
         model_card_callback = CrossEncoderModelCardCallback(default_args_dict)

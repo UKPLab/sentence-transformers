@@ -102,7 +102,7 @@ class CachedLossDecorator:
                 matryoshka_reps = truncated
             loss += weight * self.fn(matryoshka_reps, *args, **kwargs)
             # After computing the gradients in minibatches, we need to continue the backward pass through the truncation calculation
-            # the gradients must be multipied with the weights because otherwise the matryoshka weights are not considered in the backward pass
+            # the gradients must be multiplied with the weights because otherwise the matryoshka weights are not considered in the backward pass
             if compute_gradients:
                 for t_minibatch, d_minibatch in zip(truncated, matryoshka_reps):
                     for t, d in zip(t_minibatch, d_minibatch):

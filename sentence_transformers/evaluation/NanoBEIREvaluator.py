@@ -74,7 +74,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
     This class evaluates the performance of a SentenceTransformer Model on the NanoBEIR collection of Information Retrieval datasets.
 
     The collection is a set of datasets based on the BEIR collection, but with a significantly smaller size, so it can
-    be used for quickly evaluating the retrieval performance of a model before commiting to a full evaluation.
+    be used for quickly evaluating the retrieval performance of a model before committing to a full evaluation.
     The datasets are available on Hugging Face in the `NanoBEIR collection <https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6>`_.
     This evaluator will return the same metrics as the InformationRetrievalEvaluator (i.e., MRR, nDCG, Recall@k), for each dataset and on average.
 

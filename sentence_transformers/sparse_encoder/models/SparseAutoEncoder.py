@@ -228,7 +228,7 @@ class SparseAutoEncoder(Module):
 
     def get_sentence_embedding_dimension(self) -> int:
         """
-        Get the dimension of the sentence embedding. Warrning here the number of non zero elements in the embedding is only k out of the hidden_dim.
+        Get the dimension of the sentence embedding. Warning: the number of non-zero elements in the embedding is only k out of the hidden_dim.
 
         Returns:
             int: Dimension of the sentence embedding
