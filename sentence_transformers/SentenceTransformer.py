@@ -972,6 +972,10 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             )
 
         # Original encoding logic when not using multi-process
+        allowed_precisions = {"float32", "int8", "uint8", "binary", "ubinary"}
+        if precision and precision not in allowed_precisions:
+            raise ValueError(f"Precision {precision!r} is not supported")
+
         if prompt is None:
             if prompt_name is not None:
                 try:

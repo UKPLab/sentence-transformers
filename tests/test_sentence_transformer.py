@@ -8,9 +8,10 @@ import json
 import logging
 import os
 import re
+from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Literal, cast
+from typing import Callable, Literal, cast
 from unittest.mock import patch
 
 import numpy as np
@@ -19,6 +20,7 @@ import torch
 from huggingface_hub import CommitInfo, HfApi, RepoUrl
 from tokenizers.processors import TemplateProcessing
 from torch import nn
+from transformers import BertModel
 from transformers.utils import is_peft_available
 
 from sentence_transformers import SentenceTransformer, util
@@ -507,7 +509,7 @@ def test_load_with_model_kwargs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test PEFT support.")
 def test_load_checkpoint_with_peft_and_lora() -> None:
-    from peft import LoraConfig, PeftModel, TaskType
+    from peft import LoraConfig, TaskType
 
     peft_config = LoraConfig(
         target_modules=["query", "key", "value"],
@@ -527,8 +529,10 @@ def test_load_checkpoint_with_peft_and_lora() -> None:
         loaded_peft_model = SentenceTransformer(tmp_folder)
         actuals = loaded_peft_model.encode(["Hello there!", "How are you?"], convert_to_tensor=True)
 
-        assert isinstance(model._modules["0"].auto_model, nn.Module)
-        assert isinstance(loaded_peft_model._modules["0"].auto_model, PeftModel)
+        assert isinstance(model[0].auto_model, nn.Module)
+        assert isinstance(loaded_peft_model[0].auto_model, BertModel)
+        assert loaded_peft_model[0].auto_model._hf_peft_config_loaded
+        assert loaded_peft_model[0].auto_model.active_adapters() == ["default"]
         assert torch.equal(expecteds, actuals)
 
 
@@ -543,14 +547,15 @@ def test_encode_fp16() -> None:
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 @pytest.mark.parametrize(
-    ("precision", "expected_torch_dtype", "expected_numpy_dtype"),
+    ("precision", "expected_torch_dtype", "expected_numpy_dtype", "raises"),
     [
-        (None, torch.float32, np.float32),
-        ("float32", torch.float32, np.float32),
-        ("int8", torch.int8, np.int8),
-        ("uint8", torch.uint8, np.uint8),
-        ("binary", torch.int8, np.int8),
-        ("ubinary", torch.uint8, np.uint8),
+        (None, torch.float32, np.float32, False),
+        ("float32", torch.float32, np.float32, False),
+        ("int8", torch.int8, np.int8, False),
+        ("uint8", torch.uint8, np.uint8, False),
+        ("binary", torch.int8, np.int8, False),
+        ("ubinary", torch.uint8, np.uint8, False),
+        ("error", None, None, True),
     ],
 )
 def test_encode_quantization(
@@ -560,23 +565,27 @@ def test_encode_quantization(
     precision: str,
     expected_torch_dtype,
     expected_numpy_dtype,
+    raises: bool,
 ) -> None:
     tiny_model = stsb_bert_tiny_model
-    embeddings = tiny_model.encode(
-        ["One sentence", "Another sentence"],
-        convert_to_tensor=convert_to_tensor,
-        convert_to_numpy=convert_to_numpy,
-        precision=precision,
-    )
-    if convert_to_tensor:
-        assert embeddings[0].dtype == expected_torch_dtype
-        assert isinstance(embeddings, torch.Tensor)
-    elif convert_to_numpy:
-        assert embeddings[0].dtype == expected_numpy_dtype
-        assert isinstance(embeddings, np.ndarray)
-    else:
-        assert embeddings[0].dtype == expected_torch_dtype
-        assert isinstance(embeddings, list)
+    with pytest.raises(ValueError, match=f"Precision '{precision}' is not supported") if raises else nullcontext():
+        embeddings = tiny_model.encode(
+            ["One sentence", "Another sentence"],
+            convert_to_tensor=convert_to_tensor,
+            convert_to_numpy=convert_to_numpy,
+            precision=precision,
+        )
+
+    if not raises:
+        if convert_to_tensor:
+            assert embeddings[0].dtype == expected_torch_dtype
+            assert isinstance(embeddings, torch.Tensor)
+        elif convert_to_numpy:
+            assert embeddings[0].dtype == expected_numpy_dtype
+            assert isinstance(embeddings, np.ndarray)
+        else:
+            assert embeddings[0].dtype == expected_torch_dtype
+            assert isinstance(embeddings, list)
 
 
 @pytest.mark.parametrize("sentences", ("Single sentence", ["One sentence", "Another sentence"]))
@@ -754,31 +763,36 @@ def test_override_config_versions(stsb_bert_tiny_model: SentenceTransformer) -> 
 @pytest.mark.parametrize(
     "modules",
     [
-        [
+        lambda: [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
             Pooling(128, "mean"),
             Dense(128, 128),
         ],
-        [Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"), CNN(128, 128), Pooling(128, "mean")],
-        [
+        lambda: [
+            Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
+            CNN(128, 128),
+            Pooling(128, "mean"),
+        ],
+        lambda: [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
             Pooling(128, "mean"),
             LayerNorm(128),
         ],
-        [
+        lambda: [
             SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")[0],
             LSTM(300, 128),
             Pooling(128, "mean"),
         ],
-        [
+        lambda: [
             Transformer("sentence-transformers-testing/stsb-bert-tiny-safetensors"),
             WeightedLayerPooling(128, num_hidden_layers=2, layer_start=1),
             Pooling(128, "mean"),
         ],
-        SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
+        lambda: SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency"),
     ],
 )
-def test_safetensors(modules: list[nn.Module] | SentenceTransformer) -> None:
+def test_safetensors(modules: Callable[[], list[nn.Module] | SentenceTransformer]) -> None:
+    modules = modules()  # Call the lambda to get the actual modules
     if isinstance(modules, SentenceTransformer):
         model = modules
     else:
