@@ -132,4 +132,4 @@ for score, doc in scored_docs_instruct_2:
 #   scores_new_instruction = instruct_model.predict(
 #       sentence_pairs,
 #       prompt_template_kwargs={"instruction": "Find the answer to the question."}
-#   ) 
+#   )

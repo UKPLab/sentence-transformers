@@ -140,21 +140,23 @@ def test_predict_with_prompt_template():
         "A woman is playing violin.",
     ]
     pairs = [[query, doc] for doc in corpus]
-    prompt_template = "Instruct: Given a query and a document, determine if they are relevant. Query: {query} Document: {document}"
-    
+    prompt_template = (
+        "Instruct: Given a query and a document, determine if they are relevant. Query: {query} Document: {document}"
+    )
+
     # 1. Test with prompt_template in predict
     scores_prompt = model.predict(pairs, prompt_template=prompt_template)
-    
+
     # 2. Test without prompt_template
     scores_no_prompt = model.predict(pairs)
-    
+
     # The scores should be different as the input to the model is different
     assert not np.allclose(scores_prompt, scores_no_prompt)
-    
+
     # 3. Test with prompt_template in rank
     ranks_prompt = model.rank(query, corpus, prompt_template=prompt_template)
     ranks_no_prompt = model.rank(query, corpus)
-    
+
     assert ranks_prompt[0]["score"] != ranks_no_prompt[0]["score"]
     assert ranks_prompt[1]["score"] != ranks_no_prompt[1]["score"]
 
@@ -168,7 +170,7 @@ def test_predict_with_default_prompt_template(tmp_path: Path):
 
     # 2. Modify the config.json to add a default prompt template
     config_path = save_path / "config.json"
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = json.load(f)
 
     prompt_template = "Instruct: {instruction} Query: {query} Document: {document}"
