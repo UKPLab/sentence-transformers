@@ -31,7 +31,7 @@ class SpladePooling(Module):
         activation_function (str): Activation function applied before log1p transformation.
             Choices:
                 - `relu`: ReLU activation (standard in all Splade models).
-                - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models see arxiv.org/pdf/2504.14839.
+                - `log1p_relu`: log(1 + ReLU(x)) variant used in Opensearch Splade models, see https://arxiv.org/pdf/2504.14839.
         word_embedding_dimension (int, optional): Dimensionality of the output embeddings (if needed).
         chunk_size (int, optional): Chunk size along the sequence length dimension (i.e., number of tokens per chunk).
             If None, processes entire sequence at once. Using smaller chunks the reduces memory usage but may
