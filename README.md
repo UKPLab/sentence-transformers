@@ -76,7 +76,7 @@ print(embeddings.shape)
 # => (3, 384)
 ````
 
-And that's already it. We now have a numpy arrays with the embeddings, one for each text. We can use these to compute similarities.
+And that's already it. We now have numpy arrays with the embeddings, one for each text. We can use these to compute similarities.
 
 ````python
 similarities = model.similarity(embeddings, embeddings)
@@ -108,7 +108,7 @@ passages = [
     "In 2013 around 600,000 Berliners were registered in one of the more than 2,300 sport and fitness clubs.",
 ]
 
-# 2a. predict scores pairs of texts
+# 2a. predict scores for pairs of texts
 scores = model.predict([(query, passage) for passage in passages])
 print(scores)
 # => [8.607139 5.506266 6.352977]
@@ -192,7 +192,7 @@ Some highlights across the different types of training are:
 - Support of various transformer networks including BERT, RoBERTa, XLM-R, DistilBERT, Electra, BART, ...
 - Multi-Lingual and multi-task learning
 - Evaluation during training to find optimal model
-- [20+ loss functions](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html) for embedding models, [10+ loss functions](https://www.sbert.net/docs/package_reference/cross_encoder/losses.html) for reranker models and [10+ loss functions](https://www.sbert.net/docs/package_reference/sparse_encoder/losses.html) for sparse embedding model, allowing you to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss, etc.
+- [20+ loss functions](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html) for embedding models, [10+ loss functions](https://www.sbert.net/docs/package_reference/cross_encoder/losses.html) for reranker models and [10+ loss functions](https://www.sbert.net/docs/package_reference/sparse_encoder/losses.html) for sparse embedding models, allowing you to tune models specifically for semantic search, paraphrase mining, semantic similarity comparison, clustering, triplet loss, contrastive loss, etc.
 
 ## Application Examples
 
