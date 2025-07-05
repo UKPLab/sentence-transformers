@@ -193,7 +193,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             with different learning rates.
     """
 
-    prompts: Optional[str] = field(  # noqa: UP007
+    prompts: Optional[Union[Dict[str, Dict[str, str]], Dict[str, str], str]] = field(  # noqa: UP007
         default=None,
         metadata={
             "help": "The prompts to use for each column in the datasets. "
