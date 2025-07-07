@@ -868,6 +868,9 @@ def mine_hard_negatives(
     if not is_datasets_available():
         raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
 
+    if len(dataset) == 0:
+        raise ValueError("The dataset is empty. Please provide a non-empty dataset.")
+
     from datasets import Dataset
 
     # If a dataset has duplicate queries, assume that all duplicates are positive pairs.
