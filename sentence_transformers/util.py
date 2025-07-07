@@ -907,6 +907,11 @@ def mine_hard_negatives(
             )
             output_format = "n-tuple"
 
+    if output_format not in ["triplet", "n-tuple", "n-tuple-scores", "labeled-pair", "labeled-list"]:
+        raise ValueError(
+            f"Invalid output_format: {output_format}. Must be one of 'triplet', 'n-tuple', 'n-tuple-scores', 'labeled-pair', or 'labeled-list'."
+        )
+
     if margin is not None:
         absolute_margin = margin
         logger.warning(
@@ -1288,7 +1293,7 @@ def mine_hard_negatives(
         negative_scores = negative_scores[indices_to_keep]
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
-    elif output_format == "n-tuple":
+    elif output_format in ("n-tuple", "n-tuple-scores"):
         # Keep only indices where num_negative negatives were found
         indices_to_keep = (negative_scores != -float("inf")).all(dim=1)
         negative_scores = negative_scores[indices_to_keep]
@@ -1302,24 +1307,10 @@ def mine_hard_negatives(
                 for i, neg_indices in enumerate(indices.T, start=1)
             },
         }
-        negative_scores = negative_scores.flatten()
-        difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
-
-    elif output_format == "n-tuple-scores":
-        # Keep only indices where num_negative negatives were found
-        indices_to_keep = (negative_scores != -float("inf")).all(dim=1)
-        negative_scores = negative_scores[indices_to_keep]
-        indices = indices[indices_to_keep]
-
-        dataset_data = {
-            anchor_column_name: [all_queries[idx] for idx, keep in enumerate(indices_to_keep) if keep],
-            positive_column_name: [positives[idx] for idx, keep in enumerate(indices_to_keep) if keep],
-            **{
-                f"negative_{i}": [corpus[neg_idx] for neg_idx in neg_indices]
-                for i, neg_indices in enumerate(indices.T, start=1)
-            },
-            "score": torch.cat([positive_scores[indices_to_keep].unsqueeze(-1), negative_scores], dim=1).tolist(),
-        }
+        if output_format == "n-tuple-scores":
+            dataset_data["score"] = torch.cat(
+                [positive_scores[indices_to_keep].unsqueeze(-1), negative_scores], dim=1
+            ).tolist()
         negative_scores = negative_scores.flatten()
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
 
