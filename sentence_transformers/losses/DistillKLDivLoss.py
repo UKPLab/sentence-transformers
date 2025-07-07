@@ -24,7 +24,7 @@ class DistillKLDivLoss(nn.Module):
             model: SentenceTransformer model (student model)
             similarity_fct: Which similarity function to use for the student model
             temperature: Temperature parameter to soften probability distributions (higher temperature = softer distributions)
-                Note: in the v5.0.1 release, the default temperature was changed from 2.0 to 1.0.
+                A temperature of 1.0 does not scale the scores. Note: in the v5.0.1 release, the default temperature was changed from 2.0 to 1.0.
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.11386
