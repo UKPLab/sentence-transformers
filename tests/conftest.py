@@ -28,6 +28,18 @@ def stsb_bert_tiny_model(_stsb_bert_tiny_model: SentenceTransformer) -> Sentence
     return deepcopy(_stsb_bert_tiny_model)
 
 
+@pytest.fixture(scope="session")
+def _avg_word_embeddings_levy() -> SentenceTransformer:
+    model = SentenceTransformer("sentence-transformers/average_word_embeddings_levy_dependency")
+    model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
+    return model
+
+
+@pytest.fixture()
+def avg_word_embeddings_levy(_avg_word_embeddings_levy: SentenceTransformer) -> SentenceTransformer:
+    return deepcopy(_avg_word_embeddings_levy)
+
+
 @pytest.fixture()
 def stsb_bert_tiny_model_onnx() -> SentenceTransformer:
     return SentenceTransformer("sentence-transformers-testing/stsb-bert-tiny-onnx")
