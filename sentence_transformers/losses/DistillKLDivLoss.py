@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer, util
 
 class DistillKLDivLoss(nn.Module):
     def __init__(
-        self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score, temperature: float = 2.0
+        self, model: SentenceTransformer, similarity_fct=util.pairwise_dot_score, temperature: float = 1.0
     ) -> None:
         """
         Compute the KL divergence loss between probability distributions derived from student and teacher models' similarity scores.
@@ -24,7 +24,7 @@ class DistillKLDivLoss(nn.Module):
             model: SentenceTransformer model (student model)
             similarity_fct: Which similarity function to use for the student model
             temperature: Temperature parameter to soften probability distributions (higher temperature = softer distributions)
-                When combined with other losses, a temperature of 1.0 is also viable. Defaults to 2.0.
+                A temperature of 1.0 does not scale the scores. Note: in the v5.0.1 release, the default temperature was changed from 2.0 to 1.0.
 
         References:
             - For more details, please refer to https://arxiv.org/abs/2010.11386
