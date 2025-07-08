@@ -111,6 +111,7 @@ def test_sentence_t5_slow() -> None:
     pretrained_model_score_slow("sentence-t5-base", 85.52)
 
 
+@pytest.mark.slow  # Also marked as slow to avoid running it with CI: results in too many requests to the Hugging Face Hub
 @pytest.mark.parametrize(
     ["model_name", "expected_score"],
     [
