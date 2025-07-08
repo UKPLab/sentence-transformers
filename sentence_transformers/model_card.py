@@ -714,8 +714,8 @@ class SentenceTransformerModelCardData(CardData):
                     # If the value is a really long string, truncate it
                     if isinstance(value, str) and len(value) > 1000:
                         value = value[:1000] + "..."
-                    # Avoid newlines in the table
-                    value = str(value).replace("\n", "<br>")
+                    # Avoid newlines and | in the table
+                    value = str(value).replace("\n", "<br>").replace("|", "\\|")
                     columns[column] = f"<code>{value}</code>"
                 examples_lines.append(columns)
             dataset_info["examples_table"] = indent(make_markdown_table(examples_lines).replace("-:|", "--|"), "  ")
