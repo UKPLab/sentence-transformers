@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Union
 
 from transformers import TrainingArguments as TransformersTrainingArguments
 from transformers.training_args import ParallelMode
@@ -210,7 +210,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         "learning_rate_mapping",
     ]
 
-    prompts: dict[str, dict[str, str]] | str | dict[str, str] | None = field(
+    prompts: Union[dict[str, dict[str, str]], str, dict[str, str]] = field(  # noqa: UP007
         default=None,
         metadata={
             "help": "The prompts to use for each column in the datasets. "
@@ -218,18 +218,15 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             "to prompts, or 4) a mapping of dataset names to a mapping of column names to prompts."
         },
     )
-    batch_sampler: BatchSamplers | str | DefaultBatchSampler | Callable[..., DefaultBatchSampler] = field(
+    batch_sampler: Union[BatchSamplers, str, DefaultBatchSampler, Callable[..., DefaultBatchSampler]] = field(  # noqa: UP007
         default=BatchSamplers.BATCH_SAMPLER, metadata={"help": "The batch sampler to use."}
     )
-    multi_dataset_batch_sampler: (
-        MultiDatasetBatchSamplers
-        | str
-        | MultiDatasetDefaultBatchSampler
-        | Callable[..., MultiDatasetDefaultBatchSampler]
-    ) = field(
+    multi_dataset_batch_sampler: Union[  # noqa: UP007
+        MultiDatasetBatchSamplers, str, MultiDatasetDefaultBatchSampler, Callable[..., MultiDatasetDefaultBatchSampler]
+    ] = field(
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
-    router_mapping: dict[str, str] | str | dict[str, dict[str, str]] | None = field(
+    router_mapping: Union[dict[str, str], str, dict[str, dict[str, str]]] = field(  # noqa: UP007
         default_factory=dict,
         metadata={
             "help": 'A mapping of dataset column names to Router routes, like "query" or "document". '
@@ -237,7 +234,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             "of column names to routes for multi-dataset training/evaluation. "
         },
     )
-    learning_rate_mapping: dict[str, float] | str | None = field(
+    learning_rate_mapping: Union[dict[str, float], str, None] = field(  # noqa: UP007
         default_factory=dict,
         metadata={
             "help": "A mapping of parameter name regular expressions to learning rates. "
