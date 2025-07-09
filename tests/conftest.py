@@ -55,6 +55,17 @@ def paraphrase_distilroberta_base_v1_model() -> SentenceTransformer:
     return SentenceTransformer("paraphrase-distilroberta-base-v1")
 
 
+@pytest.fixture(scope="session")
+def _static_retrieval_mrl_en_v1_model() -> SentenceTransformer:
+    model = SentenceTransformer("sentence-transformers/static-retrieval-mrl-en-v1")
+    return model
+
+
+@pytest.fixture()
+def static_retrieval_mrl_en_v1_model(_static_retrieval_mrl_en_v1_model: SentenceTransformer) -> SentenceTransformer:
+    return deepcopy(_static_retrieval_mrl_en_v1_model)
+
+
 @pytest.fixture()
 def clip_vit_b_32_model() -> SentenceTransformer:
     return SentenceTransformer("clip-ViT-B-32")

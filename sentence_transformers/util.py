@@ -677,7 +677,7 @@ def mine_hard_negatives(
     corpus_prompt_name: str | None = None,
     corpus_prompt: str | None = None,
     include_positives: bool = False,
-    output_format: Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"] = "triplet",
+    output_format: Literal["triplet", "n-tuple", "n-tuple-scores", "labeled-pair", "labeled-list"] = "triplet",
     batch_size: int = 32,
     faiss_batch_size: int = 16384,
     use_faiss: bool = False,
@@ -837,10 +837,11 @@ def mine_hard_negatives(
             Setting this to True is primarily useful for creating Reranking evaluation datasets for CrossEncoder models,
             where it can be useful to get a full ranking (including the positives) from a first-stage retrieval model.
             Defaults to False.
-        output_format (Literal["triplet", "n-tuple", "labeled-pair", "labeled-list"]): Output format for the `datasets.Dataset`. Options are:
+        output_format (Literal["triplet", "n-tuple", "n-tuple-scores", "labeled-pair", "labeled-list"]): Output format for the `datasets.Dataset`. Options are:
 
             - "triplet": (anchor, positive, negative) triplets, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss`.
             - "n-tuple": (anchor, positive, negative_1, ..., negative_n) tuples, i.e. 2 + num_negatives columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss`.
+            - "n-tuple-scores": (anchor, positive, negative_1, ..., negative_n, score) tuples, i.e. 2 + num_negatives columns, but with one score value that's a list of similarities for the query-positive and each of the query-negative pairs. Useful for e.g. :class:`~sentence_transformers.sparse_encoder.losses.SparseMarginMSELoss`.
             - "labeled-pair": (anchor, passage, label) text tuples with a label of 0 for negative and 1 for positive, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss`.
             - "labeled-list": (anchor, [doc1, doc2, ..., docN], [label1, label2, ..., labelN]) triplets with labels of 0 for negative and 1 for positive, i.e. 3 columns. Useful for e.g. :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss`.
 
@@ -866,6 +867,9 @@ def mine_hard_negatives(
     """
     if not is_datasets_available():
         raise ImportError("Please install `datasets` to use this function: `pip install datasets`.")
+
+    if len(dataset) == 0:
+        raise ValueError("The dataset is empty. Please provide a non-empty dataset.")
 
     from datasets import Dataset
 
@@ -905,6 +909,11 @@ def mine_hard_negatives(
                 'When using `include_positives=True`, `output_format` will be set to `"n-tuple"` to ensure that the ranking order is preserved.'
             )
             output_format = "n-tuple"
+
+    if output_format not in ["triplet", "n-tuple", "n-tuple-scores", "labeled-pair", "labeled-list"]:
+        raise ValueError(
+            f"Invalid output_format: {output_format}. Must be one of 'triplet', 'n-tuple', 'n-tuple-scores', 'labeled-pair', or 'labeled-list'."
+        )
 
     if margin is not None:
         absolute_margin = margin
@@ -1287,7 +1296,7 @@ def mine_hard_negatives(
         negative_scores = negative_scores[indices_to_keep]
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
 
-    elif output_format == "n-tuple":
+    elif output_format in ("n-tuple", "n-tuple-scores"):
         # Keep only indices where num_negative negatives were found
         indices_to_keep = (negative_scores != -float("inf")).all(dim=1)
         negative_scores = negative_scores[indices_to_keep]
@@ -1301,6 +1310,10 @@ def mine_hard_negatives(
                 for i, neg_indices in enumerate(indices.T, start=1)
             },
         }
+        if output_format == "n-tuple-scores":
+            dataset_data["score"] = torch.cat(
+                [positive_scores[indices_to_keep].unsqueeze(-1), negative_scores], dim=1
+            ).tolist()
         negative_scores = negative_scores.flatten()
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
 
