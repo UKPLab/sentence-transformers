@@ -210,7 +210,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         "learning_rate_mapping",
     ]
 
-    prompts: Union[dict[str, dict[str, str]], str, dict[str, str]] = field(  # noqa: UP007
+    prompts: Union[str, None, dict[str, str], dict[str, dict[str, str]]] = field(  # noqa: UP007
         default=None,
         metadata={
             "help": "The prompts to use for each column in the datasets. "
@@ -226,7 +226,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
     ] = field(
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
-    router_mapping: Union[dict[str, str], str, dict[str, dict[str, str]]] = field(  # noqa: UP007
+    router_mapping: Union[str, None, dict[str, str], dict[str, dict[str, str]]] = field(  # noqa: UP007
         default_factory=dict,
         metadata={
             "help": 'A mapping of dataset column names to Router routes, like "query" or "document". '
@@ -234,7 +234,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             "of column names to routes for multi-dataset training/evaluation. "
         },
     )
-    learning_rate_mapping: Union[dict[str, float], str, None] = field(  # noqa: UP007
+    learning_rate_mapping: Union[str, None, dict[str, float]] = field(  # noqa: UP007
         default_factory=dict,
         metadata={
             "help": "A mapping of parameter name regular expressions to learning rates. "
@@ -254,6 +254,24 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             if isinstance(self.multi_dataset_batch_sampler, str)
             else self.multi_dataset_batch_sampler
         )
+
+        self.router_mapping = self.router_mapping if self.router_mapping is not None else {}
+        if isinstance(self.router_mapping, str):
+            # Note that we allow a stringified dictionary for router_mapping, but then it should have been
+            # parsed by the superclass's `__post_init__` method already
+            raise ValueError(
+                "The `router_mapping` argument must be a dictionary mapping dataset column names to Router routes, "
+                "like 'query' or 'document'. A stringified dictionary also works."
+            )
+
+        self.learning_rate_mapping = self.learning_rate_mapping if self.learning_rate_mapping is not None else {}
+        if isinstance(self.learning_rate_mapping, str):
+            # Note that we allow a stringified dictionary for learning_rate_mapping, but then it should have been
+            # parsed by the superclass's `__post_init__` method already
+            raise ValueError(
+                "The `learning_rate_mapping` argument must be a dictionary mapping parameter name regular expressions "
+                "to learning rates. A stringified dictionary also works."
+            )
 
         # The `compute_loss` method in `SentenceTransformerTrainer` is overridden to only compute the prediction loss,
         # so we set `prediction_loss_only` to `True` here to avoid
