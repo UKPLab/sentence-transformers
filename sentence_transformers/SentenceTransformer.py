@@ -1012,7 +1012,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         truncate_dim = truncate_dim if truncate_dim is not None else self.truncate_dim
 
         all_embeddings = []
-        length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
+        length_sorted_idx = np.argsort([-self._token_length(sen) for sen in sentences])
         sentences_sorted = [sentences[idx] for idx in length_sorted_idx]
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
@@ -1997,6 +1997,22 @@ print(similarities)
             return len(text)
         else:
             return sum([len(t) for t in text])  # Sum of length of individual strings
+    
+    def _token_length(self, text: Union[List[int], List[List[int]]]):
+        """
+        Help function to get the token length for the input text. Text can be either
+        a list of ints (which means a single text as input), or a tuple of list of ints
+        (representing several text inputs to the model).
+        """
+
+        if isinstance(text, dict):  # {key: value} case
+            return len(next(iter(self.tokenize(text.values())["input_ids"])))
+        elif not hasattr(text, "__len__"):  # Object has no len() method
+            return 1
+        elif len(text) == 0 or isinstance(text[0], int):  # Empty string or list of ints
+            return len(self.tokenize(text)["input_ids"])
+        else:
+            return sum([len(self.tokenize(t)["input_ids"]) for t in text])  # Sum of length of individual strings
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str | None = None) -> dict[str, float] | float:
         """
