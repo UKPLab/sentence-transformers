@@ -83,7 +83,8 @@ def export_optimized_onnx_model(
     viable_st_model = (
         isinstance(model, SentenceTransformer)
         and len(model)
-        and isinstance(model.transformers_model, ORTModelForFeatureExtraction)
+        and hasattr(model[0], "auto_model")
+        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
     )
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
     if not (viable_st_model or viable_ce_model):
@@ -92,7 +93,7 @@ def export_optimized_onnx_model(
         )
 
     if viable_st_model:
-        ort_model: ORTModelForFeatureExtraction = model.transformers_model
+        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
     else:
         ort_model: ORTModelForSequenceClassification = model.model
     optimizer = ORTOptimizer.from_pretrained(ort_model)
@@ -174,7 +175,8 @@ def export_dynamic_quantized_onnx_model(
     viable_st_model = (
         isinstance(model, SentenceTransformer)
         and len(model)
-        and isinstance(model.transformers_model, ORTModelForFeatureExtraction)
+        and hasattr(model[0], "auto_model")
+        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
     )
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
     if not (viable_st_model or viable_ce_model):
@@ -183,7 +185,7 @@ def export_dynamic_quantized_onnx_model(
         )
 
     if viable_st_model:
-        ort_model: ORTModelForFeatureExtraction = model.transformers_model
+        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
     else:
         ort_model: ORTModelForSequenceClassification = model.model
     quantizer = ORTQuantizer.from_pretrained(ort_model)
@@ -283,7 +285,8 @@ def export_static_quantized_openvino_model(
     viable_st_model = (
         isinstance(model, SentenceTransformer)
         and len(model)
-        and isinstance(model.transformers_model, OVModelForFeatureExtraction)
+        and hasattr(model[0], "auto_model")
+        and isinstance(model[0].auto_model, OVModelForFeatureExtraction)
     )
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, OVModelForSequenceClassification)
     if not (viable_st_model or viable_ce_model):
@@ -295,7 +298,7 @@ def export_static_quantized_openvino_model(
         quantization_config = OVQuantizationConfig()
 
     if viable_st_model:
-        ov_model: OVModelForFeatureExtraction = model.transformers_model
+        ov_model: OVModelForFeatureExtraction = model[0].auto_model
     else:
         ov_model: OVModelForSequenceClassification = model.model
     ov_config = OVConfig(quantization_config=quantization_config)
