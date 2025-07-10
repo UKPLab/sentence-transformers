@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Callable, Union
 
 from transformers import TrainingArguments as TransformersTrainingArguments
 from transformers.training_args import ParallelMode
 from transformers.utils import ExplicitEnum
+
+from sentence_transformers.sampler import DefaultBatchSampler, MultiDatasetDefaultBatchSampler
 
 logger = logging.getLogger(__name__)
 
@@ -179,21 +181,36 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
         multi_dataset_batch_sampler (Union[:class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`, `str`, :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler`, Callable[[...], :class:`~sentence_transformers.sampler.MultiDatasetDefaultBatchSampler`]], *optional*):
             The multi-dataset batch sampler to use. See :class:`~sentence_transformers.training_args.MultiDatasetBatchSamplers`
             for valid options. Defaults to ``MultiDatasetBatchSamplers.PROPORTIONAL``.
-        router_mapping (`Optional[Dict[str, str]]`, *optional*):
+        router_mapping (`Dict[str, str] | Dict[str, Dict[str, str]]`, *optional*):
             A mapping of dataset column names to Router routes, like "query" or "document". This is used to specify
             which Router submodule to use for each dataset. Two formats are accepted:
 
             1. `Dict[str, str]`: A mapping of column names to routes.
             2. `Dict[str, Dict[str, str]]`: A mapping of dataset names to a mapping of column names to routes for
                multi-dataset training/evaluation.
-        learning_rate_mapping (`Optional[Dict[str, float]]`, *optional*):
+        learning_rate_mapping (`Dict[str, float] | None`, *optional*):
             A mapping of parameter name regular expressions to learning rates. This allows you to set different
             learning rates for different parts of the model, e.g., `{'SparseStaticEmbedding\.*': 1e-3}` for the
             SparseStaticEmbedding module. This is useful when you want to fine-tune specific parts of the model
             with different learning rates.
     """
 
-    prompts: Optional[str] = field(  # noqa: UP007
+    # Sometimes users will pass in a `str` repr of a dict in the CLI
+    # We need to track what fields those can be. Each time a new arg
+    # has a dict type, it must be added to this list.
+    # Important: These should be typed with Optional[Union[dict,str,...]]
+    _VALID_DICT_FIELDS = [
+        "accelerator_config",
+        "fsdp_config",
+        "deepspeed",
+        "gradient_checkpointing_kwargs",
+        "lr_scheduler_kwargs",
+        "prompts",
+        "router_mapping",
+        "learning_rate_mapping",
+    ]
+
+    prompts: Union[str, None, dict[str, str], dict[str, dict[str, str]]] = field(  # noqa: UP007
         default=None,
         metadata={
             "help": "The prompts to use for each column in the datasets. "
@@ -201,13 +218,15 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             "to prompts, or 4) a mapping of dataset names to a mapping of column names to prompts."
         },
     )
-    batch_sampler: Union[BatchSamplers, str] = field(  # noqa: UP007
+    batch_sampler: Union[BatchSamplers, str, DefaultBatchSampler, Callable[..., DefaultBatchSampler]] = field(  # noqa: UP007
         default=BatchSamplers.BATCH_SAMPLER, metadata={"help": "The batch sampler to use."}
     )
-    multi_dataset_batch_sampler: Union[MultiDatasetBatchSamplers, str] = field(  # noqa: UP007
+    multi_dataset_batch_sampler: Union[  # noqa: UP007
+        MultiDatasetBatchSamplers, str, MultiDatasetDefaultBatchSampler, Callable[..., MultiDatasetDefaultBatchSampler]
+    ] = field(
         default=MultiDatasetBatchSamplers.PROPORTIONAL, metadata={"help": "The multi-dataset batch sampler to use."}
     )
-    router_mapping: Optional[dict[str, str]] = field(  # noqa: UP007
+    router_mapping: Union[str, None, dict[str, str], dict[str, dict[str, str]]] = field(  # noqa: UP007
         default_factory=dict,
         metadata={
             "help": 'A mapping of dataset column names to Router routes, like "query" or "document". '
@@ -215,7 +234,7 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             "of column names to routes for multi-dataset training/evaluation. "
         },
     )
-    learning_rate_mapping: Optional[dict[str, float]] = field(  # noqa: UP007
+    learning_rate_mapping: Union[str, None, dict[str, float]] = field(  # noqa: UP007
         default_factory=dict,
         metadata={
             "help": "A mapping of parameter name regular expressions to learning rates. "
@@ -235,6 +254,24 @@ class SentenceTransformerTrainingArguments(TransformersTrainingArguments):
             if isinstance(self.multi_dataset_batch_sampler, str)
             else self.multi_dataset_batch_sampler
         )
+
+        self.router_mapping = self.router_mapping if self.router_mapping is not None else {}
+        if isinstance(self.router_mapping, str):
+            # Note that we allow a stringified dictionary for router_mapping, but then it should have been
+            # parsed by the superclass's `__post_init__` method already
+            raise ValueError(
+                "The `router_mapping` argument must be a dictionary mapping dataset column names to Router routes, "
+                "like 'query' or 'document'. A stringified dictionary also works."
+            )
+
+        self.learning_rate_mapping = self.learning_rate_mapping if self.learning_rate_mapping is not None else {}
+        if isinstance(self.learning_rate_mapping, str):
+            # Note that we allow a stringified dictionary for learning_rate_mapping, but then it should have been
+            # parsed by the superclass's `__post_init__` method already
+            raise ValueError(
+                "The `learning_rate_mapping` argument must be a dictionary mapping parameter name regular expressions "
+                "to learning rates. A stringified dictionary also works."
+            )
 
         # The `compute_loss` method in `SentenceTransformerTrainer` is overridden to only compute the prediction loss,
         # so we set `prediction_loss_only` to `True` here to avoid
