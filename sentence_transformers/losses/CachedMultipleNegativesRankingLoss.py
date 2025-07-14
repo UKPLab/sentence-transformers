@@ -236,7 +236,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         candidates = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
         batch_size = len(anchors)
 
-        labels = torch.tensor(range(batch_size), dtype=torch.long, device=anchors.device)
+        labels = torch.arange(batch_size, dtype=torch.long, device=anchors.device)
         # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
 
         if self.gather_across_devices:
