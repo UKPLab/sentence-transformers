@@ -1660,8 +1660,7 @@ def disable_logging(highest_level=logging.CRITICAL):
     Args:
         highest_level: the maximum logging level allowed.
     """
-
-    previous_level = logging.root.manager.disable
+    previous_level = logging._get_library_root_logger().manager.disable
 
     logging.disable(highest_level)
 
