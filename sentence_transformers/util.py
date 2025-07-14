@@ -1651,25 +1651,6 @@ class disabled_tqdm(tqdm):
                 raise
 
 
-@contextmanager
-def disable_logging(highest_level=logging.CRITICAL):
-    """
-    A context manager that will prevent any logging messages
-    triggered during the body from being processed.
-
-    Args:
-        highest_level: the maximum logging level allowed.
-    """
-    previous_level = logging._get_library_root_logger().manager.disable
-
-    logging.disable(highest_level)
-
-    try:
-        yield
-    finally:
-        logging.disable(previous_level)
-
-
 def is_sentence_transformer_model(
     model_name_or_path: str,
     token: bool | str | None = None,
