@@ -183,19 +183,9 @@ class GISTEmbedLoss(nn.Module):
                 rank = torch.distributed.get_rank()
                 offset = rank * batch_size
 
-        # Compute the model's similarities
+        # Compute the similarities given the training and guide embeddings.
         ap_sim = self.sim_matrix(anchor, positive)
-        if self.contrast_anchors:
-            aa_sim = self.sim_matrix(anchor, anchor)
-        if self.contrast_positives:
-            pp_sim = self.sim_matrix(positive[offset : offset + batch_size], positive)
-
-        # Let's compute the similarity matrices for the combinations of anchor and positive samples.
         guided_ap_sim = self.sim_matrix(anchor_guide, positive_guide)
-        if self.contrast_anchors:
-            guided_aa_sim = self.sim_matrix(anchor_guide, anchor_guide)
-        if self.contrast_positives:
-            guided_pp_sim = self.sim_matrix(positive_guide[offset : offset + batch_size], positive_guide)
 
         # Define the anchor threshold
         guided_sim = guided_ap_sim.diagonal(offset=offset).view(-1, 1)
@@ -220,15 +210,18 @@ class GISTEmbedLoss(nn.Module):
 
         # Apply false negative suppression to each similarity matrix using guided similarity as anchor
         ap_sim = mask_false_negatives(guided_ap_sim, ap_sim, positive_mask=positive_mask)  # anchor-positive
-        if self.contrast_anchors:
-            aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
-        if self.contrast_positives:
-            pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
-
         scores = [ap_sim]
+
         if self.contrast_anchors:
+            aa_sim = self.sim_matrix(anchor, anchor)
+            guided_aa_sim = self.sim_matrix(anchor_guide, anchor_guide)
+            aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
             scores.append(aa_sim)
+
         if self.contrast_positives:
+            pp_sim = self.sim_matrix(positive[offset : offset + batch_size], positive)
+            guided_pp_sim = self.sim_matrix(positive_guide[offset : offset + batch_size], positive_guide)
+            pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
             scores.append(pp_sim)
 
         # Handle the case where we have a negative sample
@@ -236,7 +229,6 @@ class GISTEmbedLoss(nn.Module):
             an_sim = self.sim_matrix(anchor, negative)
             guided_an_sim = self.sim_matrix(anchor_guide, negative_guide)
             an_sim = mask_false_negatives(guided_an_sim, an_sim)  # anchor-negative
-
             scores.append(an_sim)
 
         scores = torch.cat(scores, dim=1) / self.temperature
