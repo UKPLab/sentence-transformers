@@ -13,6 +13,7 @@ from transformers import PreTrainedTokenizerBase
 
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import StaticEmbedding
+from sentence_transformers.util import all_gather_with_grad
 
 
 class RandContext:
@@ -71,6 +72,9 @@ class CachedGISTEmbedLoss(nn.Module):
         show_progress_bar: bool = False,
         margin_strategy: Literal["absolute", "relative"] = "absolute",
         margin: float = 0.0,
+        contrast_anchors: bool = True,
+        contrast_positives: bool = True,
+        gather_across_devices: bool = False,
     ) -> None:
         """
         This loss is a combination of :class:`GISTEmbedLoss` and :class:`CachedMultipleNegativesRankingLoss`.
@@ -102,6 +106,14 @@ class CachedGISTEmbedLoss(nn.Module):
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "relative"}.
             margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
                 this only removes negatives that are more similar to the query than the positive is to the query.
+            contrast_anchors: If True, include anchor-anchor pairs in the loss computation, resulting in the embeddings
+                of the anchors being pushed further apart. Defaults to True, following the original GISTEmbed paper.
+            contrast_positives: If True, include positive-positive pairs in the loss computation, resulting in the embeddings
+                of the positives being pushed further apart. Defaults to True, following the original GISTEmbed paper,
+                but setting to False may yield better results in some retrieval tasks.
+            gather_across_devices: If True, gather the embeddings across all devices before computing the loss.
+                Recommended when training on multiple GPUs, as it allows for larger batch sizes, but it may slow down
+                training due to communication overhead, and can potentially lead to out-of-memory errors.
 
         References:
             - Efficient Natural Language Response Suggestion for Smart Reply, Section 4.4: https://arxiv.org/pdf/1705.00652.pdf
@@ -175,7 +187,6 @@ class CachedGISTEmbedLoss(nn.Module):
             raise ValueError(
                 "Both the training model and the guiding model must use a PreTrainedTokenizer from transformers."
             )
-        self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size
         self.cache: list[list[Tensor]] | None = None
         self.random_states: list[list[RandContext]] | None = None
@@ -189,6 +200,10 @@ class CachedGISTEmbedLoss(nn.Module):
             raise ValueError("margin_strategy must be 'absolute' or 'relative'.")
         self.margin_strategy = margin_strategy
         self.margin = margin
+        self.contrast_anchors = contrast_anchors
+        self.contrast_positives = contrast_positives
+        self.gather_across_devices = gather_across_devices
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
@@ -233,7 +248,7 @@ class CachedGISTEmbedLoss(nn.Module):
         """Do forward pass on all the minibatches of the input features and yield corresponding embeddings."""
         input_ids: Tensor = sentence_feature["input_ids"]
         bsz, _ = input_ids.shape
-        for i, b in enumerate(
+        for i, begin in enumerate(
             tqdm.trange(
                 0,
                 bsz,
@@ -242,11 +257,11 @@ class CachedGISTEmbedLoss(nn.Module):
                 disable=not self.show_progress_bar,
             )
         ):
-            e = b + self.mini_batch_size
+            end = begin + self.mini_batch_size
             reps, guide_reps, random_state = self.embed_minibatch(
                 sentence_feature=sentence_feature,
-                begin=b,
-                end=e,
+                begin=begin,
+                end=end,
                 with_grad=with_grad,
                 copy_random_state=copy_random_state,
                 random_state=None if random_states is None else random_states[i],
@@ -270,34 +285,46 @@ class CachedGISTEmbedLoss(nn.Module):
             raise ValueError("reps and reps_guided must have the same length")
 
         # Concatenate embeddings along the batch dimension
-        concatenated_reps = [torch.cat(rep, dim=0) for rep in reps]
-        concatenated_guided_reps = [torch.cat(rep_guide, dim=0) for rep_guide in reps_guided]
+        anchors = torch.cat(reps[0])  # (batch_size, embedding_dim)
+        anchors_guide = torch.cat(reps_guided[0])  # (batch_size, embedding_dim)
+        candidates = [torch.cat(r) for r in reps[1:]]  # 1 + nneg items of (bsz, hdim)
+        candidates_guide = [torch.cat(r) for r in reps_guided[1:]]  # 1 + nneg items of (bsz, hdim)
 
-        labels = torch.arange(concatenated_reps[0].size(0)).long().to(concatenated_reps[0].device)
-        batch_size = concatenated_reps[0].shape[0]
+        batch_size = anchors.size(0)
+        offset = 0
+
+        if self.gather_across_devices:
+            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
+            # device's anchors with all candidates from all devices, such that the backward pass on the document
+            # embeddings can flow back to the original devices.
+            candidates = [all_gather_with_grad(candidate) for candidate in candidates]
+            candidates_guide = [all_gather_with_grad(candidate) for candidate in candidates_guide]
+            # All have this shape: 1 + nneg items of (batch_size * world_size, embedding_dim)
+
+            if torch.distributed.is_initialized():
+                rank = torch.distributed.get_rank()
+                offset = rank * batch_size
+
+        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
+        # so the label for anchor[i] is i. This means that we can just use arange
+        range_labels = torch.arange(offset, offset + batch_size, device=anchors.device)
 
         losses: list[torch.Tensor] = []
-        for b in tqdm.trange(
+        for begin in tqdm.trange(
             0,
             batch_size,
             self.mini_batch_size,
             desc="Calculating loss",
             disable=not self.show_progress_bar,
         ):
-            e = b + self.mini_batch_size
+            end = begin + self.mini_batch_size
 
-            # Compute guided similarity matrices for anchor-positive, anchor-anchor, and positive-positive samples
-            guided_ap_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[1])
-            guided_aa_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[0])
-            guided_pp_sim = self.sim_matrix(concatenated_guided_reps[1][b:e], concatenated_guided_reps[1])
+            # Compute the similarities given the training and guide embeddings.
+            ap_sim = self.sim_matrix(anchors[begin:end], candidates[0])  # anchor-positive similarity
+            guided_ap_sim = self.sim_matrix(anchors_guide[begin:end], candidates_guide[0])
 
-            # Define the anchor threshold for each similarity matrix
-            guided_sim = guided_ap_sim.diagonal(offset=b).view(-1, 1)
-
-            # Compute similarity scores for the current mini-batch
-            ap_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[1])  # anchor-positive similarity
-            aa_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[0])  # anchor-anchor similarity
-            pp_sim = self.sim_matrix(concatenated_reps[1][b:e], concatenated_reps[1])  # positive-positive similarity
+            # Define the anchor threshold
+            guided_sim = guided_ap_sim.diagonal(offset=offset + begin).view(-1, 1)
 
             # This uses guided (teacher) similarity as a dynamic threshold to identify and suppress false negatives
             def mask_false_negatives(guided_sim_mat, sim_mat, positive_mask: Tensor | None = None):
@@ -316,27 +343,44 @@ class CachedGISTEmbedLoss(nn.Module):
 
             # Create a mask to protect true positive pairs in the anchor-positive matrix (i.e., diagonal elements)
             positive_mask = torch.eye(*guided_ap_sim.shape, dtype=torch.bool, device=guided_ap_sim.device)
-            positive_mask = positive_mask.roll(b)
+            positive_mask = positive_mask.roll(begin)
 
             # Apply false negative suppression to each similarity matrix using guided similarity as anchor
             ap_sim = mask_false_negatives(guided_ap_sim, ap_sim, positive_mask=positive_mask)  # anchor-positive
-            aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
-            pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
+            scores = [ap_sim]
 
-            # Concatenate the similarity matrices for anchor-positive, anchor-anchor, and positive-positive
-            scores = torch.cat([ap_sim, aa_sim, pp_sim], dim=1)
+            if self.contrast_anchors:
+                aa_sim = self.sim_matrix(anchors[begin:end], anchors)
+                guided_aa_sim = self.sim_matrix(anchors_guide[begin:end], anchors_guide)
+                aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
+                scores.append(aa_sim)
 
-            # If there are negatives (len(reps) > 2), process them
-            if len(concatenated_reps) > 2:
-                for i in range(2, len(concatenated_reps)):  # Start from 2 since first 2 are anchor-positive
-                    guided_neg_sim = self.sim_matrix(concatenated_guided_reps[0][b:e], concatenated_guided_reps[i])
-                    neg_sim = self.sim_matrix(concatenated_reps[0][b:e], concatenated_reps[i])
+            if self.contrast_positives:
+                pp_sim = self.sim_matrix(
+                    candidates[0][offset + begin : min(offset + end, offset + batch_size)], candidates[0]
+                )
+                guided_pp_sim = self.sim_matrix(
+                    candidates_guide[0][offset + begin : min(offset + end, offset + batch_size)], candidates_guide[0]
+                )
+                pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
+                scores.append(pp_sim)
+
+            # If there are negatives (len(candidates) > 1), process them
+            if len(candidates) > 1:
+                for i in range(1, len(candidates)):  # Start from 1 since the first is the positive
+                    neg_sim = self.sim_matrix(anchors[begin:end], candidates[i])
+                    guided_neg_sim = self.sim_matrix(anchors_guide[begin:end], candidates_guide[i])
                     neg_sim = mask_false_negatives(guided_neg_sim, neg_sim)
-                    scores = torch.cat([scores, neg_sim], dim=1)
+                    scores.append(neg_sim)  # anchor-negative
+
+            # Concatenate all scores into a single tensor
+            scores = torch.cat(scores, dim=1)  # (mbsz, num_scores)
 
             # Normalize the scores and calculate the cross-entropy loss
             scores = scores / self.temperature
-            loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
+            loss_mbatch: torch.Tensor = (
+                self.cross_entropy_loss(scores, range_labels[begin:end]) * len(scores) / batch_size
+            )
             if with_backward:
                 loss_mbatch.backward()
                 loss_mbatch = loss_mbatch.detach()
@@ -384,4 +428,7 @@ class CachedGISTEmbedLoss(nn.Module):
             "mini_batch_size": self.mini_batch_size,
             "margin_strategy": self.margin_strategy,
             "margin": self.margin,
+            "contrast_anchors": self.contrast_anchors,
+            "contrast_positives": self.contrast_positives,
+            "gather_across_devices": self.gather_across_devices,
         }
