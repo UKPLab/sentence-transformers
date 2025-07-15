@@ -120,12 +120,13 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
         # Compute the scores for "given anchor, find the most similar candidate" and vice versa
         # If gathered across devices, take anchors/candidates from the same device against all candidates/anchors
-        forward_scores = self.similarity_fct(anchors[range_labels], candidates) * self.scale
-        # If we're not gathering across devices, we can just transpose the scores, otherwise we need to compute scores
-        if not self.gather_across_devices:
-            backward_scores = forward_scores[:, :batch_size].T
-        else:
+        if self.gather_across_devices:
+            forward_scores = self.similarity_fct(anchors[range_labels], candidates) * self.scale
             backward_scores = self.similarity_fct(candidates[range_labels], anchors) * self.scale
+        else:
+            # If we're not gathering across devices, we can just transpose the forward scores
+            forward_scores = self.similarity_fct(anchors, candidates) * self.scale
+            backward_scores = forward_scores[:, :batch_size].T
 
         forward_loss = self.cross_entropy_loss(forward_scores, range_labels)
         backward_loss = self.cross_entropy_loss(backward_scores, range_labels)
