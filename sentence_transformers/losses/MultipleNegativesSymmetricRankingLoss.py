@@ -97,7 +97,7 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
     def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
         anchors = embeddings[0]
-        candidates = embeddings[1]
+        candidates = torch.cat(embeddings[1:], dim=0)
         batch_size = anchors.size(0)
         offset = 0
 
@@ -122,8 +122,8 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         # If gathered across devices, take anchors/candidates from the same device against all candidates/anchors
         forward_scores = self.similarity_fct(anchors[range_labels], candidates) * self.scale
         # If we're not gathering across devices, we can just transpose the scores, otherwise we need to compute scores
-        if offset == 0:
-            backward_scores = forward_scores.T
+        if not self.gather_across_devices:
+            backward_scores = forward_scores[:, :batch_size].T
         else:
             backward_scores = self.similarity_fct(candidates[range_labels], anchors) * self.scale
 
