@@ -235,9 +235,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         anchors = torch.cat(reps[0])  # (bsz, hdim)
         candidates = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
         batch_size = len(anchors)
-
-        labels = torch.arange(batch_size, dtype=torch.long, device=anchors.device)
-        # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
+        offset = 0
 
         if self.gather_across_devices:
             # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
@@ -249,7 +247,10 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             # Adjust the range_labels to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
-                labels = labels + rank * batch_size
+                offset = rank * batch_size
+
+        labels = torch.arange(offset, offset + batch_size, device=anchors.device)
+        # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
 
         losses: list[torch.Tensor] = []
         for b in tqdm.trange(

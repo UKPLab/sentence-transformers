@@ -128,10 +128,7 @@ class MultipleNegativesRankingLoss(nn.Module):
         anchors = embeddings[0]  # (batch_size, embedding_dim)
         candidates = torch.cat(embeddings[1:])  # (batch_size * (1 + num_negatives), embedding_dim)
         batch_size = anchors.size(0)
-
-        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
-        # so the label for anchor[i] is i
-        range_labels = torch.arange(0, batch_size, device=anchors.device)
+        offset = 0
 
         if self.gather_across_devices:
             # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
@@ -140,10 +137,14 @@ class MultipleNegativesRankingLoss(nn.Module):
             candidates = all_gather_with_grad(candidates)
             # (batch_size * world_size * (1 + num_negatives), embedding_dim)
 
-            # Adjust the range_labels to account for the gathered candidates
+            # Adjust the offset to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
-                range_labels = range_labels + rank * batch_size
+                offset = rank * batch_size
+
+        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
+        # so the label for anchor[i] is i, but adjusted for the rank offset if gathered across devices
+        range_labels = torch.arange(offset, offset + batch_size, device=anchors.device)
 
         # For every anchor, we compute the similarity to all other candidates (positives and negatives),
         # also from other anchors. This gives us a lot of in-batch negatives.
