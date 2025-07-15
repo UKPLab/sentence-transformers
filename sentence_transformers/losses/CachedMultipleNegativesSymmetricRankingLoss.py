@@ -240,7 +240,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             backward_loss: torch.Tensor = self.cross_entropy_loss(backward_scores, labels[begin:end])
 
             loss_mbatch = (forward_loss + backward_loss) / 2
-            loss_mbatch = loss_mbatch * (len(forward_scores) / batch_size)
+            loss_mbatch = loss_mbatch * len(forward_scores) / batch_size
             if with_backward:
                 loss_mbatch.backward()
                 loss_mbatch = loss_mbatch.detach()
