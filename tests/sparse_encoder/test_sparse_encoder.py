@@ -225,7 +225,12 @@ def test_encode_query(
         )
 
         # Verify that encode was called with the correct parameters
-        expected_prompt_name = prompt_name if prompt_name else "query"
+        if prompt_name:
+            expected_prompt_name = prompt_name
+        elif prompt is not None:
+            expected_prompt_name = None
+        else:
+            expected_prompt_name = "query"
 
         mock_encode.assert_called_once()
         args, kwargs = mock_encode.call_args
@@ -276,7 +281,12 @@ def test_encode_document(
         mock_encode.assert_called_once()
         args, kwargs = mock_encode.call_args
 
-        expected_prompt_name = prompt_name if prompt_name else "document"
+        if prompt_name:
+            expected_prompt_name = prompt_name
+        elif prompt is not None:
+            expected_prompt_name = None
+        else:
+            expected_prompt_name = "document"
 
         # Check that sentences were passed correctly
         assert kwargs["sentences"] == sentences
