@@ -944,8 +944,8 @@ def mine_hard_negatives(
             print(f"Setting range_max to {range_max} based on the provided parameters.")
 
     log_counters = {}
-    queries = dataset[anchor_column_name]
-    positives = dataset[positive_column_name]
+    queries = list(dataset[anchor_column_name])
+    positives = list(dataset[positive_column_name])
     separate_corpus = corpus is not None
     if not separate_corpus:
         corpus = positives
