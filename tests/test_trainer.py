@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 import torch
-from datasets.dataset_dict import DatasetDict
 from tokenizers.processors import TemplateProcessing
 from torch.utils.data import ConcatDataset
 

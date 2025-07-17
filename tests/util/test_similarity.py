@@ -4,9 +4,106 @@ import time
 
 import numpy as np
 import pytest
+import sklearn
 import torch
 
-from sentence_transformers import util
+from sentence_transformers.util.similarity import (
+    cos_sim,
+    dot_score,
+    euclidean_sim,
+    manhattan_sim,
+    pairwise_cos_sim,
+    pairwise_dot_score,
+    pairwise_euclidean_sim,
+    pairwise_manhattan_sim,
+    pytorch_cos_sim,
+)
+
+
+def test_pytorch_cos_sim() -> None:
+    """Tests the correct computation of pytorch_cos_sim"""
+    a = np.random.randn(50, 100)
+    b = np.random.randn(50, 100)
+
+    sklearn_pairwise = sklearn.metrics.pairwise.cosine_similarity(a, b)
+    pytorch_cos_scores = pytorch_cos_sim(a, b).numpy()
+    for i in range(len(sklearn_pairwise)):
+        for j in range(len(sklearn_pairwise[i])):
+            assert abs(sklearn_pairwise[i][j] - pytorch_cos_scores[i][j]) < 0.001
+
+
+def test_pairwise_cos_sim() -> None:
+    a = np.random.randn(50, 100)
+    b = np.random.randn(50, 100)
+
+    # Pairwise cos
+    sklearn_pairwise = 1 - sklearn.metrics.pairwise.paired_cosine_distances(a, b)
+    pytorch_cos_scores = pairwise_cos_sim(a, b).numpy()
+
+    assert np.allclose(sklearn_pairwise, pytorch_cos_scores)
+
+
+def test_pairwise_euclidean_sim() -> None:
+    a = np.array([[1, 0], [1, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 0]], dtype=np.float32)
+
+    euclidean_expected = np.array([-1.0, -np.sqrt(2.0)])
+    euclidean_calculated = pairwise_euclidean_sim(a, b).numpy()
+
+    assert np.allclose(euclidean_expected, euclidean_calculated)
+
+
+def test_pairwise_manhattan_sim() -> None:
+    a = np.array([[1, 0], [1, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 0]], dtype=np.float32)
+
+    manhattan_expected = np.array([-1.0, -2.0])
+    manhattan_calculated = pairwise_manhattan_sim(a, b).numpy()
+
+    assert np.allclose(manhattan_expected, manhattan_calculated)
+
+
+def test_pairwise_dot_score_cos_sim() -> None:
+    a = np.array([[1, 0], [1, 0], [1, 0]], dtype=np.float32)
+    b = np.array([[1, 0], [0, 1], [-1, 0]], dtype=np.float32)
+
+    dot_and_cosine_expected = np.array([1.0, 0.0, -1.0])
+    cosine_calculated = pairwise_cos_sim(a, b)
+    dot_calculated = pairwise_dot_score(a, b)
+
+    assert np.allclose(cosine_calculated, dot_and_cosine_expected)
+    assert np.allclose(dot_calculated, dot_and_cosine_expected)
+
+
+def test_euclidean_sim() -> None:
+    a = np.array([[1, 0], [0, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 1]], dtype=np.float32)
+
+    euclidean_expected = np.array([[-1.0, -np.sqrt(2.0)], [-1.0, 0.0]])
+    euclidean_calculated = euclidean_sim(a, b).detach().numpy()
+
+    assert np.allclose(euclidean_expected, euclidean_calculated)
+
+
+def test_manhattan_sim() -> None:
+    a = np.array([[1, 0], [0, 1]], dtype=np.float32)
+    b = np.array([[0, 0], [0, 1]], dtype=np.float32)
+
+    manhattan_expected = np.array([[-1.0, -2.0], [-1.0, 0]])
+    manhattan_calculated = manhattan_sim(a, b).detach().numpy()
+    assert np.allclose(manhattan_expected, manhattan_calculated)
+
+
+def test_dot_score_cos_sim() -> None:
+    a = np.array([[1, 0]], dtype=np.float32)
+    b = np.array([[1, 0], [0, 1], [-1, 0]], dtype=np.float32)
+
+    dot_and_cosine_expected = np.array([[1.0, 0.0, -1.0]])
+    cosine_calculated = cos_sim(a, b)
+    dot_calculated = dot_score(a, b)
+
+    assert np.allclose(cosine_calculated, dot_and_cosine_expected)
+    assert np.allclose(dot_calculated, dot_and_cosine_expected)
 
 
 def create_sparse_tensor(rows, cols, num_nonzero, seed=None):
@@ -52,8 +149,8 @@ def test_cos_sim_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    sim_sparse = util.cos_sim(tensor1, tensor2)
-    sim_dense = util.cos_sim(dense1, dense2)
+    sim_sparse = cos_sim(tensor1, tensor2)
+    sim_dense = cos_sim(dense1, dense2)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -66,8 +163,8 @@ def test_dot_score_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    score_sparse = util.dot_score(tensor1, tensor2)
-    score_dense = util.dot_score(dense1, dense2)
+    score_sparse = dot_score(tensor1, tensor2)
+    score_dense = dot_score(dense1, dense2)
 
     assert torch.allclose(score_sparse, score_dense, rtol=1e-5, atol=1e-5)
 
@@ -79,8 +176,8 @@ def test_manhattan_sim_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    sim_sparse = util.manhattan_sim(tensor1, tensor2)
-    sim_dense = util.manhattan_sim(dense1, dense2)
+    sim_sparse = manhattan_sim(tensor1, tensor2)
+    sim_dense = manhattan_sim(dense1, dense2)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -92,8 +189,8 @@ def test_euclidean_sim_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    sim_sparse = util.euclidean_sim(tensor1, tensor2)
-    sim_dense = util.euclidean_sim(dense1, dense2)
+    sim_sparse = euclidean_sim(tensor1, tensor2)
+    sim_dense = euclidean_sim(dense1, dense2)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -105,8 +202,8 @@ def test_pairwise_cos_sim_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    sim_sparse = util.pairwise_cos_sim(tensor1, tensor2)
-    sim_dense = util.pairwise_cos_sim(dense1, dense2)
+    sim_sparse = pairwise_cos_sim(tensor1, tensor2)
+    sim_dense = pairwise_cos_sim(dense1, dense2)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -118,8 +215,8 @@ def test_pairwise_dot_score_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    score_sparse = util.pairwise_dot_score(tensor1, tensor2)
-    score_dense = util.pairwise_dot_score(dense1, dense2)
+    score_sparse = pairwise_dot_score(tensor1, tensor2)
+    score_dense = pairwise_dot_score(dense1, dense2)
 
     assert torch.allclose(score_sparse, score_dense, rtol=1e-5, atol=1e-5)
 
@@ -131,8 +228,8 @@ def test_pairwise_manhattan_sim_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    sim_sparse = util.pairwise_manhattan_sim(tensor1, tensor2)
-    sim_dense = util.pairwise_manhattan_sim(dense1, dense2)
+    sim_sparse = pairwise_manhattan_sim(tensor1, tensor2)
+    sim_dense = pairwise_manhattan_sim(dense1, dense2)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -144,8 +241,8 @@ def test_pairwise_euclidean_sim_sparse(sparse_tensors):
     dense1 = tensor1.to_dense()
     dense2 = tensor2.to_dense()
 
-    sim_sparse = util.pairwise_euclidean_sim(tensor1, tensor2)
-    sim_dense = util.pairwise_euclidean_sim(dense1, dense2)
+    sim_sparse = pairwise_euclidean_sim(tensor1, tensor2)
+    sim_dense = pairwise_euclidean_sim(dense1, dense2)
 
     assert torch.allclose(sim_sparse, sim_dense, rtol=1e-5, atol=1e-5)
 
@@ -173,14 +270,14 @@ def test_performance_with_large_vectors():
 
     # List of functions to test
     similarity_functions = [
-        ("cos_sim", util.cos_sim),
-        ("dot_score", util.dot_score),
-        ("manhattan_sim", util.manhattan_sim),  # Comment until the function is implemented in a fast way
-        ("euclidean_sim", util.euclidean_sim),
-        ("pairwise_cos_sim", util.pairwise_cos_sim),
-        ("pairwise_dot_score", util.pairwise_dot_score),
-        ("pairwise_manhattan_sim", util.pairwise_manhattan_sim),
-        ("pairwise_euclidean_sim", util.pairwise_euclidean_sim),
+        ("cos_sim", cos_sim),
+        ("dot_score", dot_score),
+        ("manhattan_sim", manhattan_sim),  # Comment until the function is implemented in a fast way
+        ("euclidean_sim", euclidean_sim),
+        ("pairwise_cos_sim", pairwise_cos_sim),
+        ("pairwise_dot_score", pairwise_dot_score),
+        ("pairwise_manhattan_sim", pairwise_manhattan_sim),
+        ("pairwise_euclidean_sim", pairwise_euclidean_sim),
     ]
 
     results = []

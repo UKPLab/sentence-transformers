@@ -3,12 +3,19 @@ from __future__ import annotations
 import importlib.util
 import os
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
-from datasets import Dataset
+from torch import Tensor
 
 from sentence_transformers import CrossEncoder
-from sentence_transformers.util import mine_hard_negatives
+from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import is_datasets_available, mine_hard_negatives
+
+if is_datasets_available():
+    from datasets import Dataset
+else:
+    pytest.skip("The datasets library is not available.", allow_module_level=True)
 
 # Test data
 QUERIES = [
@@ -62,7 +69,7 @@ def cross_encoder():
     return CrossEncoder("cross-encoder/ms-marco-MiniLM-L2-v2")
 
 
-def test_basic_functionality(dataset, static_retrieval_mrl_en_v1_model):
+def test_basic_functionality(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test the basic functionality with default parameters."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(dataset=dataset, model=model, verbose=False)
@@ -76,7 +83,9 @@ def test_basic_functionality(dataset, static_retrieval_mrl_en_v1_model):
     assert len(result) >= len(dataset)
 
 
-def test_column_names(queries, passages, static_retrieval_mrl_en_v1_model):
+def test_column_names(
+    queries: list[str], passages: list[str], static_retrieval_mrl_en_v1_model: SentenceTransformer
+) -> None:
     """Test specifying custom column names."""
     model = static_retrieval_mrl_en_v1_model
     renamed_dataset = Dataset.from_dict({"question": queries, "answer": passages[:5]})
@@ -95,7 +104,9 @@ def test_column_names(queries, passages, static_retrieval_mrl_en_v1_model):
     assert "negative" in result.column_names
 
 
-def test_fully_custom_column_names(queries, passages, static_retrieval_mrl_en_v1_model):
+def test_fully_custom_column_names(
+    queries: list[str], passages: list[str], static_retrieval_mrl_en_v1_model: SentenceTransformer
+):
     """Test dataset with completely different column names."""
     model = static_retrieval_mrl_en_v1_model
     # Create dataset with completely custom column names
@@ -133,7 +144,9 @@ def test_fully_custom_column_names(queries, passages, static_retrieval_mrl_en_v1
     assert "negative_2" in result_ntuple.column_names
 
 
-def test_separate_corpus(dataset, static_retrieval_mrl_en_v1_model, passages):
+def test_separate_corpus(
+    dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer, passages: list[str]
+) -> None:
     """Test using a separate corpus for negative mining."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -154,7 +167,9 @@ def test_separate_corpus(dataset, static_retrieval_mrl_en_v1_model, passages):
     assert any(neg in passages[5:] for neg in negatives), "No negatives found in the separate corpus."
 
 
-def test_cross_encoder(dataset, static_retrieval_mrl_en_v1_model, cross_encoder):
+def test_cross_encoder(
+    dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer, cross_encoder: CrossEncoder
+) -> None:
     """Test using a cross-encoder for rescoring."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -172,7 +187,9 @@ def test_cross_encoder(dataset, static_retrieval_mrl_en_v1_model, cross_encoder)
     assert "negative" in result.column_names
 
 
-def test_cross_encoder_detailed(dataset, static_retrieval_mrl_en_v1_model, cross_encoder):
+def test_cross_encoder_detailed(
+    dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer, cross_encoder: CrossEncoder
+) -> None:
     """Test using a cross-encoder with different parameters."""
     model = static_retrieval_mrl_en_v1_model
     # Test with cross-encoder and various filtering parameters
@@ -196,7 +213,7 @@ def test_cross_encoder_detailed(dataset, static_retrieval_mrl_en_v1_model, cross
     assert "negative_2" in result.column_names
 
 
-def test_range_parameters(dataset, static_retrieval_mrl_en_v1_model):
+def test_range_parameters(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test range_min and range_max parameters."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -213,7 +230,7 @@ def test_range_parameters(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result.column_names
 
 
-def test_score_filters(dataset, static_retrieval_mrl_en_v1_model):
+def test_score_filters(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test max_score and min_score parameters."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -231,7 +248,7 @@ def test_score_filters(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result.column_names
 
 
-def test_margin_parameters(dataset, static_retrieval_mrl_en_v1_model):
+def test_margin_parameters(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test absolute_margin and relative_margin parameters."""
     model = static_retrieval_mrl_en_v1_model
     # Test absolute_margin
@@ -257,7 +274,7 @@ def test_margin_parameters(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result_rel.column_names
 
 
-def test_num_negatives(dataset, static_retrieval_mrl_en_v1_model):
+def test_num_negatives(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test num_negatives parameter."""
     model = static_retrieval_mrl_en_v1_model
     num_neg = 2
@@ -273,7 +290,7 @@ def test_num_negatives(dataset, static_retrieval_mrl_en_v1_model):
     assert f"negative_{num_neg + 1}" not in result.column_names
 
 
-def test_sampling_strategies(dataset, static_retrieval_mrl_en_v1_model):
+def test_sampling_strategies(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test different sampling strategies."""
     model = static_retrieval_mrl_en_v1_model
     # Test 'top' strategy
@@ -287,7 +304,7 @@ def test_sampling_strategies(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result_random.column_names
 
 
-def test_prompts(dataset, static_retrieval_mrl_en_v1_model):
+def test_prompts(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test query_prompt and corpus_prompt parameters."""
     model = static_retrieval_mrl_en_v1_model
     query_prompt = "query: "
@@ -307,7 +324,7 @@ def test_prompts(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result.column_names
 
 
-def test_include_positives(dataset, static_retrieval_mrl_en_v1_model):
+def test_include_positives(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test include_positives parameter."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -318,7 +335,9 @@ def test_include_positives(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative_1" in result.column_names
 
 
-def test_include_positives_with_labeled_formats(dataset, static_retrieval_mrl_en_v1_model):
+def test_include_positives_with_labeled_formats(
+    dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer
+) -> None:
     """Test include_positives with labeled pair and list formats."""
     model = static_retrieval_mrl_en_v1_model
     # Test with labeled-pair format
@@ -364,7 +383,7 @@ def test_include_positives_with_labeled_formats(dataset, static_retrieval_mrl_en
         assert positive == negative_1
 
 
-def test_output_formats(dataset, static_retrieval_mrl_en_v1_model):
+def test_output_formats(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test all output_format options."""
     model = static_retrieval_mrl_en_v1_model
     # Test triplet format
@@ -422,7 +441,7 @@ def test_output_formats(dataset, static_retrieval_mrl_en_v1_model):
         assert all(label == 0 for label in label_list[1:])
 
 
-def test_batch_size(dataset, static_retrieval_mrl_en_v1_model):
+def test_batch_size(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test batch_size parameter."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -439,7 +458,7 @@ def test_batch_size(dataset, static_retrieval_mrl_en_v1_model):
 
 
 @pytest.mark.skipif(importlib.util.find_spec("faiss") is None, reason="faiss not installed")
-def test_faiss(dataset, static_retrieval_mrl_en_v1_model):
+def test_faiss(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test use_faiss parameter."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -469,7 +488,7 @@ def test_faiss(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result.column_names
 
 
-def test_cache(dataset, static_retrieval_mrl_en_v1_model, tmp_path):
+def test_cache(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer, tmp_path: Path) -> None:
     """Test cache_folder parameter."""
     model = static_retrieval_mrl_en_v1_model
     cache_dir = os.path.join(tmp_path, "embeddings_cache")
@@ -490,7 +509,9 @@ def test_cache(dataset, static_retrieval_mrl_en_v1_model, tmp_path):
     assert len(result1) == len(result2)
 
 
-def test_multiple_positives_per_query(queries, passages, static_retrieval_mrl_en_v1_model):
+def test_multiple_positives_per_query(
+    queries: list[str], passages: list[str], static_retrieval_mrl_en_v1_model: SentenceTransformer
+):
     """Test dataset with multiple positives per query."""
     model = static_retrieval_mrl_en_v1_model
     # Create dataset with duplicate queries
@@ -510,7 +531,7 @@ def test_multiple_positives_per_query(queries, passages, static_retrieval_mrl_en
     assert len(result) >= len(dataset_dup)
 
 
-def test_deprecated_parameters(dataset, static_retrieval_mrl_en_v1_model):
+def test_deprecated_parameters(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test deprecated parameters: as_triplets and margin."""
     model = static_retrieval_mrl_en_v1_model
     # Test as_triplets=True
@@ -532,7 +553,7 @@ def test_deprecated_parameters(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative" in result_margin.column_names
 
 
-def test_margin_with_safe_range(dataset, static_retrieval_mrl_en_v1_model):
+def test_margin_with_safe_range(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test margin parameter with safe range values to avoid k out of range error."""
     model = static_retrieval_mrl_en_v1_model
     result = mine_hard_negatives(
@@ -552,7 +573,7 @@ def test_margin_with_safe_range(dataset, static_retrieval_mrl_en_v1_model):
     assert len(result) > 0
 
 
-def test_multi_process(dataset, static_retrieval_mrl_en_v1_model):
+def test_multi_process(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test use_multi_process parameter if multiple CPUs available."""
     model = static_retrieval_mrl_en_v1_model
     # Skip on CI environments where multi-processing might be restricted
@@ -570,7 +591,7 @@ def test_multi_process(dataset, static_retrieval_mrl_en_v1_model):
         pytest.skip(f"Multi-process test failed: {str(e)}")
 
 
-def test_empty_dataset(static_retrieval_mrl_en_v1_model):
+def test_empty_dataset(static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test behavior with an empty dataset."""
     model = static_retrieval_mrl_en_v1_model
     empty_dataset = Dataset.from_dict({"query": [], "passage": []})
@@ -579,7 +600,9 @@ def test_empty_dataset(static_retrieval_mrl_en_v1_model):
         mine_hard_negatives(dataset=empty_dataset, model=model, verbose=False)
 
 
-def test_larger_dataset_with_combinations(queries, passages, static_retrieval_mrl_en_v1_model):
+def test_larger_dataset_with_combinations(
+    queries: list[str], passages: list[str], static_retrieval_mrl_en_v1_model: SentenceTransformer
+) -> None:
     """Test with a larger dataset and challenging parameter combinations."""
     model = static_retrieval_mrl_en_v1_model
     # Create a larger dataset with 20 entries
@@ -617,7 +640,7 @@ def test_larger_dataset_with_combinations(queries, passages, static_retrieval_mr
     assert "negative_3" not in result.column_names
 
 
-def test_prompt_combinations(dataset, static_retrieval_mrl_en_v1_model):
+def test_prompt_combinations(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test various prompt configurations."""
     model = static_retrieval_mrl_en_v1_model
     # Test with prompt_names instead of raw prompts
@@ -655,7 +678,9 @@ def test_prompt_combinations(dataset, static_retrieval_mrl_en_v1_model):
     assert "negative_2" not in result_mixed.column_names  # Ensure negative_2 is not present
 
 
-def test_n_tuple_scores_format_details(dataset, static_retrieval_mrl_en_v1_model):
+def test_n_tuple_scores_format_details(
+    dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer
+) -> None:
     """Test details of n-tuple-scores output format."""
     model = static_retrieval_mrl_en_v1_model
     num_neg = 2
@@ -688,7 +713,9 @@ def test_n_tuple_scores_format_details(dataset, static_retrieval_mrl_en_v1_model
             assert pos_score >= neg_score
 
 
-def test_tiny_corpus(queries, passages, static_retrieval_mrl_en_v1_model):
+def test_tiny_corpus(
+    queries: list[str], passages: list[str], static_retrieval_mrl_en_v1_model: SentenceTransformer
+) -> None:
     """Test with a very small corpus to test edge case handling."""
     model = static_retrieval_mrl_en_v1_model
     # Create a dataset with just 2 pairs
@@ -712,7 +739,7 @@ def test_tiny_corpus(queries, passages, static_retrieval_mrl_en_v1_model):
     assert len(result) >= 0  # Should have at least 0 rows
 
 
-def test_verbose_mode(dataset, static_retrieval_mrl_en_v1_model):
+def test_verbose_mode(dataset: Dataset, static_retrieval_mrl_en_v1_model: SentenceTransformer) -> None:
     """Test that verbose=True doesn't cause any crashes."""
     model = static_retrieval_mrl_en_v1_model
 
@@ -729,3 +756,103 @@ def test_verbose_mode(dataset, static_retrieval_mrl_en_v1_model):
     assert "passage" in result.column_names
     assert "negative" in result.column_names
     assert len(result) > 0
+
+
+@pytest.mark.skipif(not is_datasets_available(), reason="datasets library is not available")
+def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model: SentenceTransformer) -> None:
+    """
+    Tests that mine_hard_negatives runs with and without a prompt.
+    """
+    model = paraphrase_distilroberta_base_v1_model
+    # 1. Create a test dataset
+    data = {
+        "anchor": [
+            "What is the capital of France?",
+            "How does photosynthesis work?",
+            "Who wrote 'Hamlet'?",
+            "What is the boiling point of water?",
+            "Describe the theory of relativity.",
+        ],
+        "positive": [
+            "Paris is the capital of France.",
+            "Photosynthesis is the process used by plants to convert light energy into chemical energy.",
+            "William Shakespeare wrote 'Hamlet'.",
+            "Water boils at 100 degrees Celsius.",
+            "Relativity theory describes gravity as a property of spacetime.",
+        ],
+        "negative_pool": [
+            "Berlin is the capital of Germany.",
+            "Cellular respiration releases energy.",
+            "Christopher Marlowe wrote 'Doctor Faustus'.",
+            "Ethanol boils at 78 degrees Celsius.",
+            "Quantum mechanics describes the smallest scales of energy.",
+        ],
+    }
+
+    dataset = Dataset.from_dict(data)
+    corpus = data["positive"] + data["negative_pool"]  # Corpus includes positives and other docs
+
+    query_prompt = "query: "
+    num_negatives = 1
+
+    # Set up monkeypatching to verify prompt usage
+    original_tokenize = model.tokenize
+    tokenize_calls = []
+
+    def mock_tokenize(texts) -> dict[str, Tensor]:
+        tokenize_calls.append(texts)
+        return original_tokenize(texts)
+
+    # 2. Run without prompt - check that no prompt is added
+    model.tokenize = mock_tokenize
+    tokenize_calls.clear()
+
+    result_no_prompt = mine_hard_negatives(
+        dataset=dataset,
+        model=model,
+        anchor_column_name="anchor",
+        positive_column_name="positive",
+        corpus=corpus,
+        num_negatives=num_negatives,
+        batch_size=4,
+        verbose=False,
+        output_format="triplet",
+    )
+
+    # Verify that tokenize was called without prompts for queries and corpus
+    assert any(data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["positive"][0] in str(calls) for calls in tokenize_calls)
+
+    # Assert basic success criteria
+    assert isinstance(result_no_prompt, Dataset)
+    assert "negative" in result_no_prompt.column_names
+    assert len(result_no_prompt) > 0  # Check that some negatives were found
+
+    # 3. Run with prompt - check that prompt is actually added
+    tokenize_calls.clear()
+
+    result_with_prompt = mine_hard_negatives(
+        dataset=dataset,
+        model=model,
+        anchor_column_name="anchor",
+        positive_column_name="positive",
+        corpus=corpus,
+        num_negatives=num_negatives,
+        batch_size=4,
+        verbose=False,
+        query_prompt=query_prompt,
+        output_format="triplet",
+    )
+
+    # Verify that tokenize was called with prompts, and the corpus without prompts
+    assert any(query_prompt + data["anchor"][0] in str(calls) for calls in tokenize_calls)
+    assert not any(query_prompt + data["positive"][0] in str(calls) for calls in tokenize_calls)
+
+    # Assert basic success criteria
+    assert isinstance(result_with_prompt, Dataset)
+    assert "negative" in result_with_prompt.column_names
+    assert len(result_with_prompt) > 0
+
+    # Restore original tokenize function
+    model.tokenize = original_tokenize

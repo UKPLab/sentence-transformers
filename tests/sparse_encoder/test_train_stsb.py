@@ -6,13 +6,15 @@ import os
 from collections.abc import Generator
 
 import pytest
-from datasets import load_dataset
 
 from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments, util
 from sentence_transformers.readers import InputExample
 from sentence_transformers.sparse_encoder import losses
 from sentence_transformers.sparse_encoder.evaluation import SparseEmbeddingSimilarityEvaluator
-from sentence_transformers.util import is_training_available
+from sentence_transformers.util import is_datasets_available, is_training_available
+
+if is_datasets_available():
+    from datasets import Dataset, load_dataset
 
 if not is_training_available():
     pytest.skip(
@@ -134,8 +136,6 @@ def test_train_stsb(
         train_dict["sentence1"].append(example.texts[0])
         train_dict["sentence2"].append(example.texts[1])
         train_dict["score"].append(example.label)
-
-    from datasets import Dataset
 
     train_dataset = Dataset.from_dict(train_dict)
 
