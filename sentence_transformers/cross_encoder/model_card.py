@@ -11,7 +11,7 @@ from sentence_transformers.model_card import SentenceTransformerModelCardCallbac
 from sentence_transformers.util import is_datasets_available
 
 if is_datasets_available():
-    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Sequence, Value
+    from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,7 @@ class CrossEncoderModelCardData(SentenceTransformerModelCardData):
             for column, feature in dataset.features.items()
             if (isinstance(feature, Value) and feature.dtype in {"string", "large_string"})
             or (
-                isinstance(feature, Sequence)
+                hasattr(feature, "feature")
                 and isinstance(feature.feature, Value)
                 and feature.feature.dtype in {"string", "large_string"}
             )
