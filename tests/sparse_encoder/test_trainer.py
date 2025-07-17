@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 import torch
-from datasets import DatasetDict
 from tokenizers.processors import TemplateProcessing
 
 from sentence_transformers import SparseEncoder, SparseEncoderTrainer, SparseEncoderTrainingArguments
@@ -15,7 +14,7 @@ from sentence_transformers.util import is_datasets_available, is_training_availa
 from tests.utils import SafeTemporaryDirectory
 
 if is_datasets_available():
-    from datasets import Dataset
+    from datasets import Dataset, DatasetDict
 
 if not is_training_available():
     pytest.skip(

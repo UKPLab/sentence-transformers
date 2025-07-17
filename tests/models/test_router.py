@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 import torch
-from datasets import Dataset
 
 from sentence_transformers import (
     SentenceTransformer,
@@ -20,6 +19,12 @@ from sentence_transformers import (
 from sentence_transformers.models import Asym, Dense, Normalize, Router
 from sentence_transformers.models.InputModule import InputModule
 from sentence_transformers.models.StaticEmbedding import StaticEmbedding
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import Dataset
+else:
+    pytest.skip("The datasets library is not available.", allow_module_level=True)
 
 
 class MockModule(InputModule):
