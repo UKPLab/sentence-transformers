@@ -21,7 +21,7 @@ from sentence_transformers.util.similarity import (
 
 
 def test_pytorch_cos_sim() -> None:
-    """Tests the correct computation of pytorch_cos_scores"""
+    """Tests the correct computation of pytorch_cos_sim"""
     a = np.random.randn(50, 100)
     b = np.random.randn(50, 100)
 
