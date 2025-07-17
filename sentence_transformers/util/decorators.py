@@ -5,8 +5,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO: decorator.py or decorators.py?
-
 
 def save_to_hub_args_decorator(func):
     @functools.wraps(func)
