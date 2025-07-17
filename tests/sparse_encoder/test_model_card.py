@@ -161,6 +161,9 @@ def test_model_card_base(
 ) -> None:
     model = request.getfixturevalue(model_fixture_name)
 
+    # Let's avoid requesting the Hub for e.g. checking if a base model exists there
+    model.model_card_data.local_files_only = True
+
     train_dataset = dummy_dataset
     if num_datasets:
         train_dataset = DatasetDict({f"train_{i}": train_dataset for i in range(num_datasets)})
