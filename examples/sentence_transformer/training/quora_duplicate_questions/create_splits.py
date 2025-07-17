@@ -48,7 +48,7 @@ import os
 import random
 from collections import defaultdict
 
-from sentence_transformers import util
+from sentence_transformers.util import http_get
 
 random.seed(42)
 
@@ -62,7 +62,7 @@ os.makedirs("quora-IR-dataset/duplicate-mining", exist_ok=True)
 
 if not os.path.exists(source_file):
     print("Download file to", source_file)
-    util.http_get("http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv", source_file)
+    http_get("http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv", source_file)
 
 # Read pairwise file
 sentences = {}

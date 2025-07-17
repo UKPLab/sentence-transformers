@@ -5,8 +5,8 @@ from collections.abc import Iterable
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers import util
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import pytorch_cos_sim
 
 
 class BatchHardTripletLossDistanceFunction:
@@ -15,7 +15,7 @@ class BatchHardTripletLossDistanceFunction:
     @staticmethod
     def cosine_distance(embeddings: Tensor) -> Tensor:
         """Compute the 2D matrix of cosine distances (1-cosine_similarity) between all embeddings."""
-        return 1 - util.pytorch_cos_sim(embeddings, embeddings)
+        return 1 - pytorch_cos_sim(embeddings, embeddings)
 
     @staticmethod
     def eucledian_distance(embeddings: Tensor, squared=False) -> Tensor:
