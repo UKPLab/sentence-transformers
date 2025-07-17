@@ -12,6 +12,7 @@ from torch.utils.checkpoint import get_device_states, set_device_states
 
 from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import StaticEmbedding
+from sentence_transformers.util import all_gather_with_grad
 
 
 class RandContext:
@@ -67,6 +68,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         scale: float = 20.0,
         similarity_fct: callable[[Tensor, Tensor], Tensor] = util.cos_sim,
         mini_batch_size: int = 32,
+        gather_across_devices: bool = False,
         show_progress_bar: bool = False,
     ) -> None:
         """
@@ -90,13 +92,18 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
         Args:
             model: SentenceTransformer model
-            scale: Output of similarity function is multiplied by scale value
+            scale: Output of similarity function is multiplied by scale value. In some literature, the scaling parameter
+                is referred to as temperature, which is the inverse of the scale. In short: scale = 1 / temperature, so
+                scale=20.0 is equivalent to temperature=0.05.
             similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to dot
                 product (and then set scale to 1)
             mini_batch_size: Mini-batch size for the forward pass, this denotes how much memory is actually used during
                 training and evaluation. The larger the mini-batch size, the more memory efficient the training is, but
                 the slower the training will be. It's recommended to set it as high as your GPU memory allows. The default
                 value is 32.
+            gather_across_devices: If True, gather the embeddings across all devices before computing the loss.
+                Recommended when training on multiple GPUs, as it allows for larger batch sizes, but it may slow down
+                training due to communication overhead, and can potentially lead to out-of-memory errors.
             show_progress_bar: If True, a progress bar for the mini-batches is shown during training. The default is False.
 
         References:
@@ -157,11 +164,13 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
-        self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mini_batch_size = mini_batch_size
+        self.gather_across_devices = gather_across_devices
+        self.show_progress_bar = show_progress_bar
+
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.cache: list[list[Tensor]] | None = None
         self.random_states: list[list[RandContext]] | None = None
-        self.show_progress_bar = show_progress_bar
 
     def embed_minibatch(
         self,
@@ -223,13 +232,26 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
-        embeddings_a = torch.cat(reps[0])  # (bsz, hdim)
-        embeddings_b = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
+        anchors = torch.cat(reps[0])  # (bsz, hdim)
+        candidates = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
+        batch_size = len(anchors)
+        offset = 0
 
-        batch_size = len(embeddings_a)
-        labels = torch.tensor(
-            range(batch_size), dtype=torch.long, device=embeddings_a.device
-        )  # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
+        if self.gather_across_devices:
+            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
+            # device's anchors with all candidates from all devices, such that the backward pass on the document
+            # embeddings can flow back to the original devices.
+            candidates = all_gather_with_grad(candidates)
+            # (batch_size * world_size * (1 + num_negatives), embedding_dim)
+
+            # Adjust the range_labels to account for the gathered candidates
+            if torch.distributed.is_initialized():
+                rank = torch.distributed.get_rank()
+                offset = rank * batch_size
+
+        labels = torch.arange(offset, offset + batch_size, device=anchors.device)
+        # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
+
         losses: list[torch.Tensor] = []
         for b in tqdm.trange(
             0,
@@ -239,7 +261,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             disable=not self.show_progress_bar,
         ):
             e = b + self.mini_batch_size
-            scores: Tensor = self.similarity_fct(embeddings_a[b:e], embeddings_b) * self.scale
+            scores: Tensor = self.similarity_fct(anchors[b:e], candidates) * self.scale
             loss_mbatch: torch.Tensor = self.cross_entropy_loss(scores, labels[b:e]) * len(scores) / batch_size
             if with_backward:
                 loss_mbatch.backward()
@@ -283,6 +305,7 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
             "scale": self.scale,
             "similarity_fct": self.similarity_fct.__name__,
             "mini_batch_size": self.mini_batch_size,
+            "gather_across_devices": self.gather_across_devices,
         }
 
     @property

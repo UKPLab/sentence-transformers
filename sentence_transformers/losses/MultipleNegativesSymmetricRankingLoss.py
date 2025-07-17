@@ -8,10 +8,17 @@ from torch import Tensor, nn
 
 from sentence_transformers import util
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import all_gather_with_grad
 
 
 class MultipleNegativesSymmetricRankingLoss(nn.Module):
-    def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.cos_sim) -> None:
+    def __init__(
+        self,
+        model: SentenceTransformer,
+        scale: float = 20.0,
+        similarity_fct=util.cos_sim,
+        gather_across_devices: bool = False,
+    ) -> None:
         """
         Given a list of (anchor, positive) pairs, this loss sums the following two losses:
 
@@ -27,11 +34,14 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
 
         Args:
             model: SentenceTransformer model
-            scale: Output of similarity function is multiplied by scale
-                value
-            similarity_fct: similarity function between sentence
-                embeddings. By default, cos_sim. Can also be set to dot
-                product (and then set scale to 1)
+            scale: Output of similarity function is multiplied by scale value. In some literature, the scaling parameter
+                is referred to as temperature, which is the inverse of the scale. In short: scale = 1 / temperature, so
+                scale=20.0 is equivalent to temperature=0.05.
+            similarity_fct: similarity function between sentence embeddings. By default, cos_sim. Can also be set to
+                dot product (and then set scale to 1)
+            gather_across_devices: If True, gather the embeddings across all devices before computing the loss.
+                Recommended when training on multiple GPUs, as it allows for larger batch sizes, but it may slow down
+                training due to communication overhead, and can potentially lead to out-of-memory errors.
 
         Requirements:
             1. (anchor, positive) pairs
@@ -77,22 +87,54 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         self.model = model
         self.scale = scale
         self.similarity_fct = similarity_fct
+        self.gather_across_devices = gather_across_devices
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
-        anchor = reps[0]
-        candidates = torch.cat(reps[1:])
+        embeddings = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
 
-        scores = self.similarity_fct(anchor, candidates) * self.scale
-        labels = torch.tensor(
-            range(len(scores)), dtype=torch.long, device=scores.device
-        )  # Example a[i] should match with b[i]
+        return self.compute_loss_from_embeddings(embeddings, labels)
 
-        anchor_positive_scores = scores[:, 0 : len(reps[1])]
-        forward_loss = self.cross_entropy_loss(scores, labels)
-        backward_loss = self.cross_entropy_loss(anchor_positive_scores.transpose(0, 1), labels)
+    def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
+        anchors = embeddings[0]
+        candidates = torch.cat(embeddings[1:], dim=0)
+        batch_size = anchors.size(0)
+        offset = 0
+
+        if self.gather_across_devices:
+            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
+            # device's anchors with all candidates from all devices, such that the backward pass on the document
+            # embeddings can flow back to the original devices.
+            anchors = all_gather_with_grad(anchors)
+            candidates = all_gather_with_grad(candidates)
+            # Both are (batch_size * world_size, embedding_dim)
+
+            # Adjust the range_labels to account for the gathered candidates
+            if torch.distributed.is_initialized():
+                rank = torch.distributed.get_rank()
+                offset = rank * batch_size
+
+        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
+        # so the label for anchor[i] is i
+        range_labels = torch.arange(offset, offset + batch_size, device=anchors.device)
+
+        # Compute the scores for "given anchor, find the most similar candidate" and vice versa
+        # If gathered across devices, take anchors/candidates from the same device against all candidates/anchors
+        if self.gather_across_devices:
+            forward_scores = self.similarity_fct(anchors[range_labels], candidates) * self.scale
+            backward_scores = self.similarity_fct(candidates[range_labels], anchors) * self.scale
+        else:
+            # If we're not gathering across devices, we can just transpose the forward scores
+            forward_scores = self.similarity_fct(anchors, candidates) * self.scale
+            backward_scores = forward_scores[:, :batch_size].T
+
+        forward_loss = self.cross_entropy_loss(forward_scores, range_labels)
+        backward_loss = self.cross_entropy_loss(backward_scores, range_labels)
         return (forward_loss + backward_loss) / 2
 
     def get_config_dict(self) -> dict[str, Any]:
-        return {"scale": self.scale, "similarity_fct": self.similarity_fct.__name__}
+        return {
+            "scale": self.scale,
+            "similarity_fct": self.similarity_fct.__name__,
+            "gather_across_devices": self.gather_across_devices,
+        }

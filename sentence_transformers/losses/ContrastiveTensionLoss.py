@@ -179,7 +179,7 @@ class ContrastiveTensionLossInBatchNegatives(nn.Module):
         embeddings_b = self.model2(sentence_features2)["sentence_embedding"]
 
         scores = self.similarity_fct(embeddings_a, embeddings_b) * self.logit_scale.exp()  # self.scale
-        labels = torch.tensor(range(len(scores)), dtype=torch.long, device=scores.device)
+        labels = torch.arange(len(scores), dtype=torch.long, device=scores.device)
         return (self.cross_entropy_loss(scores, labels) + self.cross_entropy_loss(scores.t(), labels)) / 2
 
     @property

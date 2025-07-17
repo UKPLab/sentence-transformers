@@ -9,6 +9,7 @@ from transformers import PreTrainedTokenizerBase
 
 from sentence_transformers.models import StaticEmbedding
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers.util import all_gather_with_grad
 
 
 class GISTEmbedLoss(nn.Module):
@@ -19,6 +20,9 @@ class GISTEmbedLoss(nn.Module):
         temperature: float = 0.01,
         margin_strategy: Literal["absolute", "relative"] = "absolute",
         margin: float = 0.0,
+        contrast_anchors: bool = True,
+        contrast_positives: bool = True,
+        gather_across_devices: bool = False,
     ) -> None:
         """
         This loss is used to train a SentenceTransformer model using the GISTEmbed algorithm.
@@ -35,10 +39,19 @@ class GISTEmbedLoss(nn.Module):
         Args:
             model: SentenceTransformer model based on a `transformers` model.
             guide: SentenceTransformer model to guide the in-batch negative sample selection.
-            temperature: Temperature parameter to scale the cosine similarities.
+            temperature: Temperature parameter to scale the cosine similarities. Inverse of the ``scale`` parameter
+                in :class:`MultipleNegativesRankingLoss`.
             margin_strategy: Strategy used for false negative filtering. One of {"absolute", "relative"}.
             margin: The margin value for filtering negatives. Defaults to 0.0, together with the "absolute" strategy,
                 this only removes negatives that are more similar to the query than the positive is to the query.
+            contrast_anchors: If True, include anchor-anchor pairs in the loss computation, resulting in the embeddings
+                of the anchors being pushed further apart. Defaults to True, following the original GISTEmbed paper.
+            contrast_positives: If True, include positive-positive pairs in the loss computation, resulting in the embeddings
+                of the positives being pushed further apart. Defaults to True, following the original GISTEmbed paper,
+                but setting to False may yield better results in some retrieval tasks.
+            gather_across_devices: If True, gather the embeddings across all devices before computing the loss.
+                Recommended when training on multiple GPUs, as it allows for larger batch sizes, but it may slow down
+                training due to communication overhead, and can potentially lead to out-of-memory errors.
 
         References:
             - For further details, see: https://arxiv.org/abs/2402.16829
@@ -115,6 +128,10 @@ class GISTEmbedLoss(nn.Module):
             raise ValueError("margin_strategy must be 'absolute' or 'relative'.")
         self.margin_strategy = margin_strategy
         self.margin = margin
+        self.contrast_anchors = contrast_anchors
+        self.contrast_positives = contrast_positives
+        self.gather_across_devices = gather_across_devices
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def sim_matrix(self, embed1: Tensor, embed2: Tensor) -> Tensor:
         return self.similarity_fct(embed1.unsqueeze(1), embed2.unsqueeze(0))
@@ -148,19 +165,30 @@ class GISTEmbedLoss(nn.Module):
             anchor_guide, positive_guide, negative_guide = guide_embeddings
         else:
             raise ValueError(f"Expected 2 or 3 embeddings, got {len(embeddings)}")
+        batch_size = anchor.size(0)
+        offset = 0
 
-        # Compute the model's similarities
+        if self.gather_across_devices:
+            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
+            # device's anchors with all candidates from all devices, such that the backward pass on the document
+            # embeddings can flow back to the original devices.
+            positive = all_gather_with_grad(positive)
+            positive_guide = all_gather_with_grad(positive_guide)
+            if negative is not None:
+                negative = all_gather_with_grad(negative)
+                negative_guide = all_gather_with_grad(negative_guide)
+            # All have this shape: (batch_size * world_size * (1 + num_negatives), embedding_dim)
+
+            if torch.distributed.is_initialized():
+                rank = torch.distributed.get_rank()
+                offset = rank * batch_size
+
+        # Compute the similarities given the training and guide embeddings.
         ap_sim = self.sim_matrix(anchor, positive)
-        aa_sim = self.sim_matrix(anchor, anchor)
-        pp_sim = self.sim_matrix(positive, positive)
-
-        # Let's compute the similarity matrices for the combinations of anchor and positive samples.
         guided_ap_sim = self.sim_matrix(anchor_guide, positive_guide)
-        guided_aa_sim = self.sim_matrix(anchor_guide, anchor_guide)
-        guided_pp_sim = self.sim_matrix(positive_guide, positive_guide)
 
         # Define the anchor threshold
-        guided_sim = guided_ap_sim.diagonal().view(-1, 1)
+        guided_sim = guided_ap_sim.diagonal(offset=offset).view(-1, 1)
 
         # This uses guided (teacher) similarity as a dynamic threshold to identify and suppress false negatives
         def mask_false_negatives(guided_sim_mat, sim_mat, positive_mask: Tensor | None = None):
@@ -182,26 +210,34 @@ class GISTEmbedLoss(nn.Module):
 
         # Apply false negative suppression to each similarity matrix using guided similarity as anchor
         ap_sim = mask_false_negatives(guided_ap_sim, ap_sim, positive_mask=positive_mask)  # anchor-positive
-        aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
-        pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
+        scores = [ap_sim]
 
-        scores = [ap_sim, aa_sim, pp_sim]
+        if self.contrast_anchors:
+            aa_sim = self.sim_matrix(anchor, anchor)
+            guided_aa_sim = self.sim_matrix(anchor_guide, anchor_guide)
+            aa_sim = mask_false_negatives(guided_aa_sim, aa_sim)  # anchor-anchor
+            scores.append(aa_sim)
+
+        if self.contrast_positives:
+            pp_sim = self.sim_matrix(positive[offset : offset + batch_size], positive)
+            guided_pp_sim = self.sim_matrix(positive_guide[offset : offset + batch_size], positive_guide)
+            pp_sim = mask_false_negatives(guided_pp_sim, pp_sim)  # positive-positive
+            scores.append(pp_sim)
 
         # Handle the case where we have a negative sample
         if negative is not None:
             an_sim = self.sim_matrix(anchor, negative)
             guided_an_sim = self.sim_matrix(anchor_guide, negative_guide)
-            an_sim = mask_false_negatives(guided_an_sim, an_sim)
-
+            an_sim = mask_false_negatives(guided_an_sim, an_sim)  # anchor-negative
             scores.append(an_sim)
 
         scores = torch.cat(scores, dim=1) / self.temperature
 
-        # NOTE: We use arange here since the ap_sim matrix contains the anchor-positive
-        # similarities along the diagonal.
-        labels = torch.arange(scores.size(0)).long().to(scores.device)
+        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
+        # so the label for anchor[i] is i. This means that we can just use arange
+        range_labels = torch.arange(offset, offset + batch_size, device=anchor.device)
 
-        return nn.CrossEntropyLoss()(scores, labels)
+        return self.cross_entropy_loss(scores, range_labels)
 
     def get_config_dict(self) -> dict[str, Any]:
         return {
@@ -209,6 +245,9 @@ class GISTEmbedLoss(nn.Module):
             "temperature": self.temperature,
             "margin_strategy": self.margin_strategy,
             "margin": self.margin,
+            "contrast_anchors": self.contrast_anchors,
+            "contrast_positives": self.contrast_positives,
+            "gather_across_devices": self.gather_across_devices,
         }
 
     @property
