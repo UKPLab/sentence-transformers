@@ -212,7 +212,7 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             # We do this in such a way that the backward pass on the embeddings can flow back to the original devices.
             anchors = all_gather_with_grad(anchors)  # (batch_size * world_size, embedding_dim)
             candidates = [all_gather_with_grad(embedding_column) for embedding_column in candidates]
-            # # (1 + num_negatives) tensors of shape (batch_size * world_size, embedding_dim)
+            # (1 + num_negatives) tensors of shape (batch_size * world_size, embedding_dim)
 
             # Adjust the range_labels to account for the gathered candidates
             if torch.distributed.is_initialized():
