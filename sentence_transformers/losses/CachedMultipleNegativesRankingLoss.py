@@ -232,23 +232,25 @@ class CachedMultipleNegativesRankingLoss(nn.Module):
 
     def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the cross-entropy loss. No need to cache the gradients."""
-        anchors = torch.cat(reps[0])  # (bsz, hdim)
-        candidates = torch.cat([torch.cat(r) for r in reps[1:]])  # ((1 + nneg) * bsz, hdim)
+        anchors = torch.cat(reps[0])  # (batch_size, embedding_dim)
+        positives = torch.cat(reps[1])  # (batch_size, embedding_dim)
+        negatives = torch.cat([torch.cat(r) for r in reps[2:]])  # (batch_size * num_negatives, embedding_dim)
         batch_size = len(anchors)
         offset = 0
 
         if self.gather_across_devices:
-            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
-            # device's anchors with all candidates from all devices, such that the backward pass on the document
+            # Gather the positives and negatives across all devices, with gradients, but not the anchors. We compute
+            # only this device's anchors with all candidates from all devices, such that the backward pass on the document
             # embeddings can flow back to the original devices.
-            candidates = all_gather_with_grad(candidates)
-            # (batch_size * world_size * (1 + num_negatives), embedding_dim)
+            positives = all_gather_with_grad(positives)  # (batch_size * world_size, embedding_dim)
+            negatives = all_gather_with_grad(negatives)  # (batch_size * world_size * num_negatives, embedding_dim)
 
             # Adjust the range_labels to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
                 offset = rank * batch_size
 
+        candidates = torch.cat([positives, negatives], dim=0)
         labels = torch.arange(offset, offset + batch_size, device=anchors.device)
         # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
 
