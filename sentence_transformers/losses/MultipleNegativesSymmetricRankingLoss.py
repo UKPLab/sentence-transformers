@@ -103,9 +103,9 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         offset = 0
 
         if self.gather_across_devices:
-            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
-            # device's anchors with all candidates from all devices, such that the backward pass on the document
-            # embeddings can flow back to the original devices.
+            # Gather the anchors and candidates across all devices, with gradients. We compute only this device's anchors
+            # with all candidates from all devices, and only this device's candidates with all anchors from all devices.
+            # We do this in such a way that the backward pass on the embeddings can flow back to the original devices.
             anchors = all_gather_with_grad(anchors)  # (batch_size * world_size, embedding_dim)
             positives = all_gather_with_grad(positives)  # (batch_size * world_size, embedding_dim)
             negatives = all_gather_with_grad(negatives)  # (batch_size * world_size * num_negatives, embedding_dim)
