@@ -201,9 +201,10 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
 
     def calculate_loss(self, reps: list[list[Tensor]], with_backward: bool = False) -> Tensor:
         """Calculate the symmetric loss without caching gradients (for evaluation)."""
-        anchors = torch.cat(reps[0])  # (batch_size, embedding_dim)
-        positives = torch.cat(reps[1])  # (batch_size, embedding_dim)
-        negatives = torch.cat([torch.cat(r) for r in reps[2:]])  # (batch_size * num_negatives, embedding_dim)
+        # (batch_size, embedding_dim) for anchors and positives, and (batch_size * num_negatives, embedding_dim) for negatives
+        anchors = torch.cat(reps[0])
+        positives = torch.cat(reps[1])
+        negatives = torch.cat([torch.cat(r) for r in reps[2:]]) if len(reps) > 2 else None
         batch_size = len(anchors)
         offset = 0
 
@@ -213,16 +214,21 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
             # We do this in such a way that the backward pass on the embeddings can flow back to the original devices.
             anchors = all_gather_with_grad(anchors)  # (batch_size * world_size, embedding_dim)
             positives = all_gather_with_grad(positives)  # (batch_size * world_size, embedding_dim)
-            negatives = all_gather_with_grad(negatives)  # (batch_size * world_size * num_negatives, embedding_dim)
+            if negatives is not None:
+                negatives = all_gather_with_grad(negatives)  # (batch_size * world_size * num_negatives, embedding_dim)
 
             # Adjust the range_labels to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
                 offset = rank * batch_size
 
-        candidates = torch.cat([positives, negatives], dim=0)
+        # Combine positives with negatives if available,
+        # shape (batch_size * world_size * (1 + num_negatives), embedding_dim)
+        candidates = torch.cat([positives, negatives], dim=0) if negatives is not None else positives
+
+        # anchor[i] should be most similar to candidates[i], as that is the paired positive,
+        # so the label for anchor[i] is i, but adjusted for the rank offset if gathered across devices
         labels = torch.arange(offset, offset + batch_size, device=anchors.device)
-        # (bsz, (1 + nneg) * bsz)  Example a[i] should match with b[i]
 
         losses: list[torch.Tensor] = []
         for begin in tqdm.trange(

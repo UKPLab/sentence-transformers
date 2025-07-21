@@ -125,9 +125,10 @@ class MultipleNegativesRankingLoss(nn.Module):
             Loss value
         """
 
-        anchors = embeddings[0]  # (batch_size, embedding_dim)
-        positives = embeddings[1]  # (batch_size, embedding_dim)
-        negatives = torch.cat(embeddings[2:])  # (batch_size * num_negatives, embedding_dim)
+        # (batch_size, embedding_dim) for anchors and positives, and (batch_size * num_negatives, embedding_dim) for negatives
+        anchors = embeddings[0]
+        positives = embeddings[1]
+        negatives = torch.cat(embeddings[2:]) if len(embeddings) > 2 else None
         batch_size = anchors.size(0)
         offset = 0
 
@@ -136,14 +137,17 @@ class MultipleNegativesRankingLoss(nn.Module):
             # only this device's anchors with all candidates from all devices, such that the backward pass on the document
             # embeddings can flow back to the original devices.
             positives = all_gather_with_grad(positives)  # (batch_size * world_size, embedding_dim)
-            negatives = all_gather_with_grad(negatives)  # (batch_size * world_size * num_negatives, embedding_dim)
+            if negatives is not None:
+                negatives = all_gather_with_grad(negatives)  # (batch_size * world_size * num_negatives, embedding_dim)
 
             # Adjust the offset to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
                 offset = rank * batch_size
 
-        candidates = torch.cat([positives, negatives], dim=0)
+        # Combine positives with negatives if available,
+        # shape (batch_size * world_size * (1 + num_negatives), embedding_dim)
+        candidates = torch.cat([positives, negatives], dim=0) if negatives is not None else positives
 
         # anchor[i] should be most similar to candidates[i], as that is the paired positive,
         # so the label for anchor[i] is i, but adjusted for the rank offset if gathered across devices
