@@ -101,7 +101,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
 
             # Run evaluation
             results = ir_evaluator(model)
-            ```
+            '''
             Queries: 323
             Corpus: 3269
 
@@ -124,12 +124,12 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             Model Query Sparsity: Active Dimensions: 40.0, Sparsity Ratio: 0.9987
             Model Corpus Sparsity: Active Dimensions: 206.2, Sparsity Ratio: 0.9932
             Average FLOPS: 4.7
-            ```
+            '''
             # Print the results
             print(f"Primary metric: {ir_evaluator.primary_metric}")
             # => Primary metric: BeIR-nfcorpus-subset-test_dot_ndcg@10
             print(f"Primary metric value: {results[ir_evaluator.primary_metric]:.4f}")
-            # => Primary metric value: 0.Primary metric value: 0.3530
+            # => Primary metric value: 0.3530
 
     """
 
