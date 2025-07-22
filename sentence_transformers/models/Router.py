@@ -171,12 +171,12 @@ class Router(InputModule):
         super().__init__()
         if sub_modules is None or len(sub_modules) == 0:
             raise ValueError("The routes dictionary cannot be empty.")
+        if default_route is not None and default_route not in sub_modules:
+            raise ValueError(f"Default route '{default_route}' not found in route keys: {list(sub_modules.keys())}")
+
         self.sub_modules = nn.ModuleDict(
             {route_name: nn.Sequential(*modules) for route_name, modules in sub_modules.items()}
         )
-
-        if default_route is not None and default_route not in sub_modules:
-            raise ValueError(f"Default route '{default_route}' not found in route keys: {list(sub_modules.keys())}")
 
         # If allow_empty_key is True, we can set a default route to the first key in sub_modules.
         if allow_empty_key and default_route is None:
