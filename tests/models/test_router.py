@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from torch import nn
 
 from sentence_transformers import (
     SentenceTransformer,
@@ -53,8 +54,8 @@ class InvertMockModule(MockModule):
         return features
 
 
-# Create a custom dict subclass to track access
-class TaskTypesTrackingDict(dict):
+# Create a custom ModuleDict subclass to track access
+class TaskTypesTrackingModuleDict(nn.ModuleDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tasks = []
@@ -115,7 +116,12 @@ def test_router_init_basic():
 
     router = Router({"query": [query_module], "document": [doc_module]})
 
-    assert router.sub_modules == {"query": [query_module], "document": [doc_module]}
+    assert isinstance(router.sub_modules, nn.ModuleDict)
+    assert list(router.sub_modules.keys()) == ["query", "document"]
+    assert isinstance(router.sub_modules["query"], nn.Sequential)
+    assert router.sub_modules["query"][0] == query_module
+    assert isinstance(router.sub_modules["document"], nn.Sequential)
+    assert router.sub_modules["document"][0] == doc_module
     assert router.default_route == "query"  # First key with allow_empty_key=True
 
     router = Router(
@@ -125,7 +131,12 @@ def test_router_init_basic():
         }
     )
 
-    assert router.sub_modules == {"query": [query_module], "document": [doc_module]}
+    assert isinstance(router.sub_modules, nn.ModuleDict)
+    assert list(router.sub_modules.keys()) == ["document", "query"]
+    assert isinstance(router.sub_modules["document"], nn.Sequential)
+    assert router.sub_modules["document"][0] == doc_module
+    assert isinstance(router.sub_modules["query"], nn.Sequential)
+    assert router.sub_modules["query"][0] == query_module
     assert router.default_route == "document"  # First key with allow_empty_key=True
 
 
@@ -165,8 +176,8 @@ def test_router_init_multiple_modules_per_route():
 
     router = Router({"query": [module1, module2], "document": [module3]})
 
-    assert router.sub_modules["query"] == [module1, module2]
-    assert router.sub_modules["document"] == [module3]
+    assert list(router.sub_modules["query"].children()) == [module1, module2]
+    assert list(router.sub_modules["document"].children()) == [module3]
 
 
 def test_router_encode(static_embedding_model):
@@ -175,7 +186,7 @@ def test_router_encode(static_embedding_model):
     router = Router({"query": [static_embedding_model], "document": [static_embedding_model]})
 
     # Replace the dictionary with our tracking version
-    tracking_dict = TaskTypesTrackingDict(router.sub_modules)
+    tracking_dict = TaskTypesTrackingModuleDict(router.sub_modules)
     router.sub_modules = tracking_dict
 
     model = SentenceTransformer(modules=[router])
@@ -233,7 +244,7 @@ def test_router_backwards_compatibility(static_embedding_model):
     asym_model = Asym({"query": [static_embedding_model], "document": [static_embedding_model]})
 
     # Replace the dictionary with our tracking version
-    tracking_dict = TaskTypesTrackingDict(asym_model.sub_modules)
+    tracking_dict = TaskTypesTrackingModuleDict(asym_model.sub_modules)
     asym_model.sub_modules = tracking_dict
 
     model = SentenceTransformer(modules=[asym_model])
@@ -391,10 +402,12 @@ def test_router_save_load_with_multiple_modules_per_route(static_embedding_model
     assert loaded_model.get_sentence_embedding_dimension() == 128
 
     # If we swap the order of the routes, the new first route should be used
-    loaded_router.sub_modules = {
-        "document": loaded_router.sub_modules["document"],
-        "query": loaded_router.sub_modules["query"],
-    }
+    loaded_router.sub_modules = nn.ModuleDict(
+        {
+            "document": loaded_router.sub_modules["document"],
+            "query": loaded_router.sub_modules["query"],
+        }
+    )
     assert loaded_model.get_sentence_embedding_dimension() == 768
 
 
@@ -406,7 +419,7 @@ def test_router_with_trainer(static_embedding_model: StaticEmbedding, tmp_path: 
     model = SentenceTransformer(modules=[router])
     model.model_card_data.generate_widget_examples = False  # Disable widget examples generation for testing
 
-    tracking_dict = TaskTypesTrackingDict(router.sub_modules)
+    tracking_dict = TaskTypesTrackingModuleDict(router.sub_modules)
     router.sub_modules = tracking_dict
 
     train_dataset = Dataset.from_dict(
@@ -622,7 +635,7 @@ def test_router_as_middle_module(static_embedding_model: StaticEmbedding, tmp_pa
     model = SentenceTransformer(modules=[static_embedding_model, router, normalize])
 
     # Create tracking dicts to monitor module usage
-    tracking_dict = TaskTypesTrackingDict(router.sub_modules)
+    tracking_dict = TaskTypesTrackingModuleDict(router.sub_modules)
     router.sub_modules = tracking_dict
 
     # Test texts

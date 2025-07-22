@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-from collections import OrderedDict
 from pathlib import Path
 
 try:
@@ -20,14 +19,14 @@ from sentence_transformers.util import import_from_string, load_dir_path
 logger = logging.get_logger(__name__)
 
 
-class Router(InputModule, nn.Sequential):
+class Router(InputModule):
     forward_kwargs = {"task"}
     config_keys: list[str] = ["default_route", "allow_empty_key"]
     config_file_name = "router_config.json"
 
     def __init__(
         self, sub_modules: dict[str, list[Module]], default_route: str | None = None, allow_empty_key: bool = True
-    ):
+    ) -> None:
         r"""
         This model allows to create asymmetric SentenceTransformer models that apply different modules depending on the specified route,
         such as "query" or "document". Especially useful for models that have different encoders for queries and documents.
@@ -169,28 +168,21 @@ class Router(InputModule, nn.Sequential):
             allow_empty_key: If True, allows the default route to be set to the first key in `sub_modules` if
                 ``default_route`` is None. Defaults to True.
         """
-        self.sub_modules = sub_modules
-        if self.sub_modules is None or len(self.sub_modules) == 0:
+        super().__init__()
+        if sub_modules is None or len(sub_modules) == 0:
             raise ValueError("The routes dictionary cannot be empty.")
-
         if default_route is not None and default_route not in sub_modules:
             raise ValueError(f"Default route '{default_route}' not found in route keys: {list(sub_modules.keys())}")
+
+        self.sub_modules = nn.ModuleDict(
+            {route_name: nn.Sequential(*modules) for route_name, modules in sub_modules.items()}
+        )
 
         # If allow_empty_key is True, we can set a default route to the first key in sub_modules.
         if allow_empty_key and default_route is None:
             default_route = next(iter(sub_modules.keys()))
         self.default_route = default_route
         self.allow_empty_key = allow_empty_key
-
-        ordered_dict = OrderedDict()
-        for name, models in sub_modules.items():
-            if not isinstance(models, list):
-                models = [models]
-
-            for idx, model in enumerate(models):
-                ordered_dict[f"{name}_{idx}_{type(model).__name__}"] = model
-
-        super().__init__(ordered_dict)
 
     @classmethod
     def for_query_document(
