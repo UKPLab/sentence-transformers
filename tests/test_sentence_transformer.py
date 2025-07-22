@@ -1134,3 +1134,18 @@ def test_encode_query_document_vs_encode(stsb_bert_tiny_model: SentenceTransform
         np.testing.assert_allclose(query_embeddings_without_prompt, query_embeddings)
     with pytest.raises(AssertionError):
         np.testing.assert_allclose(document_embeddings_without_prompt, document_embeddings)
+
+
+def test_encode_with_dataset_column(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    """Test that encode can handle a dataset column as input."""
+    model = stsb_bert_tiny_model
+    from datasets import Dataset
+
+    # Create a simple dataset with a text column
+    dataset = Dataset.from_dict({"text": ["This is a test.", "Another sentence."]})
+
+    # Encode the dataset column
+    embeddings = model.encode(dataset["text"], convert_to_tensor=True)
+
+    # Check the shape of the embeddings
+    assert embeddings.shape == (2, model.get_sentence_embedding_dimension())

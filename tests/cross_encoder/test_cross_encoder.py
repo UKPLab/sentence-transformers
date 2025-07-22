@@ -599,3 +599,25 @@ def test_bge_reranker_max_length():
     model.max_length = 256
     assert model.max_length == 256
     assert model.tokenizer.model_max_length == 256
+
+
+def test_predict_with_dataset_column(reranker_bert_tiny_model: CrossEncoder) -> None:
+    """Test that predict can handle a dataset column as input."""
+    model = reranker_bert_tiny_model
+    from datasets import Dataset
+
+    # Create a simple dataset with a text column
+    dataset = Dataset.from_dict(
+        {
+            "text": [
+                ["This is the start of a pair.", "And this the end."],
+                ["This is a second pair.", "And this the end of the second pair."],
+            ]
+        }
+    )
+
+    # Encode the dataset column
+    embeddings = model.predict(dataset["text"], convert_to_tensor=True)
+
+    # Check the shape of the embeddings
+    assert embeddings.shape == (2,)
