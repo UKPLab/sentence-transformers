@@ -190,3 +190,40 @@ def to_scipy_coo(x: Tensor) -> coo_matrix:
     indices = x.indices().cpu().numpy()
     values = x.values().cpu().numpy()
     return coo_matrix((values, (indices[0], indices[1])), shape=x.shape)
+
+
+def compute_count_vector(embeddings: torch.Tensor) -> torch.Tensor:
+    """
+    Compute count vector from sparse embeddings.
+
+    Args:
+        embeddings: Sparse tensor of shape (batch_size, vocab_size)
+
+    Returns:
+        Count vector of shape (vocab_size,) indicating how many samples have non-zero values in each dimension
+    """
+    if not embeddings.is_sparse:
+        embeddings = embeddings.to_sparse()
+
+    # Coalesce to ensure indices are sorted and unique
+    embeddings = embeddings.coalesce()
+
+    if embeddings.dim() == 1:
+        # Single embedding case
+        count_vector = torch.zeros(embeddings.size(0), device=embeddings.device, dtype=torch.float32)
+        count_vector[embeddings.indices().squeeze()] = 1.0
+        return count_vector
+    elif embeddings.dim() == 2:
+        # Batch case
+        _, vocab_size = embeddings.shape
+        count_vector = torch.zeros(vocab_size, device=embeddings.device, dtype=torch.float32)
+
+        if embeddings.values().numel() > 0:
+            indices = embeddings.indices()
+            # Count how many samples have non-zero values in each dimension
+            unique_dims, counts = torch.unique(indices[1], return_counts=True)
+            count_vector[unique_dims] = counts.float()
+
+        return count_vector
+    else:
+        raise ValueError(f"Expected 1D or 2D tensor, got {embeddings.dim()}D")

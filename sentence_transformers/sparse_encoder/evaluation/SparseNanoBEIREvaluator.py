@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
+import torch
 
 from sentence_transformers.evaluation.NanoBEIREvaluator import NanoBEIREvaluator
 from sentence_transformers.sparse_encoder.evaluation.SparseInformationRetrievalEvaluator import (
@@ -102,6 +103,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MAP@100: 0.9070
             Model Query Sparsity: Active Dimensions: 59.4, Sparsity Ratio: 0.9981
             Model Corpus Sparsity: Active Dimensions: 61.9, Sparsity Ratio: 0.9980
+            Average FLOPS: 4.1
 
             Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
             Queries: 50
@@ -125,6 +127,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MAP@100: 0.6277
             Model Query Sparsity: Active Dimensions: 45.4, Sparsity Ratio: 0.9985
             Model Corpus Sparsity: Active Dimensions: 122.6, Sparsity Ratio: 0.9960
+            Average FLOPS: 2.4
 
             Average Queries: 50.0
             Average Corpus: 5044.5
@@ -145,6 +148,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             NDCG@10: 0.8060
             Model Query Sparsity: Active Dimensions: 52.4, Sparsity Ratio: 0.9983
             Model Corpus Sparsity: Active Dimensions: 92.2, Sparsity Ratio: 0.9970
+            Average FLOPS: 2.6
             '''
             # Print the results
             print(f"Primary metric: {evaluator.primary_metric}")
@@ -208,7 +212,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)
         self.csv_headers.extend(
-            ["query_active_dims", "query_sparsity_ratio", "corpus_active_dims", "corpus_sparsity_ratio"]
+            ["query_active_dims", "query_sparsity_ratio", "corpus_active_dims", "corpus_sparsity_ratio", "avg_flops"]
         )
 
     def __call__(
@@ -219,15 +223,36 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         per_dataset_results = super().__call__(
             model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs
         )
+        total_query_count, total_corpus_count = None, None
+        total_queries, total_corpus_docs = 0, 0
         for evaluator in self.evaluators:
             self.lengths["query"].append(len(evaluator.queries))
             self.lengths["corpus"].append(len(evaluator.corpus))
             for key, value in evaluator.sparsity_stats.items():
                 self.sparsity_stats[key].append(value)
+
+            for count_vec, length in zip(evaluator.count_vectors["query"], evaluator.count_lengths["query"]):
+                if total_query_count is None:
+                    total_query_count = torch.zeros_like(count_vec)
+                total_query_count += count_vec
+                total_queries += length
+            for count_vec, length in zip(evaluator.count_vectors["corpus"], evaluator.count_lengths["corpus"]):
+                if total_corpus_count is None:
+                    total_corpus_count = torch.zeros_like(count_vec)
+                total_corpus_count += count_vec
+                total_corpus_docs += length
+
         for key, value in self.sparsity_stats.items():
+            # Skip avg_flops as it's calculated separately
+            if key == "avg_flops":
+                continue
             self.sparsity_stats[key] = sum(
                 val * length for val, length in zip(value, self.lengths[key.split("_")[0]])
             ) / sum(self.lengths[key.split("_")[0]])
+
+        avg_query_count = total_query_count / total_queries
+        avg_corpus_count = total_corpus_count / total_corpus_docs
+        self.sparsity_stats["avg_flops"] = float(torch.dot(avg_query_count, avg_corpus_count).cpu())
 
         per_dataset_results.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))
         aggregated_results = {
@@ -240,6 +265,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
         logger.info(
             f"Model Corpus Sparsity: Active Dimensions: {self.sparsity_stats['corpus_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['corpus_sparsity_ratio']:.4f}"
         )
+        logger.info(f"Average FLOPS: {self.sparsity_stats['avg_flops']:.1f}")
         if output_path is not None and self.write_csv:
             append_to_last_row(
                 os.path.join(output_path, self.csv_file),
