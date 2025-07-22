@@ -546,3 +546,18 @@ def test_intersection(splade_bert_tiny_model: SparseEncoder):
 
     decoded_intersection_batch = model.decode(intersection_batch)
     assert len(decoded_intersection_batch) == len(documents)
+
+
+def test_encode_with_dataset_column(splade_bert_tiny_model: SparseEncoder) -> None:
+    """Test that encode can handle a dataset column as input."""
+    model = splade_bert_tiny_model
+    from datasets import Dataset
+
+    # Create a simple dataset with a text column
+    dataset = Dataset.from_dict({"text": ["This is a test.", "Another sentence."]})
+
+    # Encode the dataset column
+    embeddings = model.encode(dataset["text"], convert_to_tensor=True)
+
+    # Check the shape of the embeddings
+    assert embeddings.shape == (2, model.get_sentence_embedding_dimension())
