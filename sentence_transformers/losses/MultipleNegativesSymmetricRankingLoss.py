@@ -96,23 +96,26 @@ class MultipleNegativesSymmetricRankingLoss(nn.Module):
         return self.compute_loss_from_embeddings(embeddings, labels)
 
     def compute_loss_from_embeddings(self, embeddings: list[Tensor], labels: Tensor) -> Tensor:
-        anchors = embeddings[0]
-        candidates = torch.cat(embeddings[1:], dim=0)
+        anchors = embeddings[0]  # (batch_size, embedding_dim)
+        candidates = embeddings[1:]  # (1 + num_negatives) tensors of shape (batch_size, embedding_dim)
         batch_size = anchors.size(0)
         offset = 0
 
         if self.gather_across_devices:
-            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
-            # device's anchors with all candidates from all devices, such that the backward pass on the document
-            # embeddings can flow back to the original devices.
-            anchors = all_gather_with_grad(anchors)
-            candidates = all_gather_with_grad(candidates)
-            # Both are (batch_size * world_size, embedding_dim)
+            # Gather the anchors and candidates across all devices, with gradients. We compute only this device's anchors
+            # with all candidates from all devices, and only this device's candidates with all anchors from all devices.
+            # We do this in such a way that the backward pass on the embeddings can flow back to the original devices.
+            anchors = all_gather_with_grad(anchors)  # (batch_size * world_size, embedding_dim)
+            candidates = [all_gather_with_grad(embedding_column) for embedding_column in candidates]
+            # (1 + num_negatives) tensors of shape (batch_size * world_size, embedding_dim)
 
             # Adjust the range_labels to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
                 offset = rank * batch_size
+
+        candidates = torch.cat(candidates, dim=0)
+        # (batch_size * world_size * (1 + num_negatives), embedding_dim)
 
         # anchor[i] should be most similar to candidates[i], as that is the paired positive,
         # so the label for anchor[i] is i

@@ -124,23 +124,25 @@ class MultipleNegativesRankingLoss(nn.Module):
         Returns:
             Loss value
         """
-
         anchors = embeddings[0]  # (batch_size, embedding_dim)
-        candidates = torch.cat(embeddings[1:])  # (batch_size * (1 + num_negatives), embedding_dim)
+        candidates = embeddings[1:]  # (1 + num_negatives) tensors of shape (batch_size, embedding_dim)
         batch_size = anchors.size(0)
         offset = 0
 
         if self.gather_across_devices:
-            # Gather the candidates across all devices, with gradients, but not the anchors. We compute only this
-            # device's anchors with all candidates from all devices, such that the backward pass on the document
+            # Gather the positives and negatives across all devices, with gradients, but not the anchors. We compute
+            # only this device's anchors with all candidates from all devices, such that the backward pass on the document
             # embeddings can flow back to the original devices.
-            candidates = all_gather_with_grad(candidates)
-            # (batch_size * world_size * (1 + num_negatives), embedding_dim)
+            candidates = [all_gather_with_grad(embedding_column) for embedding_column in candidates]
+            # (1 + num_negatives) tensors of shape (batch_size * world_size, embedding_dim)
 
             # Adjust the offset to account for the gathered candidates
             if torch.distributed.is_initialized():
                 rank = torch.distributed.get_rank()
                 offset = rank * batch_size
+
+        candidates = torch.cat(candidates, dim=0)
+        # (batch_size * world_size * (1 + num_negatives), embedding_dim)
 
         # anchor[i] should be most similar to candidates[i], as that is the paired positive,
         # so the label for anchor[i] is i, but adjusted for the rank offset if gathered across devices
