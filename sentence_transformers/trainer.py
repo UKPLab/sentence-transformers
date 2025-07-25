@@ -5,6 +5,7 @@ import logging
 import os
 import re
 from collections import OrderedDict
+from contextlib import nullcontext
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -37,7 +38,7 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
-from sentence_transformers.util import is_datasets_available, is_training_available
+from sentence_transformers.util import disable_logging, is_datasets_available, is_training_available
 
 if is_datasets_available():
     from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
@@ -547,7 +548,7 @@ class SentenceTransformerTrainer(Trainer):
         )
 
         # If the evaluator is not defined, we can just return the output
-        if self.evaluator is None or not self.is_local_process_zero():
+        if self.evaluator is None:
             return output
 
         # If we are training and eval_dataset is a DatasetDict, then we should
@@ -559,13 +560,14 @@ class SentenceTransformerTrainer(Trainer):
             else:
                 return output
 
-        output_path = self.args.output_dir
-        if output_path is not None:
-            output_path = os.path.join(output_path, "eval")
-            os.makedirs(output_path, exist_ok=True)
-        evaluator_metrics = self.evaluator(
-            self.model, output_path=output_path, epoch=self.state.epoch, steps=self.state.global_step
-        )
+        with nullcontext() if self.is_local_process_zero() else disable_logging(logging.INFO):
+            output_path = self.args.output_dir
+            if output_path is not None:
+                output_path = os.path.join(output_path, "eval")
+                os.makedirs(output_path, exist_ok=True)
+            evaluator_metrics = self.evaluator(
+                self.model, output_path=output_path, epoch=self.state.epoch, steps=self.state.global_step
+            )
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
 
