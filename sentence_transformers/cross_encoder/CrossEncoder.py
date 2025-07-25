@@ -624,12 +624,18 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 model.predict(sentences)
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
-        if not sentences:
-            raise ValueError("The 'sentences' parameter must not be empty. Please provide at least one sentence pair.")
         input_was_singular = False
-        if isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
+        if sentences and isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
             sentences = [sentences]
             input_was_singular = True
+
+        if len(sentences) == 0:
+            if convert_to_tensor:
+                return torch.tensor([], device=self.model.device)
+            elif convert_to_numpy:
+                return np.array([])
+            else:
+                return []
 
         if show_progress_bar is None:
             show_progress_bar = (
