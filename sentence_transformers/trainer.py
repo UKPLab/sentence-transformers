@@ -48,7 +48,8 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
-# The TrackioCallback is only available in the most recent version of transformers, so we import it conditionally
+# The TrackioCallback is only available in the v4.54+ of transformers, but I'd like to keep Sentence Transformers
+# compatible with older versions of transformers as well, so we import it conditionally
 try:
     from transformers.integrations import TrackioCallback
 except ImportError:
