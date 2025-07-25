@@ -48,6 +48,13 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
+# The TrackioCallback is only available in the v4.54+ of transformers, but I'd like to keep Sentence Transformers
+# compatible with older versions of transformers as well, so we import it conditionally
+try:
+    from transformers.integrations import TrackioCallback
+except ImportError:
+    TrackioCallback = None
+
 
 class SentenceTransformerTrainer(Trainer):
     """
@@ -273,9 +280,13 @@ class SentenceTransformerTrainer(Trainer):
         self.model: SentenceTransformer
         self.args: SentenceTransformerTrainingArguments
         self.data_collator: SentenceTransformerDataCollator
-        # Set the W&B project via environment variables if it's not already set
+        # Set the W&B or Trackio project via environment variables if it's not already set
         if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
+        if TrackioCallback is not None and any(
+            [isinstance(callback, TrackioCallback) for callback in self.callback_handler.callbacks]
+        ):
+            os.environ.setdefault("TRACKIO_PROJECT", "sentence-transformers")
 
         if loss is None:
             logger.info("No `loss` passed, using `losses.CoSENTLoss` as a default option.")
