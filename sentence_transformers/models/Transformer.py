@@ -55,7 +55,7 @@ class Transformer(InputModule):
         tokenizer_name_or_path: Name or path of the tokenizer. When
             None, then model_name_or_path is used
         backend: Backend used for model inference. Can be `torch`, `onnx`,
-            or `openvino`. Default is `torch`.
+            `openvino`, or `ipex`. Default is `torch`.
     """
 
     config_file_name: str = "sentence_bert_config.json"
@@ -190,8 +190,12 @@ class Transformer(InputModule):
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
             self._load_openvino_model(model_name_or_path, config, cache_dir, **model_args)
+        elif backend == "ipex":
+            self._load_ipex_model(model_name_or_path, config, cache_dir, **model_args)
         else:
-            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
+            raise ValueError(
+                f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, `openvino`, or `ipex`."
+            )
 
     def _load_openvino_model(
         self, model_name_or_path: str, config: PretrainedConfig, cache_dir: str, **model_args
@@ -249,6 +253,24 @@ class Transformer(InputModule):
         # Warn the user to save the model if they haven't already
         if export:
             self._backend_warn_to_save(model_name_or_path, is_local, backend_name)
+
+    def _load_ipex_model(self, model_name_or_path, config, cache_dir, **model_args) -> None:
+        try:
+            from optimum.intel import IPEXModel
+        except ModuleNotFoundError:
+            raise Exception(
+                "Using the IPEX backend requires installing Optimum and IPEX. "
+                "You can install them with pip: `pip install optimum-intel[ipex]`."
+            )
+
+        self.auto_model: IPEXModel = IPEXModel.from_pretrained(
+            model_name_or_path,
+            config=config,
+            cache_dir=cache_dir,
+            **model_args,
+        )
+        # Wrap the save_pretrained method to save the model in the correct subfolder
+        self.auto_model._save_pretrained = _save_pretrained_wrapper(self.auto_model._save_pretrained, self.backend)
 
     def _load_onnx_model(
         self, model_name_or_path: str, config: PretrainedConfig, cache_dir: str, **model_args

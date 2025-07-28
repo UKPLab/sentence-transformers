@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from packaging.version import Version, parse
 
+from sentence_transformers import SentenceTransformer
 from tests.utils import is_ci
 
 try:
@@ -21,7 +22,15 @@ try:
 except ImportError:
     pytest.skip("OpenVINO and ONNX backends are not available", allow_module_level=True)
 
-from sentence_transformers import SentenceTransformer
+
+BACKENDS = [("onnx", ORTModelForFeatureExtraction), ("openvino", OVModelForFeatureExtraction)]
+try:
+    from optimum.intel import IPEXModel
+
+    BACKENDS.append(("ipex", IPEXModel))
+except ImportError:
+    pass
+
 
 if is_ci():
     pytest.skip("Skip test in CI to try and avoid 429 Client Error", allow_module_level=True)
@@ -30,10 +39,7 @@ if is_ci():
 ## Testing exporting:
 @pytest.mark.parametrize(
     ["backend", "expected_auto_model_class"],
-    [
-        ("onnx", ORTModelForFeatureExtraction),
-        ("openvino", OVModelForFeatureExtraction),
-    ],
+    BACKENDS,
 )
 @pytest.mark.parametrize(
     "model_kwargs", [{}, {"file_name": "wrong_file_name"}]
