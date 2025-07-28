@@ -71,7 +71,7 @@ class Transformer(InputModule):
         config_args: dict[str, Any] | None = None,
         cache_dir: str | None = None,
         do_lower_case: bool = False,
-        tokenizer_name_or_path: str = None,
+        tokenizer_name_or_path: str | None = None,
         backend: str = "torch",
     ) -> None:
         super().__init__()
@@ -142,7 +142,7 @@ class Transformer(InputModule):
                 # TODO: Consider following these steps automatically so we can load PEFT models with other backends
                 raise ValueError(
                     "PEFT models can currently only be loaded with the `torch` backend. "
-                    'To use other backends, load the model with `backend="torch"`, call `model[0].auto_model.merge_and_unload()`, '
+                    'To use other backends, load the model with `backend="torch"`, call `model.transformers_model.merge_and_unload()`, '
                     "save that model with `model.save_pretrained()` and then load the model with the desired backend."
                 )
             from peft import PeftConfig
@@ -174,11 +174,9 @@ class Transformer(InputModule):
         if backend == "torch":
             # When loading a PEFT model, we need to load the base model first,
             # but some model_args are only for the adapter
-            adapter_only_kwargs = {}
             if is_peft_model:
                 for adapter_only_kwarg in ["revision"]:
-                    if adapter_only_kwarg in model_args:
-                        adapter_only_kwargs[adapter_only_kwarg] = model_args.pop(adapter_only_kwarg)
+                    model_args.pop(adapter_only_kwarg, None)
 
             if isinstance(config, T5Config):
                 self._load_t5_model(model_name_or_path, config, cache_dir, **model_args)
@@ -188,22 +186,12 @@ class Transformer(InputModule):
                 self.auto_model = AutoModel.from_pretrained(
                     model_name_or_path, config=config, cache_dir=cache_dir, **model_args
                 )
-
-            if is_peft_model:
-                self._load_peft_model(model_name_or_path, config, cache_dir, **model_args, **adapter_only_kwargs)
         elif backend == "onnx":
             self._load_onnx_model(model_name_or_path, config, cache_dir, **model_args)
         elif backend == "openvino":
             self._load_openvino_model(model_name_or_path, config, cache_dir, **model_args)
         else:
             raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
-
-    def _load_peft_model(self, model_name_or_path: str, config: PeftConfig, cache_dir: str, **model_args) -> None:
-        from peft import PeftModel
-
-        self.auto_model = PeftModel.from_pretrained(
-            self.auto_model, model_name_or_path, config=config, cache_dir=cache_dir, **model_args
-        )
 
     def _load_openvino_model(
         self, model_name_or_path: str, config: PretrainedConfig, cache_dir: str, **model_args
@@ -436,7 +424,7 @@ class Transformer(InputModule):
         )
 
     def __repr__(self) -> str:
-        return f"Transformer({self.get_config_dict()}) with Transformer model: {self.auto_model.__class__.__name__} "
+        return f"Transformer({dict(self.get_config_dict(), architecture=self.auto_model.__class__.__name__)})"
 
     def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""

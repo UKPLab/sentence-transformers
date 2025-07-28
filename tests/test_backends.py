@@ -4,16 +4,20 @@ import gc
 import json
 import os
 import tempfile
+from contextlib import nullcontext
 from pathlib import Path
 
 import numpy as np
 import pytest
+from packaging.version import Version, parse
 
 from tests.utils import is_ci
 
 try:
     from optimum.intel import OVModelForFeatureExtraction
+    from optimum.intel.version import __version__ as optimum_intel_version
     from optimum.onnxruntime import ORTModelForFeatureExtraction
+    from optimum.version import __version__ as optimum_version
 except ImportError:
     pytest.skip("OpenVINO and ONNX backends are not available", allow_module_level=True)
 
@@ -45,18 +49,23 @@ def test_backend_export(backend, expected_auto_model_class, model_kwargs) -> Non
 
 
 def test_backend_no_export_crash():
-    # ONNX Crashes when it can't export & the model repo/path doesn't contain an exported model
-    with pytest.raises(OSError):
-        SentenceTransformer(
+    # Prior to optimum v1.25.0, ONNX Crashes when it can't export & the model repo/path doesn't contain an exported model
+    # Since then, it auto-updates export to True
+    with pytest.raises(OSError) if parse(optimum_version) < Version("1.25.0") else nullcontext():
+        model = SentenceTransformer(
             "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="onnx", model_kwargs={"export": False}
         )
+        assert isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
 
     # OpenVINO will forcibly override the export=False if the model repo/path doesn't contain an exported model
-    # But only starting from v1.19.0
-    model = SentenceTransformer(
-        "sentence-transformers-testing/stsb-bert-tiny-safetensors", backend="openvino", model_kwargs={"export": False}
-    )
-    assert isinstance(model[0].auto_model, OVModelForFeatureExtraction)
+    # But only starting from optimum-intel=v1.19.0
+    with pytest.raises(OSError) if parse(optimum_intel_version) < Version("1.19.0") else nullcontext():
+        model = SentenceTransformer(
+            "sentence-transformers-testing/stsb-bert-tiny-safetensors",
+            backend="openvino",
+            model_kwargs={"export": False},
+        )
+        assert isinstance(model[0].auto_model, OVModelForFeatureExtraction)
 
 
 ## Testing loading exported models:
@@ -101,7 +110,10 @@ def test_openvino_provider() -> None:
         backend="openvino",
         model_kwargs={"ov_config": {"INFERENCE_PRECISION_HINT": "precision_1"}},
     )
-    assert model[0].auto_model.ov_config == {"INFERENCE_PRECISION_HINT": "precision_1", "PERFORMANCE_HINT": "LATENCY"}
+    assert model[0].auto_model.ov_config == {
+        "INFERENCE_PRECISION_HINT": "precision_1",
+        "PERFORMANCE_HINT": "LATENCY",
+    }
 
     with tempfile.TemporaryDirectory() as temp_dir:
         ov_config_path = os.path.join(temp_dir, "ov_config.json")

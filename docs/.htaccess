@@ -62,6 +62,7 @@ Redirect 301 /examples/training/prompts/README.html /examples/sentence_transform
 Redirect 301 /examples/training/quora_duplicate_questions/README.html /examples/sentence_transformer/training/quora_duplicate_questions/README.html
 Redirect 301 /examples/training/README.html /examples/sentence_transformer/training/README.html
 Redirect 301 /examples/training/sts/README.html /examples/sentence_transformer/training/sts/README.html
+Redirect 301 /examples/training/hpo/README.html /examples/sentence_transformer/training/hpo/README.html
 Redirect 301 /examples/unsupervised_learning/CT/README.html /examples/sentence_transformer/unsupervised_learning/CT/README.html
 Redirect 301 /examples/unsupervised_learning/CT_In-Batch_Negatives/README.html /examples/sentence_transformer/unsupervised_learning/CT_In-Batch_Negatives/README.html
 Redirect 301 /examples/unsupervised_learning/MLM/README.html /examples/sentence_transformer/unsupervised_learning/MLM/README.html

@@ -151,6 +151,66 @@ The usage for Cross Encoder (a.k.a. reranker) models is similar to Sentence Tran
 
 With ``CrossEncoder("cross-encoder/stsb-distilroberta-base")`` we pick which `CrossEncoder model <./cross_encoder/pretrained_models.html>`_ we load. In this example, we load `cross-encoder/stsb-distilroberta-base <https://huggingface.co/cross-encoder/stsb-distilroberta-base>`_, which is a `DistilRoBERTa <https://huggingface.co/distilbert/distilroberta-base>`_ model finetuned on the `STS Benchmark <https://huggingface.co/datasets/sentence-transformers/stsb>`_ dataset.
 
+Sparse Encoder
+-------------
+
+Characteristics of Sparse Encoder models:
+
+1. Calculates **sparse vector representations** where most dimensions are zero.
+2. Provides **efficiency benefits** for large-scale retrieval systems due to the sparse nature of embeddings.
+3. Often **more interpretable** than dense embeddings, with non-zero dimensions corresponding to specific tokens.
+4. **Complementary to dense embeddings**, enabling hybrid search systems that combine the strengths of both approaches.
+
+The usage for Sparse Encoder models follows a similar pattern to Sentence Transformers:
+
+.. sidebar:: Documentation
+
+   1. :class:`SparseEncoder <sentence_transformers.SparseEncoder>`
+   2. :meth:`SparseEncoder.encode <sentence_transformers.SparseEncoder.encode>`
+   3. :meth:`SparseEncoder.similarity <sentence_transformers.SparseEncoder.similarity>`
+   4. :meth:`SparseEncoder.sparsity <sentence_transformers.SparseEncoder.sparsity>`
+
+   **Other useful methods and links:**
+
+   - `SparseEncoder > Usage <./sparse_encoder/usage/usage.html>`_
+   - `SparseEncoder > Pretrained Models <./sparse_encoder/pretrained_models.html>`_
+   - `SparseEncoder > Training Overview <./sparse_encoder/training_overview.html>`_
+   - `SparseEncoder > Loss Overview <./sparse_encoder/loss_overview.html>`_
+   - `Sparse Encoder > Vector Database Integration <../examples/sparse_encoder/applications/semantic_search/README.html#vector-database-search>`_
+
+::
+
+   from sentence_transformers import SparseEncoder
+
+   # 1. Load a pretrained SparseEncoder model
+   model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+   # The sentences to encode
+   sentences = [
+       "The weather is lovely today.",
+       "It's so sunny outside!",
+       "He drove to the stadium.",
+   ]
+
+   # 2. Calculate sparse embeddings by calling model.encode()
+   embeddings = model.encode(sentences)
+   print(embeddings.shape)
+   # [3, 30522] - sparse representation with vocabulary size dimensions
+
+   # 3. Calculate the embedding similarities (using dot product by default)
+   similarities = model.similarity(embeddings, embeddings)
+   print(similarities)
+   # tensor([[   35.629,     9.154,     0.098],
+   #         [    9.154,    27.478,     0.019],
+   #         [    0.098,     0.019,    29.553]])
+
+   # 4. Check sparsity statistics
+   stats = SparseEncoder.sparsity(embeddings)
+   print(f"Sparsity: {stats['sparsity_ratio']:.2%}")  # Typically >99% zeros
+   print(f"Avg non-zero dimensions per embedding: {stats['active_dims']:.2f}")
+
+With ``SparseEncoder("naver/splade-cocondenser-ensembledistil")`` we load a pretrained SPLADE model that generates sparse embeddings. SPLADE (SParse Lexical AnD Expansion) models use MLM prediction mechanisms to create sparse representations that are particularly effective for information retrieval tasks.
+
 Next Steps
 ----------
 
@@ -162,4 +222,7 @@ Consider reading one of the following sections next:
 * `Sentence Transformers > Training Examples > Multilingual Models <../examples/sentence_transformer/training/multilingual/README.html>`_
 * `Cross Encoder > Usage <./cross_encoder/usage/usage.html>`_
 * `Cross Encoder > Pretrained Models <./cross_encoder/pretrained_models.html>`_
+* `Sparse Encoder > Usage <./sparse_encoder/usage/usage.html>`_
+* `Sparse Encoder > Pretrained Models <./sparse_encoder/pretrained_models.html>`_
+* `Sparse Encoder > Vector Database Integration <../examples/sparse_encoder/applications/semantic_search/README.html#vector-database-search>`_
 

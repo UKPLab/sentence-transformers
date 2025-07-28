@@ -9,7 +9,7 @@ import torch
 import transformers
 from PIL import Image
 
-from sentence_transformers.models.Asym import InputModule
+from sentence_transformers.models.Router import InputModule
 
 
 class CLIPModel(InputModule):

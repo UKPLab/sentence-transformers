@@ -33,19 +33,21 @@ dd > dl {
 .components {
     display: flex;
     flex-flow: row wrap;
+    gap: 1rem; /* Use gap for consistent spacing */
 }
 
 .components > .box {
-    flex: 1;
-    margin: 0.5rem;
+    flex: 0 0 auto; /* Don't grow or shrink, use natural size */
+    margin: 0; /* Remove margin since we're using gap */
     padding: 1rem;
     border-style: solid;
     border-width: 1px;
     border-radius: 0.5rem;
     border-color: rgb(55 65 81);
     background-color: #e3e3e3;
-    color: #404040; /* Override the colors imposed by <a href> */
-    max-width: 18rem;
+    color: #404040;
+    width: 11.3rem;
+    box-sizing: border-box;
 }
 
 .components > .box:nth-child(1) > .header {
@@ -68,6 +70,11 @@ dd > dl {
     background-image: linear-gradient(to bottom right, #34d399, #10b981);
 }
 
+.components > .box:nth-child(6) > .header {
+    background-image: linear-gradient(to bottom right, #fbbf24, #f59e0b);
+}
+
+
 .components > .optional {
     background: repeating-linear-gradient(
         135deg,
@@ -83,7 +90,7 @@ dd > dl {
     border-width: 1px;
     border-radius: 0.5rem;
     border-color: rgb(55 65 81);
-    padding: 0.5rem;
+    padding: 0.5rem 0.2rem;
     text-align: center;
     margin-bottom: 0.5rem;
     font-weight: bold;

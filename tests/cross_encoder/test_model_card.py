@@ -137,15 +137,15 @@ def test_model_card_base(
 ) -> None:
     model = CrossEncoder("prajjwal1/bert-tiny", num_labels=num_labels)
 
+    # Let's avoid requesting the Hub for e.g. checking if a base model exists there
+    model.model_card_data.local_files_only = True
+
     train_dataset = dummy_dataset
     if num_datasets:
         train_dataset = DatasetDict({f"train_{i}": train_dataset for i in range(num_datasets)})
 
     # This adds data to model.model_card_data
-    CrossEncoderTrainer(
-        model,
-        train_dataset=train_dataset,
-    )
+    CrossEncoderTrainer(model, train_dataset=train_dataset)
 
     model_card = generate_model_card(model)
 

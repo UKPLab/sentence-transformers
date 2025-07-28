@@ -7,11 +7,16 @@ from .AdaptiveLayerLoss import AdaptiveLayerLoss
 from .AnglELoss import AnglELoss
 from .BatchAllTripletLoss import BatchAllTripletLoss
 from .BatchHardSoftMarginTripletLoss import BatchHardSoftMarginTripletLoss
-from .BatchHardTripletLoss import BatchHardTripletLoss, BatchHardTripletLossDistanceFunction
+from .BatchHardTripletLoss import (
+    BatchHardTripletLoss,
+    BatchHardTripletLossDistanceFunction,
+)
 from .BatchSemiHardTripletLoss import BatchSemiHardTripletLoss
 from .CachedGISTEmbedLoss import CachedGISTEmbedLoss
 from .CachedMultipleNegativesRankingLoss import CachedMultipleNegativesRankingLoss
-from .CachedMultipleNegativesSymmetricRankingLoss import CachedMultipleNegativesSymmetricRankingLoss
+from .CachedMultipleNegativesSymmetricRankingLoss import (
+    CachedMultipleNegativesSymmetricRankingLoss,
+)
 from .ContrastiveLoss import ContrastiveLoss, SiameseDistanceMetric
 from .ContrastiveTensionLoss import (
     ContrastiveTensionDataLoader,
@@ -20,6 +25,7 @@ from .ContrastiveTensionLoss import (
 )
 from .CosineSimilarityLoss import CosineSimilarityLoss
 from .DenoisingAutoEncoderLoss import DenoisingAutoEncoderLoss
+from .DistillKLDivLoss import DistillKLDivLoss
 from .GISTEmbedLoss import GISTEmbedLoss
 from .MarginMSELoss import MarginMSELoss
 from .Matryoshka2dLoss import Matryoshka2dLoss
@@ -63,4 +69,5 @@ __all__ = [
     "BatchHardSoftMarginTripletLoss",
     "BatchSemiHardTripletLoss",
     "BatchAllTripletLoss",
+    "DistillKLDivLoss",
 ]

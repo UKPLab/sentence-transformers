@@ -51,6 +51,10 @@ examples/datasets/*/
 env/
 venv/
 
+# Database
+/qdrant_storage
+/elastic-start-local
+
 # Others
 *.pyc
 *.gz
@@ -61,3 +65,5 @@ wandb
 checkpoints
 tmp
 .DS_Store
+/runs
+/tmp_trainer/

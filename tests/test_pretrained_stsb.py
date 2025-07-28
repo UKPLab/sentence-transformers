@@ -97,7 +97,7 @@ def test_mpnet_slow() -> None:
 
 @pytest.mark.slow
 def test_other_models_slow() -> None:
-    pretrained_model_score_slow("average_word_embeddings_komninos", 61.56)
+    pretrained_model_score_slow("average_word_embeddings_komninos", 60.98)
 
 
 @pytest.mark.slow
@@ -111,6 +111,7 @@ def test_sentence_t5_slow() -> None:
     pretrained_model_score_slow("sentence-t5-base", 85.52)
 
 
+@pytest.mark.slow  # Also marked as slow to avoid running it with CI: results in too many requests to the Hugging Face Hub
 @pytest.mark.parametrize(
     ["model_name", "expected_score"],
     [

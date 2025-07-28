@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -11,6 +10,8 @@ import numpy as np
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
@@ -79,16 +80,12 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             self.csv_headers.append(f"{src_lang}-{trg_lang}")
 
         all_source_sentences = list(all_source_sentences)
-        with (
-            nullcontext()
-            if self.truncate_dim is None
-            else teacher_model.truncate_sentence_embeddings(self.truncate_dim)
-        ):
-            all_src_embeddings = teacher_model.encode(all_source_sentences, batch_size=self.batch_size)
+
+        all_src_embeddings = self.embed_inputs(teacher_model, all_source_sentences)
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         model.eval()
 
@@ -97,8 +94,7 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
             src_sentences, trg_sentences = self.data[(src_lang, trg_lang)]
 
             src_embeddings = np.asarray([self.teacher_embeddings[sent] for sent in src_sentences])
-            with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-                trg_embeddings = np.asarray(model.encode(trg_sentences, batch_size=self.batch_size))
+            trg_embeddings = np.asarray(self.embed_inputs(model, trg_sentences))
 
             mse = ((src_embeddings - trg_embeddings) ** 2).mean()
             mse *= 100
@@ -122,6 +118,20 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        return model.encode(
+            sentences,
+            batch_size=self.batch_size,
+            convert_to_numpy=True,
+            truncate_dim=self.truncate_dim,
+            **kwargs,
+        )
 
     @property
     def description(self) -> str:

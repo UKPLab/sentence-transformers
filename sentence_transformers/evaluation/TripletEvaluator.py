@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import logging
 import os
-from contextlib import nullcontext
 from typing import TYPE_CHECKING, Literal
 
 from sentence_transformers.evaluation.SentenceEvaluator import SentenceEvaluator
@@ -17,6 +16,8 @@ from sentence_transformers.util import (
 )
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
@@ -161,7 +162,7 @@ class TripletEvaluator(SentenceEvaluator):
         return cls(anchors, positives, negatives, **kwargs)
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str = None, epoch: int = -1, steps: int = -1
+        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:
@@ -175,25 +176,9 @@ class TripletEvaluator(SentenceEvaluator):
 
         logger.info(f"TripletEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
-        with nullcontext() if self.truncate_dim is None else model.truncate_sentence_embeddings(self.truncate_dim):
-            embeddings_anchors = model.encode(
-                self.anchors,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
-                convert_to_numpy=True,
-            )
-            embeddings_positives = model.encode(
-                self.positives,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
-                convert_to_numpy=True,
-            )
-            embeddings_negatives = model.encode(
-                self.negatives,
-                batch_size=self.batch_size,
-                show_progress_bar=self.show_progress_bar,
-                convert_to_numpy=True,
-            )
+        embeddings_anchors = self.embed_inputs(model, self.anchors)
+        embeddings_positives = self.embed_inputs(model, self.positives)
+        embeddings_negatives = self.embed_inputs(model, self.negatives)
 
         if not self.similarity_fn_names:
             self.similarity_fn_names = [model.similarity_fn_name]
@@ -260,6 +245,21 @@ class TripletEvaluator(SentenceEvaluator):
         metrics = self.prefix_name_to_metrics(metrics, self.name)
         self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
         return metrics
+
+    def embed_inputs(
+        self,
+        model: SentenceTransformer,
+        sentences: str | list[str] | np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        return model.encode(
+            sentences,
+            batch_size=self.batch_size,
+            show_progress_bar=self.show_progress_bar,
+            convert_to_numpy=True,
+            truncate_dim=self.truncate_dim,
+            **kwargs,
+        )
 
     def get_config_dict(self):
         config_dict = {}

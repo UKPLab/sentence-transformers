@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 
-from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
+from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
 from sentence_transformers.model_card import generate_model_card
 from sentence_transformers.util import is_datasets_available, is_training_available
 
@@ -49,7 +51,8 @@ def dummy_dataset():
                 "#### Unnamed Dataset",
                 "| details | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> | <ul><li>min: 4 tokens</li><li>mean: 4.0 tokens</li><li>max: 4 tokens</li></ul> |",
                 " | <code>anchor 1</code> | <code>positive 1</code> | <code>negative 1</code> |",
-                "* Loss: [<code>CoSENTLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#cosentloss) with these parameters:",
+                "* Loss: [<code>GISTEmbedLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#gistembedloss) with these parameters:",
+                '  ```json\n  {\n      "guide": "SentenceTransformer(\'sentence-transformers-testing/stsb-bert-tiny-safetensors\', trust_remote_code=True)",\n      "temperature": 0.05,\n      "margin_strategy": "relative",\n      "margin": 0.05,\n      "contrast_anchors": true,\n      "contrast_positives": true,\n      "gather_across_devices": false\n  }\n  ```',
             ],
         ),
         (
@@ -57,6 +60,8 @@ def dummy_dataset():
             [
                 "This is a [sentence-transformers](https://www.SBERT.net) model finetuned from [sentence-transformers-testing/stsb-bert-tiny-safetensors](https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors) on the train_0 dataset.",
                 "#### train_0",
+                "* Loss: [<code>GISTEmbedLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#gistembedloss) with these parameters:",
+                '  ```json\n  {\n      "guide": "SentenceTransformer(\'sentence-transformers-testing/stsb-bert-tiny-safetensors\', trust_remote_code=True)",\n      "temperature": 0.05,\n      "margin_strategy": "relative",\n      "margin": 0.05,\n      "contrast_anchors": true,\n      "contrast_positives": true,\n      "gather_across_devices": false\n  }\n  ```',
             ],
         ),
         (
@@ -65,6 +70,8 @@ def dummy_dataset():
                 "This is a [sentence-transformers](https://www.SBERT.net) model finetuned from [sentence-transformers-testing/stsb-bert-tiny-safetensors](https://huggingface.co/sentence-transformers-testing/stsb-bert-tiny-safetensors) on the train_0 and train_1 datasets.",
                 "#### train_0",
                 "#### train_1",
+                "* Loss: [<code>GISTEmbedLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#gistembedloss) with these parameters:",
+                '  ```json\n  {\n      "guide": "SentenceTransformer(\'sentence-transformers-testing/stsb-bert-tiny-safetensors\', trust_remote_code=True)",\n      "temperature": 0.05,\n      "margin_strategy": "relative",\n      "margin": 0.05,\n      "contrast_anchors": true,\n      "contrast_positives": true,\n      "gather_across_devices": false\n  }\n  ```',
             ],
         ),
         (
@@ -75,6 +82,8 @@ def dummy_dataset():
                 "#### train_0",
                 "</details>\n<details><summary>train_9</summary>",
                 "#### train_9",
+                "* Loss: [<code>GISTEmbedLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#gistembedloss) with these parameters:",
+                '  ```json\n  {\n      "guide": "SentenceTransformer(\'sentence-transformers-testing/stsb-bert-tiny-safetensors\', trust_remote_code=True)",\n      "temperature": 0.05,\n      "margin_strategy": "relative",\n      "margin": 0.05,\n      "contrast_anchors": true,\n      "contrast_positives": true,\n      "gather_across_devices": false\n  }\n  ```',
             ],
         ),
         # We start using "50 datasets" when the ", "-joined dataset name exceed 200 characters
@@ -86,6 +95,8 @@ def dummy_dataset():
                 "#### train_0",
                 "</details>\n<details><summary>train_49</summary>",
                 "#### train_49",
+                "* Loss: [<code>GISTEmbedLoss</code>](https://sbert.net/docs/package_reference/sentence_transformer/losses.html#gistembedloss) with these parameters:",
+                '  ```json\n  {\n      "guide": "SentenceTransformer(\'sentence-transformers-testing/stsb-bert-tiny-safetensors\', trust_remote_code=True)",\n      "temperature": 0.05,\n      "margin_strategy": "relative",\n      "margin": 0.05,\n      "contrast_anchors": true,\n      "contrast_positives": true,\n      "gather_across_devices": false\n  }\n  ```',
             ],
         ),
     ],
@@ -98,14 +109,28 @@ def test_model_card_base(
 ) -> None:
     model = stsb_bert_tiny_model
 
+    # Let's avoid requesting the Hub for e.g. checking if a base model exists there
+    model.model_card_data.local_files_only = True
+
     train_dataset = dummy_dataset
     if num_datasets:
         train_dataset = DatasetDict({f"train_{i}": train_dataset for i in range(num_datasets)})
 
     # This adds data to model.model_card_data
+    guide_loss = deepcopy(stsb_bert_tiny_model)
+    guide_loss.trust_remote_code = True  # Let's test if we can see this again in the model card
+    loss = losses.GISTEmbedLoss(
+        model,
+        guide=guide_loss,
+        temperature=0.05,
+        margin_strategy="relative",
+        margin=0.05,
+    )
+
     SentenceTransformerTrainer(
         model,
         train_dataset=train_dataset,
+        loss=loss,
     )
 
     model_card = generate_model_card(model)

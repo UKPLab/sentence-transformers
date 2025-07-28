@@ -3,9 +3,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 import torch
-from datasets import load_dataset
 
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import is_datasets_available
+
+if is_datasets_available():
+    from datasets import load_dataset
+else:
+    pytest.skip("The datasets library is not available.", allow_module_level=True)
 
 
 @pytest.mark.custom
