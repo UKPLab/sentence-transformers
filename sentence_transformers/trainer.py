@@ -7,6 +7,7 @@ import re
 from collections import OrderedDict
 from contextlib import nullcontext
 from functools import partial
+import warnings 
 from typing import TYPE_CHECKING, Any, Callable
 
 import torch
@@ -592,18 +593,44 @@ class SentenceTransformerTrainer(Trainer):
         return output
 
     def _load_best_model(self) -> None:
+        """
+        Load the best model checkpoint saved during training.  If the model has
+        active PEFT adapters, skip loading and warn the user; the Hugging Face
+        transformers library does not yet support reloading adapter‑enhanced models.
+        """
+        # If the underlying transformers model has active adapters, skip loading the best model
+        try:
+            # active_adapters() returns a list of active adapters; if non-empty, we cannot reload
+            if len(self.model[0].auto_model.active_adapters()):
+                warn_msg = (
+                    "Could not load best model, as the model has at least one adapter set. "
+                    "Please wait for an update of the transformers library to enable this feature."
+                )
+                warnings.warn(warn_msg, UserWarning, stacklevel=2)
+                logger.info(warn_msg)
+                return
+        except ValueError:
+            # Some models raise ValueError when there are no active adapters; ignore this and proceed
+            pass
+
         # Attempt to load the model from self.state.best_model_checkpoint
-        logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
+        logger.info(
+            f"Loading best model from {self.state.best_model_checkpoint} "
+            f"(score: {self.state.best_metric})."
+        )
         try:
             dummy_model = self.model.__class__(
                 self.state.best_model_checkpoint,
                 trust_remote_code=self.model.trust_remote_code,
             )
         except Exception as exc:
-            logger.error(f"Could not load the best model from {self.state.best_model_checkpoint}. Error: {str(exc)}")
+            logger.error(
+                f"Could not load the best model from {self.state.best_model_checkpoint}. "
+                f"Error: {str(exc)}"
+            )
             return
 
-        # Store the best model checkpoint in the model card
+        # Store the best model checkpoint step in the model card
         try:
             if checkpoint := self.state.best_model_checkpoint:
                 step = checkpoint.rsplit("-", 1)[-1]
@@ -611,9 +638,10 @@ class SentenceTransformerTrainer(Trainer):
         except Exception:
             pass
 
-        # Ideally, the only changes between self.model and the dummy model are the weights
-        # so we should be able to just copy the state dict
+        # Ideally, the only differences between self.model and dummy_model are the weights,
+        # so we copy the state dict from the checkpointed model onto the current model
         self.model.load_state_dict(dummy_model.state_dict())
+
 
     def validate_column_names(self, dataset: Dataset, dataset_name: str | None = None) -> None:
         if isinstance(dataset, dict):
