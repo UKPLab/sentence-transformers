@@ -1,5 +1,4 @@
 import logging
-import random
 
 from datasets import load_dataset
 
@@ -18,11 +17,6 @@ relevant_docs_data = load_dataset("BeIR/nfcorpus-qrels", split="test")
 
 # For this dataset, we want to concatenate the title and texts for the corpus
 corpus = corpus.map(lambda x: {"text": x["title"] + " " + x["text"]}, remove_columns=["title"])
-
-# Shrink the corpus size heavily to only the relevant documents + 1,000 random documents
-required_corpus_ids = set(map(str, relevant_docs_data["corpus-id"]))
-required_corpus_ids |= set(random.sample(corpus["_id"], k=1000))
-corpus = corpus.filter(lambda x: x["_id"] in required_corpus_ids)
 
 # Convert the datasets to dictionaries
 corpus = dict(zip(corpus["_id"], corpus["text"]))  # Our corpus (cid => document)
@@ -52,26 +46,27 @@ Queries: 323
 Corpus: 3269
 
 Score-Function: dot
-Accuracy@1: 50.77%
-Accuracy@3: 64.40%
-Accuracy@5: 66.87%
+Accuracy@1: 49.23%
+Accuracy@3: 63.47%
+Accuracy@5: 66.56%
 Accuracy@10: 71.83%
-Precision@1: 50.77%
-Precision@3: 40.45%
-Precision@5: 34.06%
-Precision@10: 25.98%
-Recall@1: 6.27%
-Recall@3: 11.69%
-Recall@5: 13.74%
-Recall@10: 17.23%
-MRR@10: 0.5814
-NDCG@10: 0.3621
-MAP@100: 0.1838
+Precision@1: 49.23%
+Precision@3: 39.63%
+Precision@5: 33.13%
+Precision@10: 25.23%
+Recall@1: 6.08%
+Recall@3: 11.60%
+Recall@5: 13.47%
+Recall@10: 17.01%
+MRR@10: 0.5706
+NDCG@10: 0.3530
+MAP@100: 0.1778
 Model Query Sparsity: Active Dimensions: 40.0, Sparsity Ratio: 0.9987
 Model Corpus Sparsity: Active Dimensions: 206.2, Sparsity Ratio: 0.9932
+Average FLOPS: 4.7
 """
 # Print the results
 print(f"Primary metric: {ir_evaluator.primary_metric}")
 # => Primary metric: BeIR-nfcorpus-subset-test_dot_ndcg@10
 print(f"Primary metric value: {results[ir_evaluator.primary_metric]:.4f}")
-# => Primary metric value: 0.Primary metric value: 0.3621
+# => Primary metric value: 0.Primary metric value: 0.3530
