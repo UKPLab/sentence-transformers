@@ -386,7 +386,7 @@ This example demonstrates how to use [Seismic](https://github.com/TusKANNy/seism
 
 ## SPLADE-index Integration
 
-This example demonstrates how to use [splade-index](https://github.com/rasyosef/splade-index) for very fast sparse vector search powered by Scipy sparse matrices, built on top of the excellent [bm25s](https://github.com/xhluca/bm25s), a fast BM25 implementation. It does not require running a separate client, but instead performs search directly in memory. See [semantic_search_splade_index.py](semantic_search_splade_index.py) or below:
+This example demonstrates how to use [splade-index](https://github.com/rasyosef/splade-index) for very fast sparse vector search powered by SciPy sparse matrices, built on top of the excellent [bm25s](https://github.com/xhluca/bm25s), a fast BM25 implementation. It does not require running a separate client, but instead performs search directly in memory. See [semantic_search_splade_index.py](semantic_search_splade_index.py) or below:
 
 ### Prerequisites:
 - The SPLADE-index Python package must be installed:
