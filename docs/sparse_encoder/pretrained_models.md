@@ -55,6 +55,8 @@ Note that all the numbers of below are extracted information from different pape
 | [naver/splade-v3-lexical](https://huggingface.co/naver/splade-v3-lexical)                                                                                 | 40.0            | 49.1                | 109M       |
 | [prithivida/Splade_PP_en_v1](https://huggingface.co/prithivida/Splade_PP_en_v1)                                                                           | 37.2            | 48.7                | 109M       |
 | [naver/splade_v2_max](https://huggingface.co/naver/splade_v2_max)                                                                                         | 34.0            | 46.4                | 67M        |
+| [rasyosef/splade-mini](https://huggingface.co/rasyosef/splade-mini)                                                                                       | 32.8            | NA                  | 11M        |
+| [rasyosef/splade-tiny](https://huggingface.co/rasyosef/splade-tiny)                                                                                       | 30.8            | NA                  | 4M         |
 
 
 ## Inference-Free SPLADE Models
