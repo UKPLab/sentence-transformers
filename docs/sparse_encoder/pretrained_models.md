@@ -57,7 +57,7 @@ Note that all the numbers of below are extracted information from different pape
 | [naver/splade_v2_max](https://huggingface.co/naver/splade_v2_max)                                                                                         | 34.0            | 46.4                | 67M        |
 | [rasyosef/splade-mini](https://huggingface.co/rasyosef/splade-mini)                                                                                       | 32.8            | NA                  | 11M        |
 | [rasyosef/splade-tiny](https://huggingface.co/rasyosef/splade-tiny)                                                                                       | 30.8            | NA                  | 4M         |
-
+| BM25 (Baseline)                                                                                                                                           | 18.4            | 45.6                | NA         |
 
 ## Inference-Free SPLADE Models
 
