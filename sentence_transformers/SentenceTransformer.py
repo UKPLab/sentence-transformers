@@ -1012,11 +1012,12 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         truncate_dim = truncate_dim if truncate_dim is not None else self.truncate_dim
 
         all_embeddings = []
-        length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
-        sentences_sorted = [sentences[int(idx)] for idx in length_sorted_idx]
+        # length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
+        # sentences_sorted = [sentences[int(idx)] for idx in length_sorted_idx]
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
-            sentences_batch = sentences_sorted[start_index : start_index + batch_size]
+            # sentences_batch = sentences_sorted[start_index : start_index + batch_size]
+            sentences_batch = sentences[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch, **kwargs)
             if self.device.type == "hpu":
                 if "input_ids" in features:
@@ -1089,7 +1090,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
                 all_embeddings.extend(embeddings)
 
-        all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
+        # all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if precision and precision != "float32":
             all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
