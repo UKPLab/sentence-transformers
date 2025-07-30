@@ -8,7 +8,7 @@ from sentence_transformers.backend.utils import save_or_push_to_hub_model
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers import CrossEncoder, SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer, SparseEncoder
 
     try:
         from optimum.onnxruntime.configuration import OptimizationConfig
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def export_optimized_onnx_model(
-    model: SentenceTransformer | CrossEncoder,
+    model: SentenceTransformer | SparseEncoder | CrossEncoder,
     optimization_config: OptimizationConfig | Literal["O1", "O2", "O3", "O4"],
     model_name_or_path: str,
     push_to_hub: bool = False,
@@ -25,7 +25,7 @@ def export_optimized_onnx_model(
     file_suffix: str | None = None,
 ) -> None:
     """
-    Export an optimized ONNX model from a SentenceTransformer or CrossEncoder model.
+    Export an optimized ONNX model from a SentenceTransformer, SparseEncoder, or CrossEncoder model.
 
     The O1-O4 optimization levels are defined by Optimum and are documented here:
     https://huggingface.co/docs/optimum/main/en/onnxruntime/usage_guides/optimization
@@ -43,8 +43,8 @@ def export_optimized_onnx_model(
     - `Cross Encoder > Usage > Speeding up Inference <https://sbert.net/docs/cross_encoder/usage/efficiency.html>`_
 
     Args:
-        model (SentenceTransformer | CrossEncoder): The SentenceTransformer or CrossEncoder model to be optimized.
-            Must be loaded with `backend="onnx"`.
+        model (SentenceTransformer | SparseEncoder | CrossEncoder): The SentenceTransformer, SparseEncoder,
+            or CrossEncoder model to be optimized. Must be loaded with `backend="onnx"`.
         optimization_config (OptimizationConfig | Literal["O1", "O2", "O3", "O4"]): The optimization configuration or level.
         model_name_or_path (str): The path or Hugging Face Hub repository name where the optimized model will be saved.
         push_to_hub (bool, optional): Whether to push the optimized model to the Hugging Face Hub. Defaults to False.
@@ -53,16 +53,16 @@ def export_optimized_onnx_model(
 
     Raises:
         ImportError: If the required packages `optimum` and `onnxruntime` are not installed.
-        ValueError: If the provided model is not a valid SentenceTransformer or CrossEncoder model loaded with `backend="onnx"`.
+        ValueError: If the provided model is not a valid SentenceTransformer, SparseEncoder, or CrossEncoder model loaded with `backend="onnx"`.
         ValueError: If the provided optimization_config is not valid.
 
     Returns:
         None
     """
-    from sentence_transformers import CrossEncoder, SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer, SparseEncoder
 
     try:
-        from optimum.onnxruntime import ORTModelForFeatureExtraction, ORTModelForSequenceClassification, ORTOptimizer
+        from optimum.onnxruntime import ORTModel, ORTOptimizer
         from optimum.onnxruntime.configuration import AutoOptimizationConfig
     except ImportError:
         raise ImportError(
@@ -75,18 +75,24 @@ def export_optimized_onnx_model(
         isinstance(model, SentenceTransformer)
         and len(model)
         and hasattr(model[0], "auto_model")
-        and isinstance(model[0].auto_model, ORTModelForFeatureExtraction)
+        and isinstance(model[0].auto_model, ORTModel)
     )
-    viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModelForSequenceClassification)
-    if not (viable_st_model or viable_ce_model):
+    viable_se_model = (
+        isinstance(model, SparseEncoder)
+        and len(model)
+        and hasattr(model[0], "auto_model")
+        and isinstance(model[0].auto_model, ORTModel)
+    )
+    viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, ORTModel)
+    if not (viable_st_model or viable_ce_model or viable_se_model):
         raise ValueError(
-            'The model must be a Transformer-based SentenceTransformer or CrossEncoder model loaded with `backend="onnx"`.'
+            'The model must be a Transformer-based SentenceTransformer, SparseEncoder, or CrossEncoder model loaded with `backend="onnx"`.'
         )
 
-    if viable_st_model:
-        ort_model: ORTModelForFeatureExtraction = model[0].auto_model
+    if viable_st_model or viable_se_model:
+        ort_model: ORTModel = model[0].auto_model
     else:
-        ort_model: ORTModelForSequenceClassification = model.model
+        ort_model: ORTModel = model.model
     optimizer = ORTOptimizer.from_pretrained(ort_model)
 
     if isinstance(optimization_config, str):

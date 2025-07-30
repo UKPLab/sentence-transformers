@@ -14,7 +14,7 @@ from huggingface_hub import list_repo_files
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentence_transformers import CrossEncoder, SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer, SparseEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -161,9 +161,9 @@ def save_or_push_to_hub_model(
     create_pr: bool = False,
     file_suffix: str | None = None,
     backend: str = "onnx",
-    model: SentenceTransformer | CrossEncoder | None = None,
+    model: SentenceTransformer | SparseEncoder | CrossEncoder | None = None,
 ):
-    from sentence_transformers import CrossEncoder, SentenceTransformer
+    from sentence_transformers import CrossEncoder, SentenceTransformer, SparseEncoder
 
     if backend == "onnx":
         file_name = f"model_{file_suffix}.onnx"
@@ -195,7 +195,40 @@ def save_or_push_to_hub_model(
             commit_description = ""
             if create_pr:
                 opt_config_string = repr(config).replace("(", "(\n\t").replace(", ", ",\n\t").replace(")", "\n)")
-                if model is None or isinstance(model, SentenceTransformer):
+                if isinstance(model, SparseEncoder):
+                    commit_description = f"""\
+Hello!
+
+*This pull request has been automatically generated from the [`{export_function_name}`](https://sbert.net/docs/package_reference/util.html#sentence_transformers.backend.{export_function_name}) function from the Sentence Transformers library.*
+
+## Config
+```python
+{opt_config_string}
+```
+
+## Tip:
+Consider testing this pull request before merging by loading the model from this PR with the `revision` argument:
+```python
+from sentence_transformers import SparseEncoder
+
+# TODO: Fill in the PR number
+pr_number = 2
+model = SparseEncoder(
+    "{model_name_or_path}",
+    revision=f"refs/pr/{{pr_number}}",
+    backend="{backend}",
+    model_kwargs={{"file_name": "{file_name}"}},
+)
+
+# Verify that everything works as expected
+embeddings = model.encode(["The weather is lovely today.", "It's so sunny outside!", "He drove to the stadium."])
+print(embeddings.shape)
+
+similarities = model.similarity(embeddings, embeddings)
+print(similarities)
+```
+"""
+                elif model is None or isinstance(model, SentenceTransformer):
                     commit_description = f"""\
 Hello!
 
