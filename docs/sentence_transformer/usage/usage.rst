@@ -58,4 +58,5 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    ../../../examples/sentence_transformer/applications/embedding-quantization/README
    custom_models
    efficiency
+   mteb_evaluation
 
