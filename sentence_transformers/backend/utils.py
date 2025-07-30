@@ -11,8 +11,6 @@ from typing import TYPE_CHECKING, Any, Callable
 import huggingface_hub
 from huggingface_hub import list_repo_files
 
-logger = logging.getLogger(__name__)
-
 if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder, SentenceTransformer, SparseEncoder
 
