@@ -202,7 +202,7 @@ def export_static_quantized_openvino_model(
     viable_ce_model = isinstance(model, CrossEncoder) and isinstance(model.model, OVModel)
     if not (viable_st_model or viable_ce_model or viable_se_model):
         raise ValueError(
-            'The model must be a Transformer-based SentenceTransformer, SparseEncoder, or CrossEncoder model loaded with `backend="onnx"`.'
+            'The model must be a Transformer-based SentenceTransformer, SparseEncoder, or CrossEncoder model loaded with `backend="openvino"`.'
         )
 
     if viable_st_model or viable_se_model:
