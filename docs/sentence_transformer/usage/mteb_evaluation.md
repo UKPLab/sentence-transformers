@@ -25,7 +25,8 @@ from sentence_transformers import SentenceTransformer
 from mteb import MTEB
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-evaluation = MTEB(tasks=["STSBenchmark"])
+tasks = mteb.get_tasks(tasks=["STSBenchmark"])
+evaluation = MTEB(tasks=tasks)
 evaluation.run(model, output_folder="results/")
 ```
 
