@@ -68,8 +68,8 @@ MTEB supports the following **task families**:
 You can evaluate specific tasks or full categories:
 
 ```python
-MTEB(tasks=["SICK-R", "AmazonCounterfactualClassification"])
-MTEB(task_types=["Classification", "Retrieval"])
+mteb.get_tasks(tasks=["SICK-R", "AmazonCounterfactualClassification"])
+mteb.get_tasks(task_types=["Classification", "Retrieval"])
 ```
 
 ---
