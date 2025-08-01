@@ -1119,7 +1119,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     def forward(self, input: dict[str, Tensor], **kwargs) -> dict[str, Tensor]:
         for module_name, module in self.named_children():
             module_kwargs = {}
-            if isinstance(module, Router):
+            if isinstance(module, Router) or isinstance(module, Transformer):
                 module_kwargs = kwargs
             else:
                 module_kwarg_keys = []

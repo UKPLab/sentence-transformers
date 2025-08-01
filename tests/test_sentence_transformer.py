@@ -9,6 +9,7 @@ import logging
 import os
 import re
 from contextlib import nullcontext
+from datasets import Dataset
 from functools import partial
 from pathlib import Path
 from typing import Callable, Literal, cast
@@ -1139,8 +1140,6 @@ def test_encode_query_document_vs_encode(stsb_bert_tiny_model: SentenceTransform
 def test_encode_with_dataset_column(stsb_bert_tiny_model: SentenceTransformer) -> None:
     """Test that encode can handle a dataset column as input."""
     model = stsb_bert_tiny_model
-    from datasets import Dataset
-
     # Create a simple dataset with a text column
     dataset = Dataset.from_dict({"text": ["This is a test.", "Another sentence."]})
 
@@ -1148,4 +1147,30 @@ def test_encode_with_dataset_column(stsb_bert_tiny_model: SentenceTransformer) -
     embeddings = model.encode(dataset["text"], convert_to_tensor=True)
 
     # Check the shape of the embeddings
+    assert embeddings.shape == (2, model.get_sentence_embedding_dimension())
+
+def test_transformer_output_attention(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    """Test that Transformer model can return attention scores when requested."""
+    transformers_model = stsb_bert_tiny_model[0]
+    
+    class CustomPooling(Pooling):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+        
+        def forward(self, features, **kwargs):
+            if "attention_scores" not in features:
+                raise ValueError("Attention scores must be requested by setting output_attentions=True in encode.")
+            # Call the parent forward method to get the pooled output
+            pooled_output = super().forward(features, **kwargs)
+            return pooled_output
+
+    model = SentenceTransformer(
+        modules=[transformers_model, CustomPooling(transformers_model.auto_model.config.hidden_size, pooling_mode="mean")]
+    )
+
+     # Create a simple dataset with a text column
+    dataset = Dataset.from_dict({"text": ["This is a test.", "Another sentence."]})
+
+    # Encode the dataset column
+    embeddings = model.encode(dataset["text"], convert_to_tensor=True, output_attentions=True)
     assert embeddings.shape == (2, model.get_sentence_embedding_dimension())
