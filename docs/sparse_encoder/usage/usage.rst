@@ -58,4 +58,5 @@ Once you have `installed <../../installation.html>`_ Sentence Transformers, you 
    ../../../examples/sparse_encoder/applications/semantic_search/README
    ../../../examples/sparse_encoder/applications/retrieve_rerank/README
    ../../../examples/sparse_encoder/evaluation/README
+   efficiency
 

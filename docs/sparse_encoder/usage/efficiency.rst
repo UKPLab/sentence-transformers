@@ -2,7 +2,7 @@
 Speeding up Inference
 =====================
 
-Sentence Transformers supports 3 backends for performing inference with Cross Encoder models, each with its own optimizations for speeding up inference:
+Sentence Transformers supports 3 backends for computing sparse embeddings using Sparse Encoder models, each with its own optimizations for speeding up inference:
 
 
 .. raw:: html
@@ -10,7 +10,7 @@ Sentence Transformers supports 3 backends for performing inference with Cross En
     <div class="components">
         <a href="#pytorch" class="box">
             <div class="header">PyTorch</div>
-            The default backend for Cross Encoders.
+            The default backend for Sparse Encoders.
         </a>
         <a href="#onnx" class="box">
             <div class="header">ONNX</div>
@@ -34,24 +34,20 @@ Sentence Transformers supports 3 backends for performing inference with Cross En
 PyTorch
 -------
 
-The PyTorch backend is the default backend for Cross Encoders. If you don't specify a device, it will use the strongest available option across "cuda", "mps", and "cpu". Its default usage looks like this:
+The PyTorch backend is the default backend for Sparse Encoders. If you don't specify a device, it will use the strongest available option across "cuda", "mps", and "cpu". Its default usage looks like this:
 
 .. code-block:: python
 
-   from sentence_transformers import CrossEncoder
+   from sentence_transformers import SparseEncoder
    
-   model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+   model = SparseEncoder("naver/splade-v3")
 
-   query = "Which planet is known as the Red Planet?"
-   passages = [
-      "Venus is often called Earth's twin because of its similar size and proximity.",
-      "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
-      "Jupiter, the largest planet in our solar system, has a prominent red spot.",
-      "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
-   ]
+   sentences = ["This is an example sentence", "Each sentence is converted"]
+   embeddings = model.encode(sentences)
 
-   scores = model.predict([(query, passage) for passage in passages])
-   print(scores)
+   decoded = model.decode(embeddings)
+   print(decoded[0][:5])
+   # [('example', 2.451861619949341), ('sentence', 2.214038848876953), ('examples', 2.0835916996002197), ('sentences', 2.0063159465789795), ('this', 1.7662484645843506)]
 
 If you're using a GPU, then you can use the following options to speed up your inference:
 
@@ -61,21 +57,13 @@ If you're using a GPU, then you can use the following options to speed up your i
 
    .. code-block:: python
 
-      from sentence_transformers import CrossEncoder
-      
-      model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", model_kwargs={"torch_dtype": "float16"})
+      from sentence_transformers import SparseEncoder
+
+      model = SparseEncoder("naver/splade-v3", model_kwargs={"torch_dtype": "float16"})
       # or: model.half()
 
-      query = "Which planet is known as the Red Planet?"
-      passages = [
-         "Venus is often called Earth's twin because of its similar size and proximity.",
-         "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
-         "Jupiter, the largest planet in our solar system, has a prominent red spot.",
-         "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
-      ]
-
-      scores = model.predict([(query, passage) for passage in passages])
-      print(scores)
+      sentences = ["This is an example sentence", "Each sentence is converted"]
+      embeddings = model.encode(sentences)
 
 .. tab:: bfloat16 (bf16)
 
@@ -83,21 +71,13 @@ If you're using a GPU, then you can use the following options to speed up your i
 
    .. code-block:: python
 
-      from sentence_transformers import CrossEncoder
-      
-      model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", model_kwargs={"torch_dtype": "bfloat16"})
+      from sentence_transformers import SparseEncoder
+
+      model = SparseEncoder("naver/splade-v3", model_kwargs={"torch_dtype": "bfloat16"})
       # or: model.bfloat16()
 
-      query = "Which planet is known as the Red Planet?"
-      passages = [
-         "Venus is often called Earth's twin because of its similar size and proximity.",
-         "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
-         "Jupiter, the largest planet in our solar system, has a prominent red spot.",
-         "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
-      ]
-
-      scores = model.predict([(query, passage) for passage in passages])
-      print(scores)
+      sentences = ["This is an example sentence", "Each sentence is converted"]
+      embeddings = model.encode(sentences)
 
 ONNX
 ----
@@ -116,28 +96,20 @@ To convert a model to ONNX format, you can use the following code:
 
 .. code-block:: python
 
-   from sentence_transformers import CrossEncoder
+   from sentence_transformers import SparseEncoder
 
-   model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", backend="onnx")
-   
-   query = "Which planet is known as the Red Planet?"
-   passages = [
-      "Venus is often called Earth's twin because of its similar size and proximity.",
-      "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
-      "Jupiter, the largest planet in our solar system, has a prominent red spot.",
-      "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
-   ]
+   model = SparseEncoder("naver/splade-v3", backend="onnx")
 
-   scores = model.predict([(query, passage) for passage in passages])
-   print(scores)
+   sentences = ["This is an example sentence", "Each sentence is converted"]
+   embeddings = model.encode(sentences)
 
 If the model path or repository already contains a model in ONNX format, Sentence Transformers will automatically use it. Otherwise, it will convert the model to the ONNX format. 
 
 .. note::
 
-   If you wish to use the ONNX model outside of Sentence Transformers, you might need to apply your chosen activation function (e.g. Sigmoid) to get identical results as the Cross Encoder in Sentence Transformers.
+   If you wish to use the ONNX model outside of Sentence Transformers, you'll need to perform SPLADE pooling and/or normalization yourself. The ONNX export only converts the (Masked Language Modelling) Transformer component, which outputs token embeddings, not sparse embeddings embeddings for the full text.
 
-All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`ORTModelForSequenceClassification.from_pretrained <optimum.onnxruntime.ORTModel.from_pretrained>`. Some notable arguments include:
+All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`ORTModelForMaskedLM.from_pretrained <optimum.onnxruntime.ORTModel.from_pretrained>`. Some notable arguments include:
 
 * ``provider``: ONNX Runtime provider to use for loading the model, e.g. ``"CPUExecutionProvider"`` . See https://onnxruntime.ai/docs/execution-providers/ for possible providers. If not specified, the strongest provider (E.g. ``"CUDAExecutionProvider"``) will be used.
 * ``file_name``: The name of the ONNX file to load. If not specified, will default to ``"model.onnx"`` or otherwise ``"onnx/model.onnx"``. This argument is useful for specifying optimized or quantized models.
@@ -145,19 +117,19 @@ All keyword arguments passed via ``model_kwargs`` will be passed on to :meth:`OR
 
 .. tip::
 
-   It's heavily recommended to save the exported model to prevent having to re-export it every time you run your code. You can do this by calling :meth:`model.save_pretrained() <sentence_transformers.cross_encoder.CrossEncoder.save_pretrained>` if your model was local:
+   It's heavily recommended to save the exported model to prevent having to re-export it every time you run your code. You can do this by calling :meth:`model.save_pretrained() <sentence_transformers.SparseEncoder.save_pretrained>` if your model was local:
 
    .. code-block:: python
 
-      model = CrossEncoder("path/to/my/model", backend="onnx")
+      model = SparseEncoder("path/to/my/model", backend="onnx")
       model.save_pretrained("path/to/my/model")
-   
-   or with :meth:`model.push_to_hub() <sentence_transformers.cross_encoder.CrossEncoder.push_to_hub>` if your model was from the Hugging Face Hub:
+
+   or with :meth:`model.push_to_hub() <sentence_transformers.SparseEncoder.push_to_hub>` if your model was from the Hugging Face Hub:
 
    .. code-block:: python
 
-      model = CrossEncoder("Alibaba-NLP/gte-reranker-modernbert-base", backend="onnx")
-      model.push_to_hub("Alibaba-NLP/gte-reranker-modernbert-base", create_pr=True)
+      model = SparseEncoder("naver/splade-v3", backend="onnx")
+      model.push_to_hub("naver/splade-v3", create_pr=True)
 
 Optimizing ONNX Models
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -179,24 +151,24 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
 
    Only optimize once::
 
-      from sentence_transformers import CrossEncoder, export_optimized_onnx_model
+      from sentence_transformers import SparseEncoder, export_optimized_onnx_model
 
-      model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", backend="onnx")
+      model = SparseEncoder("naver/splade-v3", backend="onnx")
       export_optimized_onnx_model(
           model=model,
           optimization_config="O3",
-          model_name_or_path="cross-encoder/ms-marco-MiniLM-L6-v2",
+          model_name_or_path="naver/splade-v3",
           push_to_hub=True,
           create_pr=True,
       )
 
    Before the pull request gets merged::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
       pull_request_nr = 2 # TODO: Update this to the number of your pull request
-      model = CrossEncoder(
-          "cross-encoder/ms-marco-MiniLM-L6-v2",
+      model = SparseEncoder(
+          "naver/splade-v3",
           backend="onnx",
           model_kwargs={"file_name": "onnx/model_O3.onnx"},
           revision=f"refs/pr/{pull_request_nr}"
@@ -204,10 +176,10 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
    
    Once the pull request gets merged::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
-      model = CrossEncoder(
-          "cross-encoder/ms-marco-MiniLM-L6-v2",
+      model = SparseEncoder(
+          "naver/splade-v3",
           backend="onnx",
           model_kwargs={"file_name": "onnx/model_O3.onnx"},
       )
@@ -216,18 +188,18 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
 
    Only optimize once::
 
-      from sentence_transformers import CrossEncoder, export_optimized_onnx_model
+      from sentence_transformers import SparseEncoder, export_optimized_onnx_model
 
-      model = CrossEncoder("path/to/my/mpnet-legal-finetuned", backend="onnx")
+      model = SparseEncoder("path/to/my/mpnet-legal-finetuned", backend="onnx")
       export_optimized_onnx_model(
           model=model, optimization_config="O3", model_name_or_path="path/to/my/mpnet-legal-finetuned"
       )
 
    After optimizing::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
-      model = CrossEncoder(
+      model = SparseEncoder(
           "path/to/my/mpnet-legal-finetuned",
           backend="onnx",
           model_kwargs={"file_name": "onnx/model_O3.onnx"},
@@ -255,24 +227,24 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
 
    Only quantize once::
 
-      from sentence_transformers import CrossEncoder, export_dynamic_quantized_onnx_model
+      from sentence_transformers import SparseEncoder, export_dynamic_quantized_onnx_model
 
-      model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", backend="onnx")
+      model = SparseEncoder("naver/splade-v3", backend="onnx")
       export_dynamic_quantized_onnx_model(
           model=model,
           quantization_config="avx512_vnni",
-          model_name_or_path="sentence-transformers/cross-encoder/ms-marco-MiniLM-L6-v2",
+          model_name_or_path="sentence-transformers/naver/splade-v3",
           push_to_hub=True,
           create_pr=True,
       )
 
    Before the pull request gets merged::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
       pull_request_nr = 2 # TODO: Update this to the number of your pull request
-      model = CrossEncoder(
-          "cross-encoder/ms-marco-MiniLM-L6-v2",
+      model = SparseEncoder(
+          "naver/splade-v3",
           backend="onnx",
           model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
           revision=f"refs/pr/{pull_request_nr}",
@@ -280,10 +252,10 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
    
    Once the pull request gets merged::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
-      model = CrossEncoder(
-          "cross-encoder/ms-marco-MiniLM-L6-v2",
+      model = SparseEncoder(
+          "naver/splade-v3",
           backend="onnx",
           model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
       )
@@ -292,18 +264,18 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
 
    Only quantize once::
 
-      from sentence_transformers import CrossEncoder, export_dynamic_quantized_onnx_model
+      from sentence_transformers import SparseEncoder, export_dynamic_quantized_onnx_model
 
-      model = CrossEncoder("path/to/my/mpnet-legal-finetuned", backend="onnx")
+      model = SparseEncoder("path/to/my/mpnet-legal-finetuned", backend="onnx")
       export_dynamic_quantized_onnx_model(
-          model=model, quantization_config="avx512_vnni", model_name_or_path="path/to/my/mpnet-legal-finetuned"
+         model=model, quantization_config="avx512_vnni", model_name_or_path="path/to/my/mpnet-legal-finetuned"
       )
 
    After quantizing::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
-      model = CrossEncoder(
+      model = SparseEncoder(
           "path/to/my/mpnet-legal-finetuned",
           backend="onnx",
           model_kwargs={"file_name": "onnx/model_qint8_avx512_vnni.onnx"},
@@ -324,26 +296,18 @@ To convert a model to OpenVINO format, you can use the following code:
 
 .. code-block:: python
 
-   from sentence_transformers import CrossEncoder
+   from sentence_transformers import SparseEncoder
 
-   model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", backend="openvino")
-
-   query = "Which planet is known as the Red Planet?"
-   passages = [
-      "Venus is often called Earth's twin because of its similar size and proximity.",
-      "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
-      "Jupiter, the largest planet in our solar system, has a prominent red spot.",
-      "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
-   ]
-
-   scores = model.predict([(query, passage) for passage in passages])
-   print(scores)
+   model = SparseEncoder("naver/splade-v3", backend="openvino")
+   
+   sentences = ["This is an example sentence", "Each sentence is converted"]
+   embeddings = model.encode(sentences)
 
 If the model path or repository already contains a model in OpenVINO format, Sentence Transformers will automatically use it. Otherwise, it will convert the model to the OpenVINO format.
 
 .. note::
 
-   If you wish to use the OpenVINO model outside of Sentence Transformers, you might need to apply your chosen activation function (e.g. Sigmoid) to get identical results as the Cross Encoder in Sentence Transformers.
+   If you wish to use the OpenVINO model outside of Sentence Transformers, you'll need to perform SPLADE pooling and/or normalization yourself. The OpenVINO export only converts the (Masked Language Modelling) Transformer component, which outputs token embeddings, not sparse embeddings for the full text.
 
 .. raw:: html
 
@@ -354,19 +318,19 @@ If the model path or repository already contains a model in OpenVINO format, Sen
 
 .. tip::
 
-   It's heavily recommended to save the exported model to prevent having to re-export it every time you run your code. You can do this by calling :meth:`model.save_pretrained() <sentence_transformers.cross_encoder.CrossEncoder.save_pretrained>` if your model was local:
+   It's heavily recommended to save the exported model to prevent having to re-export it every time you run your code. You can do this by calling :meth:`model.save_pretrained() <sentence_transformers.SparseEncoder.save_pretrained>` if your model was local:
 
    .. code-block:: python
 
-      model = CrossEncoder("path/to/my/model", backend="openvino")
+      model = SparseEncoder("path/to/my/model", backend="openvino")
       model.save_pretrained("path/to/my/model")
    
-   or with :meth:`model.push_to_hub() <sentence_transformers.cross_encoder.CrossEncoder.push_to_hub>` if your model was from the Hugging Face Hub:
+   or with :meth:`model.push_to_hub() <sentence_transformers.SparseEncoder.push_to_hub>` if your model was from the Hugging Face Hub:
 
    .. code-block:: python
 
-      model = CrossEncoder("Alibaba-NLP/gte-reranker-modernbert-base", backend="openvino")
-      model.push_to_hub("Alibaba-NLP/gte-reranker-modernbert-base", create_pr=True)
+      model = SparseEncoder("intfloat/multilingual-e5-small", backend="openvino")
+      model.push_to_hub("intfloat/multilingual-e5-small", create_pr=True)
 
 Quantizing OpenVINO Models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -397,24 +361,24 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 
    Only quantize once::
 
-      from sentence_transformers import CrossEncoder, export_static_quantized_openvino_model
+      from sentence_transformers import SparseEncoder, export_static_quantized_openvino_model
 
-      model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2", backend="openvino")
+      model = SparseEncoder("naver/splade-v3", backend="openvino")
       export_static_quantized_openvino_model(
           model=model,
           quantization_config=None,
-          model_name_or_path="cross-encoder/ms-marco-MiniLM-L6-v2",
+          model_name_or_path="sentence-transformers/naver/splade-v3",
           push_to_hub=True,
           create_pr=True,
       )
 
    Before the pull request gets merged::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
       pull_request_nr = 2 # TODO: Update this to the number of your pull request
-      model = CrossEncoder(
-          "cross-encoder/ms-marco-MiniLM-L6-v2",
+      model = SparseEncoder(
+          "naver/splade-v3",
           backend="openvino",
           model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
           revision=f"refs/pr/{pull_request_nr}"
@@ -422,10 +386,10 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 
    Once the pull request gets merged::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
-      model = CrossEncoder(
-          "cross-encoder/ms-marco-MiniLM-L6-v2",
+      model = SparseEncoder(
+          "naver/splade-v3",
           backend="openvino",
           model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
       )
@@ -434,10 +398,10 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 
    Only quantize once::
 
-      from sentence_transformers import CrossEncoder, export_static_quantized_openvino_model
+      from sentence_transformers import SparseEncoder, export_static_quantized_openvino_model
       from optimum.intel import OVQuantizationConfig
 
-      model = CrossEncoder("path/to/my/mpnet-legal-finetuned", backend="openvino")
+      model = SparseEncoder("path/to/my/mpnet-legal-finetuned", backend="openvino")
       quantization_config = OVQuantizationConfig()
       export_static_quantized_openvino_model(
           model=model, quantization_config=quantization_config, model_name_or_path="path/to/my/mpnet-legal-finetuned"
@@ -445,9 +409,9 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 
    After quantizing::
 
-      from sentence_transformers import CrossEncoder
+      from sentence_transformers import SparseEncoder
 
-      model = CrossEncoder(
+      model = SparseEncoder(
           "path/to/my/mpnet-legal-finetuned",
           backend="openvino",
           model_kwargs={"file_name": "openvino/openvino_model_qint8_quantized.xml"},
@@ -456,7 +420,7 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 Benchmarks
 ----------
 
-The following images show the benchmark results for the different backends on GPUs and CPUs. The results are averaged across 4 models of various sizes, 3 datasets, and numerous batch sizes.
+The following images show the benchmark results for the different backends on GPUs and CPUs. The results are averaged across 3 datasets and numerous batch sizes.
 
 .. raw:: html
 
@@ -473,41 +437,34 @@ The following images show the benchmark results for the different backends on GP
          <b>Datasets: </b> 2000 samples for GPU tests, 1000 samples for CPU tests.
          <ul>
             <li>
-               <a href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a>: <code>sentence1</code> and <code>sentence2</code> columns as pairs, with 38.94 ± 13.97 and 38.96 ± 14.05 characters on average, respectively.
+               <a href="https://huggingface.co/datasets/sentence-transformers/stsb">sentence-transformers/stsb</a>: 38.9 characters on average (SD=13.9)
             </li>
             <li>
-               <a href="https://huggingface.co/datasets/sentence-transformers/natural-questions">sentence-transformers/natural-questions</a>: <code>query</code> and <code>answer</code> columns as pairs, with 46.99 ± 10.98 and 619.63 ± 345.30 characters on average, respectively.
+               <a href="https://huggingface.co/datasets/sentence-transformers/natural-questions">sentence-transformers/natural-questions</a>: answers only, 619.6 characters on average (SD=345.3)
             </li>
             <li>
-               <a href="https://huggingface.co/datasets/stanfordnlp/imdb">stanfordnlp/imdb</a>: Two variants used from the <code>text</code> column: first 100 characters (100.00 ± 0.00 characters) and each sample repeated 4 times (16804.25 ± 10178.26 characters).
+               <a href="https://huggingface.co/datasets/stanfordnlp/imdb">stanfordnlp/imdb</a>: texts repeated 4 times, 9589.3 characters on average (SD=633.4)
             </li>
          </ul>
       </li>
       <li>
-         <b>Models: </b>
+         <b>Model: </b>
          <ul>
             <li>
-               <a href="https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2">cross-encoder/ms-marco-MiniLM-L6-v2</a>: 22.7M parameters; batch sizes of 16, 32, 64, 128 and 256.
-            </li>
-            <li>
-               <a href="https://huggingface.co/BAAI/bge-reranker-base">BAAI/bge-reranker-base</a>: 278M parameters; batch sizes of 16, 32, 64, and 128.
-            </li>
-            <li>
-               <a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-large-v1">mixedbread-ai/mxbai-rerank-large-v1</a>: 435M parameters; batch sizes of 8, 16, 32, and 64. Also 128 and 256 for GPU tests.
-            </li>
-            <li>
-               <a href="https://huggingface.co/BAAI/bge-reranker-v2-m3">BAAI/bge-reranker-v2-m3</a>: 568M parameters; batch sizes of 2, 4. Also 8, 16, and 32 for GPU tests.
+               <a href="https://huggingface.co/naver/splade-v3">naver/splade-v3</a>: 110M parameters; batch sizes of 8, 16, 32, and 64.
             </li>
          </ul>
       </li>
    </ul>
+   I also benchmarked <a href="https://huggingface.co/ibm-granite/granite-embedding-30m-sparse">ibm-granite/granite-embedding-30m-sparse</a>, but it proved too small to effectively show the gains of the different backends, so I excluded it from the results.
+   <br>
    Performance ratio: The same models and hardware was used. We compare the performance against the performance of PyTorch with fp32, i.e. the default backend and precision.
    <ul>
       <li>
          <b>Evaluation: </b>
          <ul>
             <li>
-               <b>Information Retrieval: </b>NDCG@10 based on cosine similarity on the MS MARCO and NQ subsets from the <a href="https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6">NanoBEIR</a> collection of datasets, computed via the CrossEncoderNanoBEIREvaluator.
+               <b>Information Retrieval: </b>NDCG@10 based on cosine similarity on the MS MARCO and NQ subsets from the <a href="https://huggingface.co/collections/zeta-alpha-ai/nanobeir-66e1a0af21dfd93e620cd9f6">NanoBEIR</a> collection of datasets, computed via the SparseNanoBEIREvaluator.
             </li>
          </ul>
       </li>
@@ -554,17 +511,17 @@ The following images show the benchmark results for the different backends on GP
       </li>
    </ul>
 
-   Note that the aggressive averaging across models, datasets, and batch sizes prevents some more intricate patterns from being visible. For example, ONNX seems to perform stronger at low batch sizes. However, ONNX and OpenVINO can even perform slightly worse than PyTorch, so we recommend testing the different backends with your specific model and data to find the best one for your use case.
+   Note that the aggressive averaging across models, datasets, and batch sizes prevents some more intricate patterns from being visible. For example, for both GPUs and CPUs, the <a href="https://huggingface.co/ibm-granite/granite-embedding-30m-sparse">ibm-granite/granite-embedding-30m-sparse</a> model benefits less from various backends than larger models. For example, fp16 and bf16 on GPUs only results in a 1.4x speedup on average.
 
    </details>
    <br>
 
 
-.. image:: ../../img/ce_backends_benchmark_gpu.png
+.. image:: ../../img/se_backends_benchmark_gpu.png
    :alt: Benchmark for GPUs
    :width: 45%
 
-.. image:: ../../img/ce_backends_benchmark_cpu.png
+.. image:: ../../img/se_backends_benchmark_cpu.png
    :alt: Benchmark for CPUs
    :width: 45%
 
@@ -582,19 +539,21 @@ Based on the benchmarks, this flowchart should help you decide which backend to 
       }
    }}%%
    graph TD
-   A("What is your hardware?") -->|GPU| B("Are you using a small<br>batch size?")
+   A(What is your hardware?) -->|GPU| B("Are you using a<br>batch size of <= 4?")
    A -->|CPU| C("Are minor performance<br>degradations acceptable?")
    B -->|yes| D[onnx-O4]
-   B -->|no| F[float16]
+   B -->|no| F[bfloat16]
    C -->|yes| G[openvino-qint8]
-   C -->|no| H("Do you have an Intel CPU?")
+   C -->|no| H(Do you have an Intel CPU?)
    H -->|yes| I[openvino]
-   H -->|no| J[onnx]
+   I -->|or| J[onnx-O3]
+   H -->|no| K[onnx-O3]
    click D "#optimizing-onnx-models"
    click F "#pytorch"
    click G "#quantizing-openvino-models"
    click I "#openvino"
-   click J "#onnx"
+   click J "#optimizing-onnx-models"
+   click K "#optimizing-onnx-models"
 
 .. note::
 
