@@ -22,17 +22,39 @@ pip install mteb
 
 ```python
 from sentence_transformers import SentenceTransformer
-from mteb import MTEB
+from mteb import MTEB, get_tasks
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-tasks = mteb.get_tasks(tasks=["STSBenchmark"])
+
+# Example 1: Run a specific single task (STS22)
+tasks = get_tasks(["STS22"])
 evaluation = MTEB(tasks=tasks)
 results = evaluation.run(model, output_folder="results/")
+
+
+You can filter available MTEB tasks based on task type, domain, and language.  
+For example, the following snippet evaluates on **English retrieval tasks in the medical domain**:
+
+
+# Example 2: Filtered tasks by type, domain, and language
+# This fetches Retrieval tasks from the Medical domain in English
+filtered_tasks = get_tasks(
+    task_types=["Retrieval"],
+    domains=["Medical"],
+    languages=["en"]
+)
+
+# Evaluate on filtered tasks
+evaluation = MTEB(tasks=filtered_tasks)
+results = evaluation.run(model, output_folder="results/medical_retrieval/")
 ```
 
-This evaluates your model on the **STS Benchmark**, a Semantic Textual Similarity dataset with human-annotated sentence pairs. Output is saved in `results/`.
+This evaluates your model on **STS22**, a multilingual semantic similarity dataset from the SemEval 2022 challenge. Output is saved in `results/`.
 
 ---
+> Note: The following tasks are only examples.
+
+> For the full list of supported benchmarks, visit the [MTEB GitHub repo](https://github.com/embeddings-benchmark/mteb#tasks).
 
 ##  Supported Task Types and Examples
 
@@ -86,17 +108,18 @@ evaluation.run(model, output_folder=None)
 To extract scores programmatically:
 
 ```python
-results = evaluation.run(model, output_folder=None)
 
 from mteb import MTEBResults
-summary = MTEBResults(results).main_scores()
-print(summary)
+
+results = evaluation.run(model, output_folder="results/")
+for task, scores in results.items():
+    print(f"{task}: {scores['main_score']}")
 ```
 
 To export all results as a Markdown table:
 
 ```python
-df = MTEBResults(results).to_markdown()
+df = MTEBResults(results).to_dataframe()
 print(df)
 ```
 
