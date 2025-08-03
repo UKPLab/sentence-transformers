@@ -27,7 +27,7 @@ from mteb import MTEB
 model = SentenceTransformer("all-MiniLM-L6-v2")
 tasks = mteb.get_tasks(tasks=["STSBenchmark"])
 evaluation = MTEB(tasks=tasks)
-evaluation.run(model, output_folder="results/")
+results = evaluation.run(model, output_folder="results/")
 ```
 
 This evaluates your model on the **STS Benchmark**, a Semantic Textual Similarity dataset with human-annotated sentence pairs. Output is saved in `results/`.
