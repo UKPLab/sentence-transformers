@@ -625,17 +625,23 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
         input_was_singular = False
-        if sentences and isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
+        if isinstance(sentences, tuple) and sentences and isinstance(sentences[0], str):
+            sentences = [sentences]
+            input_was_singular = True
+        elif isinstance(sentences, list) and sentences and isinstance(sentences[0], str):
             sentences = [sentences]
             input_was_singular = True
 
-        if len(sentences) == 0:
+        def _empty_result():
             if convert_to_tensor:
                 return torch.tensor([], device=self.model.device)
-            elif convert_to_numpy:
+            if convert_to_numpy:
                 return np.array([])
-            else:
-                return []
+            return []
+
+        # [] or [[]] or [(), (), ...] that is empty
+        if not sentences or all(not pair for pair in sentences):
+            return _empty_result()
 
         if show_progress_bar is None:
             show_progress_bar = (

@@ -152,6 +152,38 @@ def test_predict_single_input(model_name: str):
         assert pair_score.shape == (model.num_labels,)
 
 
+@pytest.mark.parametrize(
+    "model_name", ["cross-encoder-testing/reranker-bert-tiny-gooaq-bce", "cross-encoder/nli-MiniLM2-L6-H768"]
+)
+@pytest.mark.parametrize(
+    "empty_input",
+    [
+        [],
+        [[]],
+        [(), ()],
+    ],
+)
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+def test_predict_empty_input(model_name: str, empty_input, convert_to_numpy: bool, convert_to_tensor: bool):
+    """
+    Ensure every flavour of empty/degenerate input returns the correct
+    empty container without raising.
+    """
+    model = CrossEncoder(model_name)
+    result = model.predict(empty_input, convert_to_numpy=convert_to_numpy, convert_to_tensor=convert_to_tensor)
+
+    if convert_to_tensor:
+        assert isinstance(result, torch.Tensor)
+        assert result.numel() == 0
+        assert result.device == model.model.device
+    elif convert_to_numpy:
+        assert isinstance(result, np.ndarray)
+        assert result.size == 0
+    else:
+        assert result == []
+
+
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 def test_predict_output_types(
