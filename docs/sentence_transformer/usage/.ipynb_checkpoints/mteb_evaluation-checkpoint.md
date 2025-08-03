@@ -2,11 +2,11 @@
 
 The [Massive Text Embedding Benchmark (MTEB)](https://github.com/embeddings-benchmark/mteb) is a comprehensive benchmark suite for evaluating embedding models across diverse NLP tasks like classification, retrieval, clustering, reranking, and semantic similarity.
 
-This guide walks you through using MTEB **with SentenceTransformer models for post-training evaluation**. This is *not* designed for use during training loops. To fully integrate your model to `MTEB` you can follow this [guide](https://github.com/embeddings-benchmark/mteb/blob/main/docs/adding_a_model.md)
+This guide walks you through using MTEB **with SentenceTransformer models for post-training evaluation**. This is *not* designed for use during training loops.
 
 ---
 
-## Installation
+## 🔧 Installation
 
 Install MTEB and its dependencies:
 
@@ -18,45 +18,22 @@ pip install mteb
 
 ---
 
-##  Quick Start: One-Line Evaluation
+## 🚀 Quick Start: One-Line Evaluation
 
 ```python
 from sentence_transformers import SentenceTransformer
-from mteb import MTEB, get_tasks
+from mteb import MTEB
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# Example 1: Run a specific single task (STS22.v2)
-tasks = get_tasks(["STS22.v2"])
-evaluation = MTEB(tasks=tasks)
-results = evaluation.run(model, output_folder="results/")
-
-
-You can filter available MTEB tasks based on task type, domain, and language.  
-For example, the following snippet evaluates on **English retrieval tasks in the medical domain**:
-
-
-# Example 2: Filtered tasks by type, domain, and language
-# This fetches Retrieval tasks from the Medical domain in English
-filtered_tasks = get_tasks(
-    task_types=["Retrieval"],
-    domains=["Medical"],
-    languages=["en"]
-)
-
-# Evaluate on filtered tasks
-evaluation = MTEB(tasks=filtered_tasks)
-results = evaluation.run(model, output_folder="results/medical_retrieval/")
+evaluation = MTEB(tasks=["STSBenchmark"])
+evaluation.run(model, output_folder="results/")
 ```
 
-This evaluates your model on **.v2**, a multilingual semantic similarity dataset from the SemEval 2022 challenge. Output is saved in `results/`.
+This evaluates your model on the **STS Benchmark**, a Semantic Textual Similarity dataset with human-annotated sentence pairs. Output is saved in `results/`.
 
 ---
-> Note: The following tasks are only examples.
 
-> For the full list of supported benchmarks, visit the [MTEB GitHub repo](https://github.com/embeddings-benchmark/mteb#tasks).
-
-##  Supported Task Types and Examples
+## 📋 Supported Task Types and Examples
 
 MTEB supports the following **task families**:
 
@@ -91,13 +68,13 @@ MTEB supports the following **task families**:
 You can evaluate specific tasks or full categories:
 
 ```python
-mteb.get_tasks(tasks=["SICK-R", "AmazonCounterfactualClassification"])
-mteb.get_tasks(task_types=["Classification", "Retrieval"])
+MTEB(tasks=["SICK-R", "AmazonCounterfactualClassification"])
+MTEB(task_types=["Classification", "Retrieval"])
 ```
 
 ---
 
-##  Customize Output and Results Handling
+## 🛠️ Customize Output and Results Handling
 
 To avoid writing results to disk:
 
@@ -108,23 +85,23 @@ evaluation.run(model, output_folder=None)
 To extract scores programmatically:
 
 ```python
+results = evaluation.run(model, output_folder=None)
 
 from mteb import MTEBResults
-
-results = evaluation.run(model, output_folder="results/")
-for task, scores in results.items():
-    print(f"{task}: {scores['main_score']}")
+summary = MTEBResults(results).main_scores()
+print(summary)
 ```
 
 To export all results as a Markdown table:
 
 ```python
-df = MTEBResults(results).to_dataframe()
+df = MTEBResults(results).to_markdown()
 print(df)
 ```
 
 ---
 
+## ⚠️ Do Not Use MTEB During Training
 
 **Important**: MTEB is for *post-training* benchmarking only.
 
@@ -137,7 +114,7 @@ print(df)
 
 ---
 
-## Submitting to the Leaderboard
+## 🏆 Submitting to the Leaderboard
 
 You can compare your results on the [official leaderboard](https://huggingface.co/spaces/mteb/leaderboard).
 
@@ -149,8 +126,9 @@ df = MTEBResults(results).to_markdown()
 print(df)
 ```
 
-To add your results to the MTEB Leaderboard, follow the submission instructions in the [MTEB repository](https://github.com/embeddings-benchmark/mteb).
+Follow submission instructions in the [MTEB repo](https://github.com/embeddings-benchmark/mteb).
 
+---
 
 ## 📚 References
 
