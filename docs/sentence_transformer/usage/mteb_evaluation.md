@@ -126,7 +126,7 @@ df = MTEBResults(results).to_markdown()
 print(df)
 ```
 
-Follow submission instructions in the [MTEB repo](https://github.com/embeddings-benchmark/mteb).
+To add your results to the MTEB Leaderboard, follow the submission instructions in the [MTEB repository](https://github.com/embeddings-benchmark/mteb).
 
 
 ## 📚 References
