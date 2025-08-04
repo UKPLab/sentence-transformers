@@ -940,10 +940,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             convert_to_tensor = False
             convert_to_numpy = False
 
+        # Cast an individual input to a list with length 1
         input_was_string = False
-        if isinstance(sentences, str) or not hasattr(
-            sentences, "__len__"
-        ):  # Cast an individual sentence to a list with length 1
+        if isinstance(sentences, str) or not hasattr(sentences, "__len__"):
             sentences = [sentences]
             input_was_string = True
 

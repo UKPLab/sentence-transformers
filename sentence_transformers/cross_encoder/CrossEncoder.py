@@ -624,15 +624,11 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 model.predict(sentences)
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
+        # Cast an individual pair to a list with length 1
         input_was_singular = False
-        if isinstance(sentences, tuple) and sentences and isinstance(sentences[0], str):
+        if sentences and isinstance(sentences, (list, tuple)) and isinstance(sentences[0], str):
             sentences = [sentences]
             input_was_singular = True
-        elif isinstance(sentences, list) and sentences and isinstance(sentences[0], str):
-            sentences = [sentences]
-            input_was_singular = True
-
-        # [] or [[]] or [(), (), ...] that is empty
 
         if show_progress_bar is None:
             show_progress_bar = (
