@@ -5,6 +5,7 @@ import logging
 import os
 import re
 from collections import OrderedDict
+from contextlib import nullcontext
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -37,7 +38,7 @@ from sentence_transformers.training_args import (
     MultiDatasetBatchSamplers,
     SentenceTransformerTrainingArguments,
 )
-from sentence_transformers.util import is_datasets_available, is_training_available
+from sentence_transformers.util import disable_logging, is_datasets_available, is_training_available
 
 if is_datasets_available():
     from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, Value
@@ -46,6 +47,13 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+# The TrackioCallback is only available in the v4.54+ of transformers, but I'd like to keep Sentence Transformers
+# compatible with older versions of transformers as well, so we import it conditionally
+try:
+    from transformers.integrations import TrackioCallback
+except ImportError:
+    TrackioCallback = None
 
 
 class SentenceTransformerTrainer(Trainer):
@@ -272,9 +280,13 @@ class SentenceTransformerTrainer(Trainer):
         self.model: SentenceTransformer
         self.args: SentenceTransformerTrainingArguments
         self.data_collator: SentenceTransformerDataCollator
-        # Set the W&B project via environment variables if it's not already set
+        # Set the W&B or Trackio project via environment variables if it's not already set
         if any([isinstance(callback, WandbCallback) for callback in self.callback_handler.callbacks]):
             os.environ.setdefault("WANDB_PROJECT", "sentence-transformers")
+        if TrackioCallback is not None and any(
+            [isinstance(callback, TrackioCallback) for callback in self.callback_handler.callbacks]
+        ):
+            os.environ.setdefault("TRACKIO_PROJECT", "sentence-transformers")
 
         if loss is None:
             logger.info("No `loss` passed, using `losses.CoSENTLoss` as a default option.")
@@ -547,7 +559,7 @@ class SentenceTransformerTrainer(Trainer):
         )
 
         # If the evaluator is not defined, we can just return the output
-        if self.evaluator is None or not self.is_local_process_zero():
+        if self.evaluator is None:
             return output
 
         # If we are training and eval_dataset is a DatasetDict, then we should
@@ -559,13 +571,14 @@ class SentenceTransformerTrainer(Trainer):
             else:
                 return output
 
-        output_path = self.args.output_dir
-        if output_path is not None:
-            output_path = os.path.join(output_path, "eval")
-            os.makedirs(output_path, exist_ok=True)
-        evaluator_metrics = self.evaluator(
-            self.model, output_path=output_path, epoch=self.state.epoch, steps=self.state.global_step
-        )
+        with nullcontext() if self.is_local_process_zero() else disable_logging(logging.INFO):
+            output_path = self.args.output_dir
+            if output_path is not None:
+                output_path = os.path.join(output_path, "eval")
+                os.makedirs(output_path, exist_ok=True)
+            evaluator_metrics = self.evaluator(
+                self.model, output_path=output_path, epoch=self.state.epoch, steps=self.state.global_step
+            )
         if not isinstance(evaluator_metrics, dict):
             evaluator_metrics = {"evaluator": evaluator_metrics}
 
@@ -581,16 +594,7 @@ class SentenceTransformerTrainer(Trainer):
     def _load_best_model(self) -> None:
         # Attempt to load the model from self.state.best_model_checkpoint
         logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
-        try:
-            dummy_model = self.model.__class__(
-                self.state.best_model_checkpoint,
-                trust_remote_code=self.model.trust_remote_code,
-            )
-        except Exception as exc:
-            logger.error(f"Could not load the best model from {self.state.best_model_checkpoint}. Error: {str(exc)}")
-            return
 
-        # Store the best model checkpoint in the model card
         try:
             if checkpoint := self.state.best_model_checkpoint:
                 step = checkpoint.rsplit("-", 1)[-1]
@@ -598,9 +602,11 @@ class SentenceTransformerTrainer(Trainer):
         except Exception:
             pass
 
-        # Ideally, the only changes between self.model and the dummy model are the weights
-        # so we should be able to just copy the state dict
-        self.model.load_state_dict(dummy_model.state_dict())
+        try:
+            self._load_from_checkpoint(self.state.best_model_checkpoint)
+        except Exception as exc:
+            logger.error(f"Could not load the best model from {self.state.best_model_checkpoint}. Error: {str(exc)}")
+            return
 
     def validate_column_names(self, dataset: Dataset, dataset_name: str | None = None) -> None:
         if isinstance(dataset, dict):

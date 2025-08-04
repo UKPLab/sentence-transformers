@@ -11,7 +11,7 @@ from .environment import (
 )
 from .file_io import disabled_tqdm, http_get, is_sentence_transformer_model, load_dir_path, load_file_path
 from .hard_negatives import mine_hard_negatives
-from .misc import append_to_last_row, disable_datasets_caching, fullname, import_from_string
+from .misc import append_to_last_row, disable_datasets_caching, disable_logging, fullname, import_from_string
 from .retrieval import (
     community_detection,
     information_retrieval,
@@ -64,6 +64,7 @@ __all__ = [
     "fullname",
     "import_from_string",
     "disable_datasets_caching",
+    "disable_logging",
     "append_to_last_row",
     # From retrieval.py
     "community_detection",
