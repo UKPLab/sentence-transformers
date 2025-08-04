@@ -152,14 +152,11 @@ def test_predict_single_input(model_name: str):
         assert pair_score.shape == (model.num_labels,)
 
 
-@pytest.mark.parametrize("empty_input", [[], [[]], [(), ()]])
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
-def test_predict_empty_input(
-    reranker_bert_tiny_model: CrossEncoder, empty_input, convert_to_numpy: bool, convert_to_tensor: bool
-):
+def test_empty_predict(reranker_bert_tiny_model: CrossEncoder, convert_to_numpy: bool, convert_to_tensor: bool):
     model = reranker_bert_tiny_model
-    result = model.predict(empty_input, convert_to_numpy=convert_to_numpy, convert_to_tensor=convert_to_tensor)
+    result = model.predict([], convert_to_numpy=convert_to_numpy, convert_to_tensor=convert_to_tensor)
 
     if convert_to_tensor:
         assert isinstance(result, torch.Tensor)

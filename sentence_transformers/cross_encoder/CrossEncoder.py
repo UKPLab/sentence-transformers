@@ -633,12 +633,6 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             input_was_singular = True
 
         # [] or [[]] or [(), (), ...] that is empty
-        if not sentences or all(not pair for pair in sentences):
-            if convert_to_tensor:
-                return torch.tensor([], device=self.model.device)
-            if convert_to_numpy:
-                return np.array([])
-            return []
 
         if show_progress_bar is None:
             show_progress_bar = (
@@ -670,7 +664,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             pred_scores = [score[0] for score in pred_scores]
 
         if convert_to_tensor:
-            pred_scores = torch.stack(pred_scores)
+            if len(pred_scores):
+                pred_scores = torch.stack(pred_scores)
+            else:
+                pred_scores = torch.tensor([], device=self.model.device)
         elif convert_to_numpy:
             pred_scores = np.asarray([score.cpu().detach().float().numpy() for score in pred_scores])
 
