@@ -1,10 +1,8 @@
-# Evaluating SentenceTransformer Models with MTEB
+# Evaluation with MTEB
 
-The [Massive Text Embedding Benchmark (MTEB)](https://github.com/embeddings-benchmark/mteb) is a comprehensive benchmark suite for evaluating embedding models across diverse NLP tasks like classification, retrieval, clustering, reranking, and semantic similarity.
+The [Massive Text Embedding Benchmark (MTEB)](https://github.com/embeddings-benchmark/mteb) is a comprehensive benchmark suite for evaluating embedding models across diverse NLP tasks like retrieval, classification, clustering, reranking, and semantic similarity.
 
-This guide walks you through using MTEB **with SentenceTransformer models for post-training evaluation**. This is *not* designed for use during training loops. To fully integrate your model to `MTEB` you can follow this [guide](https://github.com/embeddings-benchmark/mteb/blob/main/docs/adding_a_model.md)
-
----
+This guide walks you through using MTEB with SentenceTransformer models for post-training evaluation. This is *not* designed for use during training loops, as this risks overfitting to public benchmarks. For evaluation during training, please see the [Evaluator section in the Training Overview](../training_overview.md#evaluator). To fully integrate your model to MTEB, you can follow the [Adding a model to the Leaderboard](https://github.com/embeddings-benchmark/mteb/blob/main/docs/adding_a_model.md) guide from the MTEB Documentation.
 
 ## Installation
 
@@ -14,146 +12,98 @@ Install MTEB and its dependencies:
 pip install mteb
 ```
 
-> This also installs `sentence-transformers`, `datasets`, and task-specific dependencies.
+## Evaluation
 
----
-
-##  Quick Start: One-Line Evaluation
+You can evaluate your SentenceTransformer model on individual tasks from the MTEB suite like so:
 
 ```python
+import mteb
 from sentence_transformers import SentenceTransformer
-from mteb import MTEB, get_tasks
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Example 1: Run a specific single task (STS22.v2)
-tasks = get_tasks(["STS22.v2"])
-evaluation = MTEB(tasks=tasks)
+# Example 1: Run a specific single task
+tasks = mteb.get_tasks(tasks=["STS22.v2"], languages=["eng"])
+evaluation = mteb.MTEB(tasks=tasks)
 results = evaluation.run(model, output_folder="results/")
+```
 
+For the full list of available tasks, you can check the [MTEB Tasks documentation](https://github.com/embeddings-benchmark/mteb/blob/main/docs/tasks.md).
 
-You can filter available MTEB tasks based on task type, domain, and language.  
-For example, the following snippet evaluates on **English retrieval tasks in the medical domain**:
+You can also filter available MTEB tasks based on task type, domain, language, and more.
+For example, the following snippet evaluates on English retrieval tasks in the medical domain:
 
+```python
+import mteb
+from sentence_transformers import SentenceTransformer
 
-# Example 2: Filtered tasks by type, domain, and language
-# This fetches Retrieval tasks from the Medical domain in English
-filtered_tasks = get_tasks(
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# Example 2: Run all English retrieval tasks in the medical domain
+tasks = mteb.get_tasks(
     task_types=["Retrieval"],
     domains=["Medical"],
-    languages=["en"]
+    languages=["eng"]
 )
-
-# Evaluate on filtered tasks
-evaluation = MTEB(tasks=filtered_tasks)
-results = evaluation.run(model, output_folder="results/medical_retrieval/")
-```
-
-This evaluates your model on **.v2**, a multilingual semantic similarity dataset from the SemEval 2022 challenge. Output is saved in `results/`.
-
----
-> Note: The following tasks are only examples.
-
-> For the full list of supported benchmarks, visit the [MTEB GitHub repo](https://github.com/embeddings-benchmark/mteb#tasks).
-
-##  Supported Task Types and Examples
-
-MTEB supports the following **task families**:
-
-### 1. **Semantic Textual Similarity (STS)**
-
-* **STSBenchmark**: Predict similarity score (0-5) for English sentence pairs.
-* **BIOSSES**: Biomedical sentence similarity.
-* **SICK-R**: Sentence Involving Compositional Knowledge with human ratings.
-
-### 2. **Classification**
-
-* **AmazonCounterfactualClassification**: Predict product sentiment in counterfactual reviews.
-* **TwitterSentiment**: Predict sentiment on tweets (positive/negative).
-* **MassiveIntentClassification**: Classify user intent in multi-lingual commands.
-
-### 3. **Retrieval (Information Retrieval)**
-
-* **TREC-COVID**: Retrieve COVID-19 papers for search queries.
-* **SciFact**: Retrieve abstracts relevant to scientific claims.
-* **NFCorpus**: Retrieve passages for health and nutrition questions.
-
-### 4. **Reranking**
-
-* **MSMARCO**: Rerank candidate passages by relevance to a query.
-* **StackExchangeReranking**: Rerank answers on StackExchange questions.
-
-### 5. **Bitext Mining**
-
-* **BUCC**: Identify aligned sentences in multilingual corpora.
-* **Tatoeba**: Match translations across 100+ languages.
-
-You can evaluate specific tasks or full categories:
-
-```python
-mteb.get_tasks(tasks=["SICK-R", "AmazonCounterfactualClassification"])
-mteb.get_tasks(task_types=["Classification", "Retrieval"])
-```
-
----
-
-##  Customize Output and Results Handling
-
-To avoid writing results to disk:
-
-```python
-evaluation.run(model, output_folder=None)
-```
-
-To extract scores programmatically:
-
-```python
-
-from mteb import MTEBResults
-
+evaluation = mteb.MTEB(tasks=tasks)
 results = evaluation.run(model, output_folder="results/")
-for task, scores in results.items():
-    print(f"{task}: {scores['main_score']}")
 ```
 
-To export all results as a Markdown table:
+Lastly, it's often valuable to evaluate on predefined benchmarks. For example, to run all retrieval tasks in the `MTEB(eng, v2)` benchmark:
 
 ```python
-df = MTEBResults(results).to_dataframe()
-print(df)
+import mteb
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# Example 3: Run the MTEB benchmark for English tasks
+benchmark = mteb.get_benchmark("MTEB(eng, v2)")
+evaluation = mteb.MTEB(tasks=benchmark)
+results = evaluation.run(model, output_folder="results/")
 ```
 
----
+For the full list of supported benchmarks, visit the [MTEB Benchmarks documentation](https://github.com/embeddings-benchmark/mteb/blob/main/docs/benchmarks.md).
 
+## Additional Arguments
 
-**Important**: MTEB is for *post-training* benchmarking only.
+When running evaluations, you can pass arguments down to `model.encode()` using the `encode_kwargs` parameter on `evaluation.run()`. This allows you to customize how embeddings are generated, such as setting `batch_size`, `truncate_dim`, or `normalize_embeddings`.
 
-* Using it during training risks **overfitting** to public benchmarks.
-* It writes to disk and caches aggressively.
-* Official guidance recommends using SentenceTransformer's built-in evaluators like:
+Additionally, your SentenceTransformer model may have been configured to use `prompts`. MTEB will automatically detect and use these prompts if they are defined in your model's configuration. For task-specific or document/query-specific prompts, you should read the MTEB Documentation on [Running SentenceTransformer models with prompts](https://github.com/embeddings-benchmark/mteb/blob/main/docs/usage/usage.md#running-sentencetransformer-model-with-prompts).
 
-  * `EmbeddingSimilarityEvaluator`
-  * `BinaryClassificationEvaluator`
+## Results Handling
 
----
-
-## Submitting to the Leaderboard
-
-You can compare your results on the [official leaderboard](https://huggingface.co/spaces/mteb/leaderboard).
-
-Export your scores:
+MTEB caches all results to disk, so you can rerun `evaluation.run()` without needing to redownload datasets or recomputing scores. 
 
 ```python
-from mteb import MTEBResults
-df = MTEBResults(results).to_markdown()
-print(df)
+import mteb
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+tasks = mteb.get_tasks(tasks=["STS17", "STS22.v2"], languages=["eng"])
+evaluation = mteb.MTEB(tasks=tasks)
+results = evaluation.run(model, output_folder="results/")
+
+for task_results in results:
+    # Print the aggregated main scores for each task
+    print(f"{task_results.task_name}: {task_results.get_score():.4f} mean {task_results.task.metadata.main_score}")
+    """
+    STS17: 0.2881 mean cosine_spearman
+    STS22.v2: 0.4925 mean cosine_spearman
+    """
+
+    # Or e.g. print the individual scores for each split or subset
+    print(task_results.only_main_score().to_dict())
 ```
 
-To add your results to the MTEB Leaderboard, follow the submission instructions in the [MTEB repository](https://github.com/embeddings-benchmark/mteb).
+## Leaderboard Submission
 
+To add your model to the [MTEB Leaderboard](https://huggingface.co/spaces/mteb/leaderboard), you will need to follow the [Adding a Model](https://github.com/embeddings-benchmark/mteb/blob/main/docs/adding_a_model.md) MTEB Documentation.
 
-## 📚 References
+For the process, you'll need to follow these steps:
+1. Add your model metadata (name, languages, number of parameters, framework, training datasets, etc.) to the [MTEB Repository](https://github.com/embeddings-benchmark/mteb/tree/main/mteb/models)
+2. Evaluate your model using MTEB on your desired tasks and save the results.
+2. Submit your results to the [MTEB Results Repository](https://github.com/embeddings-benchmark/results).
 
-* [MTEB GitHub](https://github.com/embeddings-benchmark/mteb)
-* [MTEB Leaderboard](https://huggingface.co/spaces/mteb/leaderboard)
-* [SentenceTransformers Docs](https://www.sbert.net/)
+Once both are merged, after a day you'll be able to find your model on the [official leaderboard](https://huggingface.co/spaces/mteb/leaderboard).
