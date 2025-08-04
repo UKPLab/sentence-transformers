@@ -597,7 +597,11 @@ class SparseEncoder(SentenceTransformer):
 
         if convert_to_tensor:
             if len(all_embeddings) == 0:
-                all_embeddings = torch.Tensor()
+                all_embeddings = torch.tensor([], device=self.device)
+                if convert_to_sparse_tensor:
+                    all_embeddings = all_embeddings.to_sparse()
+                if save_to_cpu:
+                    all_embeddings = all_embeddings.cpu()
             else:
                 all_embeddings = torch.stack(all_embeddings)
 
