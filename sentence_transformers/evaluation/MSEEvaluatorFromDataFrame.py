@@ -86,7 +86,12 @@ class MSEEvaluatorFromDataFrame(SentenceEvaluator):
         self.teacher_embeddings = {sent: emb for sent, emb in zip(all_source_sentences, all_src_embeddings)}
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1, encode_args: dict = {},
+        self,
+        model: SentenceTransformer,
+        output_path: str | None = None,
+        epoch: int = -1,
+        steps: int = -1,
+        encode_args: dict = {},
     ) -> dict[str, float]:
         model.eval()
 

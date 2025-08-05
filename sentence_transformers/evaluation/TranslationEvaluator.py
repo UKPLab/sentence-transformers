@@ -100,7 +100,12 @@ class TranslationEvaluator(SentenceEvaluator):
         self.primary_metric = "mean_accuracy"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1, encode_args: dict = {},
+        self,
+        model: SentenceTransformer,
+        output_path: str | None = None,
+        epoch: int = -1,
+        steps: int = -1,
+        encode_args: dict = {},
     ) -> dict[str, float]:
         if epoch != -1:
             if steps == -1:

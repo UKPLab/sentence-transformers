@@ -135,7 +135,12 @@ class RerankingEvaluator(SentenceEvaluator):
         self.primary_metric = f"ndcg@{self.at_k}"
 
     def __call__(
-        self, model: SentenceTransformer, output_path: str | None = None, epoch: int = -1, steps: int = -1, encode_args: dict = {},
+        self,
+        model: SentenceTransformer,
+        output_path: str | None = None,
+        epoch: int = -1,
+        steps: int = -1,
+        encode_args: dict = {},
     ) -> dict[str, float]:
         """
         Evaluates the model on the dataset and returns the evaluation metrics.
@@ -204,7 +209,7 @@ class RerankingEvaluator(SentenceEvaluator):
         Args:
             model (SentenceTransformer): The SentenceTransformer model to compute metrics for.
             encode_args (dict): The args to be passed to the encode method. Defaults to {}.
-            
+
         Returns:
             Dict[str, float]: A dictionary containing the evaluation metrics.
         """
@@ -314,8 +319,12 @@ class RerankingEvaluator(SentenceEvaluator):
             docs = positive + negative
             is_relevant = [1] * len(positive) + [0] * len(negative)
 
-            query_emb = self.embed_inputs(model, [query], encode_fn_name="query", show_progress_bar=False, **encode_args)
-            docs_emb = self.embed_inputs(model, docs, encode_fn_name="document", show_progress_bar=False, **encode_args)
+            query_emb = self.embed_inputs(
+                model, [query], encode_fn_name="query", show_progress_bar=False, **encode_args
+            )
+            docs_emb = self.embed_inputs(
+                model, docs, encode_fn_name="document", show_progress_bar=False, **encode_args
+            )
 
             pred_scores = self.similarity_fct(query_emb, docs_emb)
             if len(pred_scores.shape) > 1:
