@@ -46,11 +46,11 @@ def backend_should_export(
 ) -> tuple[bool, dict[str, Any]]:
     """
     Determines whether the model should be exported to the backend, or if it can be loaded directly.
-    Also update the `file_name` and `subfolder` model_args if necessary.
+    Also update the `file_name` and `subfolder` model_kwargs if necessary.
 
     These are the cases:
 
-    1. If export is set in model_args, just return export
+    1. If export is set in model_kwargs, just return export
     2. If `<subfolder>/<file_name>` exists; set export to False
     3. If `<backend>/<file_name>` exists; set export to False and set subfolder to the backend (e.g. "onnx")
     4. If `<file_name>` contains a folder, add those folders to the subfolder and set the file_name to the last part
@@ -65,13 +65,14 @@ def backend_should_export(
     Args:
         load_path: The model repository or directory, as a Path instance
         is_local: Whether the model is local or remote, i.e. whether load_path is a local directory
-        model_args: The model_args dictionary. Notable keys are "export", "file_name", and "subfolder"
+        model_kwargs: The model_kwargs dictionary. Notable keys are "export", "file_name", and "subfolder"
         target_file_name: The expected file name in the model directory, e.g. "model.onnx" or "openvino_model.xml"
         target_file_glob: The glob pattern to match the target file name, e.g. "*.onnx" or "openvino*.xml"
         backend_name: The human-readable name of the backend for use in warnings, e.g. "ONNX" or "OpenVINO"
 
     Returns:
-        Tuple[bool, dict[str, Any]]: A tuple of the export boolean and the updated model_args dictionary.
+        Tuple[bool, dict[str, Any]]: A tuple of the export boolean and the updated model_kwargs dictionary.
+            Notable keys in model_kwargs are "export", "file_name", and "subfolder".
     """
     export = model_kwargs.pop("export", None)
     if export:
