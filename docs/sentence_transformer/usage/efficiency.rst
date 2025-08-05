@@ -134,7 +134,7 @@ Optimizing ONNX Models
 
 ONNX models can be optimized using `Optimum <https://huggingface.co/docs/optimum/index>`_, allowing for speedups on CPUs and GPUs alike. To do this, you can use the :func:`~sentence_transformers.backend.export_optimized_onnx_model` function, which saves the optimized in a directory or model repository that you specify. It expects:
 
-- ``model``: a Sentence Transformer or Cross Encoder model loaded with the ONNX backend.
+- ``model``: a Sentence Transformer, Sparse Encoder, or Cross Encoder model loaded with the ONNX backend.
 - ``optimization_config``: ``"O1"``, ``"O2"``, ``"O3"``, or ``"O4"`` representing optimization levels from :class:`~optimum.onnxruntime.AutoOptimizationConfig`, or an :class:`~optimum.onnxruntime.OptimizationConfig` instance.
 - ``model_name_or_path``: a path to save the optimized model file, or the repository name if you want to push it to the Hugging Face Hub.
 - ``push_to_hub``: (Optional) a boolean to push the optimized model to the Hugging Face Hub.
@@ -151,9 +151,9 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="onnx")
       export_optimized_onnx_model(
-          model,
-          "O3",
-          "sentence-transformers/all-MiniLM-L6-v2",
+          model=model,
+          optimization_config="O3",
+          model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
           push_to_hub=True,
           create_pr=True,
       )
@@ -187,7 +187,9 @@ See this example for exporting a model with :doc:`optimization level 3 <optimum:
       from sentence_transformers import SentenceTransformer, export_optimized_onnx_model
 
       model = SentenceTransformer("path/to/my/mpnet-legal-finetuned", backend="onnx")
-      export_optimized_onnx_model(model, "O3", "path/to/my/mpnet-legal-finetuned")
+      export_optimized_onnx_model(
+          model=model, optimization_config="O3", model_name_or_path="path/to/my/mpnet-legal-finetuned"
+      )
 
    After optimizing::
 
@@ -206,7 +208,7 @@ Quantizing ONNX Models
 
 ONNX models can be quantized to int8 precision using `Optimum <https://huggingface.co/docs/optimum/index>`_, allowing for faster inference on CPUs. To do this, you can use the :func:`~sentence_transformers.backend.export_dynamic_quantized_onnx_model` function, which saves the quantized in a directory or model repository that you specify. Dynamic quantization, unlike static quantization, does not require a calibration dataset. It expects:
 
-- ``model``: a Sentence Transformer or Cross Encoder model loaded with the ONNX backend.
+- ``model``: a Sentence Transformer, Sparse Encoder, or Cross Encoder model loaded with the ONNX backend.
 - ``quantization_config``: ``"arm64"``, ``"avx2"``, ``"avx512"``, or ``"avx512_vnni"`` representing quantization configurations from :class:`~optimum.onnxruntime.AutoQuantizationConfig`, or an :class:`~optimum.onnxruntime.QuantizationConfig` instance.
 - ``model_name_or_path``: a path to save the quantized model file, or the repository name if you want to push it to the Hugging Face Hub.
 - ``push_to_hub``: (Optional) a boolean to push the quantized model to the Hugging Face Hub.
@@ -225,9 +227,9 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="onnx")
       export_dynamic_quantized_onnx_model(
-          model,
-          "avx512_vnni",
-          "sentence-transformers/all-MiniLM-L6-v2",
+          model=model,
+          quantization_config="avx512_vnni",
+          model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
           push_to_hub=True,
           create_pr=True,
       )
@@ -261,7 +263,9 @@ See this example for quantizing a model to ``int8`` with :doc:`avx512_vnni <opti
       from sentence_transformers import SentenceTransformer, export_dynamic_quantized_onnx_model
 
       model = SentenceTransformer("path/to/my/mpnet-legal-finetuned", backend="onnx")
-      export_dynamic_quantized_onnx_model(model, "O3", "path/to/my/mpnet-legal-finetuned")
+      export_dynamic_quantized_onnx_model(
+          model=model, quantization_config="avx512_vnni", model_name_or_path="path/to/my/mpnet-legal-finetuned"
+      )
 
    After quantizing::
 
@@ -334,7 +338,7 @@ To do this, you can use the :func:`~sentence_transformers.backend.export_static_
 which saves the quantized model in a directory or model repository that you specify.
 Post-Training Static Quantization expects:
 
-- ``model``: a Sentence Transformer or Cross Encoder model loaded with the OpenVINO backend.
+- ``model``: a Sentence Transformer, Sparse Encoder, or Cross Encoder model loaded with the OpenVINO backend.
 - ``quantization_config``: (Optional) The quantization configuration. This parameter accepts either:
   ``None`` for the default 8-bit quantization, a dictionary representing quantization configurations, or
   an :class:`~optimum.intel.OVQuantizationConfig` instance.
@@ -357,7 +361,7 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 
       model = SentenceTransformer("all-MiniLM-L6-v2", backend="openvino")
       export_static_quantized_openvino_model(
-          model,
+          model=model,
           quantization_config=None,
           model_name_or_path="sentence-transformers/all-MiniLM-L6-v2",
           push_to_hub=True,
@@ -395,7 +399,9 @@ See this example for quantizing a model to ``int8`` with `static quantization <h
 
       model = SentenceTransformer("path/to/my/mpnet-legal-finetuned", backend="openvino")
       quantization_config = OVQuantizationConfig()
-      export_static_quantized_openvino_model(model, quantization_config, "path/to/my/mpnet-legal-finetuned")
+      export_static_quantized_openvino_model(
+          model=model, quantization_config=quantization_config, model_name_or_path="path/to/my/mpnet-legal-finetuned"
+      )
 
    After quantizing::
 
@@ -487,25 +493,25 @@ The following images show the benchmark results for the different backends on GP
                <code>onnx</code>: ONNX with float32 precision, via <code>backend="onnx"</code>.
             </li>
             <li>
-               <code>onnx-O1</code>: ONNX with float32 precision and O1 optimization, via <code>export_optimized_onnx_model(..., "O1", ...)</code> and <code>backend="onnx"</code>.
+               <code>onnx-O1</code>: ONNX with float32 precision and O1 optimization, via <code>export_optimized_onnx_model(..., optimization_config="O1", ...)</code> and <code>backend="onnx"</code>.
             </li>
             <li>
-               <code>onnx-O2</code>: ONNX with float32 precision and O2 optimization, via <code>export_optimized_onnx_model(..., "O2", ...)</code> and <code>backend="onnx"</code>.
+               <code>onnx-O2</code>: ONNX with float32 precision and O2 optimization, via <code>export_optimized_onnx_model(..., optimization_config="O2", ...)</code> and <code>backend="onnx"</code>.
             </li>
             <li>
-               <code>onnx-O3</code>: ONNX with float32 precision and O3 optimization, via <code>export_optimized_onnx_model(..., "O3", ...)</code> and <code>backend="onnx"</code>.
+               <code>onnx-O3</code>: ONNX with float32 precision and O3 optimization, via <code>export_optimized_onnx_model(..., optimization_config="O3", ...)</code> and <code>backend="onnx"</code>.
             </li>
             <li>
-               <code>onnx-O4</code>: ONNX with float16 precision and O4 optimization, via <code>export_optimized_onnx_model(..., "O4", ...)</code> and <code>backend="onnx"</code>.
+               <code>onnx-O4</code>: ONNX with float16 precision and O4 optimization, via <code>export_optimized_onnx_model(..., optimization_config="O4", ...)</code> and <code>backend="onnx"</code>.
             </li>
             <li>
-               <code>onnx-qint8</code>: ONNX quantized to int8 with "avx512_vnni", via <code>export_dynamic_quantized_onnx_model(..., "avx512_vnni", ...)</code> and <code>backend="onnx"</code>. The different quantization configurations resulted in roughly equivalent speedups.
+               <code>onnx-qint8</code>: ONNX quantized to int8 with "avx512_vnni", via <code>export_dynamic_quantized_onnx_model(..., quantization_config="avx512_vnni", ...)</code> and <code>backend="onnx"</code>. The different quantization configurations resulted in roughly equivalent speedups.
             </li>
             <li>
                <code>openvino</code>: OpenVINO, via <code>backend="openvino"</code>.
             </li>
             <li>
-               <code>openvino-qint8</code>: OpenVINO quantized to int8 via <code>export_static_quantized_openvino_model(..., OVQuantizationConfig(), ...)</code> and <code>backend="openvino"</code>.
+               <code>openvino-qint8</code>: OpenVINO quantized to int8 via <code>export_static_quantized_openvino_model(..., quantization_config=OVQuantizationConfig(), ...)</code> and <code>backend="openvino"</code>.
             </li>
          </ul>
       </li>

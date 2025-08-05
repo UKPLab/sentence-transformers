@@ -2294,6 +2294,9 @@ print(similarities)
         if (transformers_model := self.transformers_model) is not None and hasattr(transformers_model, "device"):
             return transformers_model.device
 
+        if len(self._modules) and hasattr(self[0], "auto_model") and hasattr(self[0].auto_model, "device"):
+            return self[0].auto_model.device
+
         try:
             return next(self.parameters()).device
         except StopIteration:
