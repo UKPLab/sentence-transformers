@@ -507,7 +507,7 @@ This example demonstrates how to use [splade-index](https://github.com/rasyosef/
    print("Start encoding corpus and creating index...")
    start_time = time.time()
    corpus_index = SPLADE()
-   corpus_index.index(model=sparse_model, documents=corpus, batch_size=16,    show_progress=True)
+   corpus_index.index(model=sparse_model, documents=corpus, batch_size=16, show_progress=True)
    print(f"Encoded corpus and created index in {time.time() - start_time:.6f} seconds")
    
    while True:
@@ -517,7 +517,7 @@ This example demonstrates how to use [splade-index](https://github.com/rasyosef/
        print(f"Encoding & Search time: {time.time() - start_time:.6f} seconds")
    
        # 7. Output the results
-       for query, doc_ids, documents, scores in zip(queries, all_doc_ids, all_documents,    all_scores):
+       for query, doc_ids, documents, scores in zip(queries, all_doc_ids, all_documents, all_scores):
            print(f"Query: {query}")
            for doc_id, document, score in zip(doc_ids, documents, scores):
                print(f"(Score: {score:.4f}) {document}, corpus_id: {doc_id}")
