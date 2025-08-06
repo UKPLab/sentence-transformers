@@ -437,8 +437,9 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
                 model.predict(sentences)
                 # => array([0.6912767, 0.4303499], dtype=float32)
         """
+        # Cast an individual pair to a list with length 1
         input_was_singular = False
-        if isinstance(sentences[0], str):  # Cast an individual pair to a list with length 1
+        if sentences and isinstance(sentences, (list, tuple)) and isinstance(sentences[0], str):
             sentences = [sentences]
             input_was_singular = True
 
@@ -472,7 +473,10 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             pred_scores = [score[0] for score in pred_scores]
 
         if convert_to_tensor:
-            pred_scores = torch.stack(pred_scores)
+            if len(pred_scores):
+                pred_scores = torch.stack(pred_scores)
+            else:
+                pred_scores = torch.tensor([], device=self.model.device)
         elif convert_to_numpy:
             pred_scores = np.asarray([score.cpu().detach().float().numpy() for score in pred_scores])
 

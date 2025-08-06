@@ -940,10 +940,9 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             convert_to_tensor = False
             convert_to_numpy = False
 
+        # Cast an individual input to a list with length 1
         input_was_string = False
-        if isinstance(sentences, str) or not hasattr(
-            sentences, "__len__"
-        ):  # Cast an individual sentence to a list with length 1
+        if isinstance(sentences, str) or not hasattr(sentences, "__len__"):
             sentences = [sentences]
             input_was_string = True
 
@@ -1091,7 +1090,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
-        if precision and precision != "float32":
+        if all_embeddings and precision and precision != "float32":
             all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
 
         if convert_to_tensor:
@@ -1101,7 +1100,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 else:
                     all_embeddings = torch.stack(all_embeddings)
             else:
-                all_embeddings = torch.Tensor()
+                all_embeddings = torch.tensor([], device=self.device)
         elif convert_to_numpy:
             if not isinstance(all_embeddings, np.ndarray):
                 if all_embeddings and all_embeddings[0].dtype == torch.bfloat16:
