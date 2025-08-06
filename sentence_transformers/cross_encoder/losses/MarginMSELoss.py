@@ -108,7 +108,7 @@ class MarginMSELoss(nn.Module):
         # If there's multiple scores, then `labels` is a list of tensors. We need to stack them into
         # a single tensor of shape (batch_size, num_columns - 1)
         if isinstance(labels, list):
-            labels = torch.stack(labels, dim=1).T
+            labels = torch.stack(labels)
 
         if labels.shape == (batch_size, len(negatives) + 1):
             # If labels are given as a single score for positive and multiple negatives,
@@ -134,8 +134,7 @@ class MarginMSELoss(nn.Module):
             negative_pairs = list(zip(anchors, negative))
             negative_logits_list.append(self.logits_from_pairs(negative_pairs))
 
-        margin_logits = [positive_logits - negative_logits for negative_logits in negative_logits_list]
-        margin_logits = torch.stack(margin_logits, dim=1)
+        margin_logits = positive_logits.unsqueeze(1) - torch.stack(negative_logits_list, dim=1)
         loss = self.loss_fct(margin_logits, labels.float())
         return loss
 
