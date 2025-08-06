@@ -1,6 +1,10 @@
-.. tip::
+.. note::
 
-   Sentence Transformers v5.0 just released, introducing SparseEncoder models, a new class of models for efficient neural lexical search and hybrid retrieval. Read `Sparse Encoder > Usage <docs/sparse_encoder/usage/usage.html>`_ to learn more about how to use them, or check out `v5.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.0.0>`_ for details on the other changes.
+   Sentence Transformers v5.1 just released, bringing the ONNX and OpenVINO backends to SparseEncoder models. Read `SparseEncoder > Usage > Speeding up Inference <docs/sparse_encoder/usage/efficiency.html>`_ to read more about the performance boosts that you can expect, or read the `v5.1 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.1.0>`_ for information on the other changes.
+
+.. note::
+
+   Sentence Transformers v5.0 was recently published, introducing SparseEncoder models, a new class of models for efficient neural lexical search and hybrid retrieval. Read `Sparse Encoder > Usage <docs/sparse_encoder/usage/usage.html>`_ to learn more about how to use them, or check out `v5.0 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.0.0>`_ for details on the other changes.
 
 SentenceTransformers Documentation
 ==================================
@@ -144,6 +148,7 @@ Consider reading one of the following sections to answer the related questions:
 * Sparse Encoder Models:
    * How to **use** Sparse Encoder models? `Sparse Encoder > Usage <docs/sparse_encoder/usage/usage.html>`_
    * What Sparse Encoder **models** can I use? `Sparse Encoder > Pretrained Models <docs/sparse_encoder/pretrained_models.html>`_
+   * How do I make Sparse Encoder models **faster**? `Sparse Encoder > Usage > Speeding up Inference <docs/sparse_encoder/usage/efficiency.html>`_
    * How do I **train/finetune** a Sparse Encoder model? `Sparse Encoder > Training Overview <docs/sparse_encoder/training_overview.html>`_
    * How do I **integrate** Sparse Encoder models with search engines? `Sparse Encoder > Vector Database Integration <examples/sparse_encoder/applications/semantic_search/README.html#vector-database-search>`_
 
