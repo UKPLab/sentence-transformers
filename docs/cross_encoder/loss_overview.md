@@ -31,10 +31,13 @@ Loss functions play a critical role in the performance of your fine-tuned Cross 
 These loss functions are specifically designed to be used when distilling the knowledge from one model into another.
 For example, when finetuning a small model to behave more like a larger & stronger one, or when finetuning a model to become multi-lingual.
 
-| Texts                                        | Labels                                                        | Appropriate Loss Functions                                                                 |
-|----------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------------------------|
-| `(sentence_A, sentence_B) pairs`             | `similarity score`                                            | <a href="../package_reference/cross_encoder/losses.html#mseloss">`MSELoss`</a>             |
-| `(query, passage_one, passage_two) triplets` | `gold_sim(query, passage_one) - gold_sim(query, passage_two)` | <a href="../package_reference/cross_encoder/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| Texts                                             | Labels                                                                    | Appropriate Loss Functions                                                                 |
+|---------------------------------------------------|---------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| `(sentence_A, sentence_B) pairs`                  | `similarity score`                                                        | <a href="../package_reference/cross_encoder/losses.html#mseloss">`MSELoss`</a>             |
+| `(query, passage_one, passage_two) triplets`      | `gold_sim(query, passage_one) - gold_sim(query, passage_two)`             | <a href="../package_reference/cross_encoder/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative_1, ..., negative_n)`  | `[gold_sim(query, positive) - gold_sim(query, negative_i) for i in 1..n]` | <a href="../package_reference/cross_encoder/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative)`                     | `[gold_sim(query, positive), gold_sim(query, negative)]`                  | <a href="../package_reference/cross_encoder/losses.html#marginmseloss">`MarginMSELoss`</a> |
+| `(query, positive, negative_1, ..., negative_n) ` | `[gold_sim(query, positive), gold_sim(query, negative_i)...] `            | <a href="../package_reference/cross_encoder/losses.html#marginmseloss">`MarginMSELoss`</a> |
 
 ## Commonly used Loss Functions
 In practice, not all loss functions get used equally often. The most common scenarios are:
