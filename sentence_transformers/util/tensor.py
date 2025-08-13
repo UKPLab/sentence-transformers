@@ -194,13 +194,13 @@ def to_scipy_coo(x: Tensor) -> coo_matrix:
 
 def compute_count_vector(embeddings: torch.Tensor) -> torch.Tensor:
     """
-    Compute count vector from sparse embeddings.
+    Compute count vector from sparse embeddings indicating how many samples have non-zero values in each dimension.
 
     Args:
-        embeddings: Sparse tensor of shape (batch_size, vocab_size)
+        embeddings: Sparse tensor of shape (batch_size, vocab_size) or (vocab_size,)
 
     Returns:
-        Count vector of shape (vocab_size,) indicating how many samples have non-zero values in each dimension
+        Count vector of shape (vocab_size,)
     """
     if not embeddings.is_sparse:
         embeddings = embeddings.to_sparse()
@@ -208,21 +208,18 @@ def compute_count_vector(embeddings: torch.Tensor) -> torch.Tensor:
     # Coalesce to ensure indices are sorted and unique
     embeddings = embeddings.coalesce()
 
+    count_vector = torch.zeros(embeddings.size(-1), device=embeddings.device, dtype=torch.int32)
     if embeddings.dim() == 1:
         # Single embedding case
-        count_vector = torch.zeros(embeddings.size(0), device=embeddings.device, dtype=torch.float32)
-        count_vector[embeddings.indices().squeeze()] = 1.0
+        count_vector[embeddings.indices().squeeze()] = 1
         return count_vector
     elif embeddings.dim() == 2:
         # Batch case
-        _, vocab_size = embeddings.shape
-        count_vector = torch.zeros(vocab_size, device=embeddings.device, dtype=torch.float32)
-
         if embeddings.values().numel() > 0:
             indices = embeddings.indices()
             # Count how many samples have non-zero values in each dimension
             unique_dims, counts = torch.unique(indices[1], return_counts=True)
-            count_vector[unique_dims] = counts.float()
+            count_vector[unique_dims] = counts.int()
 
         return count_vector
     else:

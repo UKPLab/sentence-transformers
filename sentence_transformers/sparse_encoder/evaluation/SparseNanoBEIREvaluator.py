@@ -103,7 +103,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MAP@100: 0.9070
             Model Query Sparsity: Active Dimensions: 59.4, Sparsity Ratio: 0.9981
             Model Corpus Sparsity: Active Dimensions: 61.9, Sparsity Ratio: 0.9980
-            Average FLOPS: 4.1
+            Average FLOPS: 4.10
 
             Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
             Queries: 50
@@ -127,7 +127,7 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             MAP@100: 0.6277
             Model Query Sparsity: Active Dimensions: 45.4, Sparsity Ratio: 0.9985
             Model Corpus Sparsity: Active Dimensions: 122.6, Sparsity Ratio: 0.9960
-            Average FLOPS: 2.4
+            Average FLOPS: 2.41
 
             Average Queries: 50.0
             Average Corpus: 5044.5
@@ -146,9 +146,10 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             Recall@10: 92.13%
             MRR@10: 0.7815
             NDCG@10: 0.8060
+            MAP@100: 0.7674
             Model Query Sparsity: Active Dimensions: 52.4, Sparsity Ratio: 0.9983
             Model Corpus Sparsity: Active Dimensions: 92.2, Sparsity Ratio: 0.9970
-            Average FLOPS: 2.6
+            Average FLOPS: 2.59
             '''
             # Print the results
             print(f"Primary metric: {evaluator.primary_metric}")
@@ -224,34 +225,30 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             model, output_path=output_path, epoch=epoch, steps=steps, *args, **kwargs
         )
         total_query_count, total_corpus_count = None, None
-        total_queries, total_corpus_docs = 0, 0
         for evaluator in self.evaluators:
             self.lengths["query"].append(len(evaluator.queries))
             self.lengths["corpus"].append(len(evaluator.corpus))
             for key, value in evaluator.sparsity_stats.items():
                 self.sparsity_stats[key].append(value)
 
-            for count_vec, length in zip(evaluator.count_vectors["query"], evaluator.count_lengths["query"]):
-                if total_query_count is None:
-                    total_query_count = torch.zeros_like(count_vec)
-                total_query_count += count_vec
-                total_queries += length
-            for count_vec, length in zip(evaluator.count_vectors["corpus"], evaluator.count_lengths["corpus"]):
-                if total_corpus_count is None:
-                    total_corpus_count = torch.zeros_like(count_vec)
-                total_corpus_count += count_vec
-                total_corpus_docs += length
+            if total_query_count is None:
+                total_query_count = evaluator.count_vectors["query"]
+                total_corpus_count = evaluator.count_vectors["corpus"]
+            else:
+                total_query_count += evaluator.count_vectors["query"]
+                total_corpus_count += evaluator.count_vectors["corpus"]
 
-        for key, value in self.sparsity_stats.items():
-            # Skip avg_flops as it's calculated separately
+        # Compute the weighted mean for each of the sparsity stats, except avg_flops as a weighted mean would
+        # not be accurate
+        for key, values in self.sparsity_stats.items():
             if key == "avg_flops":
                 continue
-            self.sparsity_stats[key] = sum(
-                val * length for val, length in zip(value, self.lengths[key.split("_")[0]])
-            ) / sum(self.lengths[key.split("_")[0]])
 
-        avg_query_count = total_query_count / total_queries
-        avg_corpus_count = total_corpus_count / total_corpus_docs
+            lengths = self.lengths[key.split("_")[0]]
+            self.sparsity_stats[key] = sum(val * length for val, length in zip(values, lengths)) / sum(lengths)
+
+        avg_query_count = total_query_count / sum(self.lengths["query"])
+        avg_corpus_count = total_corpus_count / sum(self.lengths["corpus"])
         self.sparsity_stats["avg_flops"] = float(torch.dot(avg_query_count, avg_corpus_count).cpu())
 
         per_dataset_results.update(self.prefix_name_to_metrics(self.sparsity_stats, self.name))

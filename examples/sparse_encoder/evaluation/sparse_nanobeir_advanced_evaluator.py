@@ -39,7 +39,7 @@ NDCG@10: 0.6217
 MAP@100: 0.5440
 Model Query Sparsity: Active Dimensions: 72.7, Sparsity Ratio: 0.9976
 Model Corpus Sparsity: Active Dimensions: 165.9, Sparsity Ratio: 0.9946
-Average FLOPS: 3.8
+Average FLOPS: 3.79
 """
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")

@@ -58,7 +58,6 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         ::
 
             import logging
-            import random
 
             from datasets import load_dataset
 
@@ -123,7 +122,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
             MAP@100: 0.1778
             Model Query Sparsity: Active Dimensions: 40.0, Sparsity Ratio: 0.9987
             Model Corpus Sparsity: Active Dimensions: 206.2, Sparsity Ratio: 0.9932
-            Average FLOPS: 4.7
+            Average FLOPS: 4.66
             '''
             # Print the results
             print(f"Primary metric: {ir_evaluator.primary_metric}")
@@ -194,7 +193,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         self, model: SparseEncoder, output_path: str | None = None, epoch: int = -1, steps: int = -1, *args, **kwargs
     ) -> dict[str, float]:
         self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
-        self.count_vectors = {"query": [], "corpus": []}
+        self.count_vectors = {}
         self.count_lengths = {"query": [], "corpus": []}
         metrics = super().__call__(model=model, output_path=output_path, epoch=epoch, steps=steps)
         for prefix in ["query", "corpus"]:
@@ -218,7 +217,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         logger.info(
             f"Model Corpus Sparsity: Active Dimensions: {self.sparsity_stats['corpus_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['corpus_sparsity_ratio']:.4f}"
         )
-        logger.info(f"Average FLOPS: {self.sparsity_tats['avg_flops']:.2f}")
+        logger.info(f"Average FLOPS: {self.sparsity_stats['avg_flops']:.2f}")
         if output_path is not None and self.write_csv:
             append_to_last_row(os.path.join(output_path, self.csv_file), self.sparsity_stats.values())
 
@@ -266,7 +265,10 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         for key, value in stat.items():
             self.sparsity_stats[prefix][key].append(value)
         count_vec = compute_count_vector(embeddings)
-        self.count_vectors[prefix].append(count_vec)
+        if prefix in self.count_vectors:
+            self.count_vectors[prefix] += count_vec
+        else:
+            self.count_vectors[prefix] = count_vec
         self.count_lengths[prefix].append(len(sentences))
         return embeddings
 
@@ -282,26 +284,16 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         return config_dict
 
     def _calculate_avg_flops(self) -> float:
-        """Calculate average FLOPS between queries and corpus."""
-        if not self.count_vectors["query"] or not self.count_vectors["corpus"]:
+        """Calculate average FLOPS between queries and corpus.
+
+        FLOPS is the dot product of the average query and corpus count vectors,
+        and can be used to estimate the computational cost of retrieval with
+        sparse representations.
+        """
+        if "query" not in self.count_vectors or "corpus" not in self.count_vectors:
             return 0.0
 
-        # Average query count vector (normalized by number of queries)
-        total_query_count = torch.zeros_like(self.count_vectors["query"][0])
-        total_queries = 0
-        for count_vec, length in zip(self.count_vectors["query"], self.count_lengths["query"]):
-            total_query_count += count_vec
-            total_queries += length
-        avg_query_count = total_query_count / total_queries
-
-        # Weighted average corpus count vector (weighted by batch sizes)
-        total_corpus_count = torch.zeros_like(self.count_vectors["corpus"][0])
-        total_corpus_docs = 0
-        for count_vec, length in zip(self.count_vectors["corpus"], self.count_lengths["corpus"]):
-            total_corpus_count += count_vec
-            total_corpus_docs += length
-        avg_corpus_count = total_corpus_count / total_corpus_docs
-
-        # FLOPS = dot product of average count vectors
+        avg_query_count = self.count_vectors["query"] / sum(self.count_lengths["query"])
+        avg_corpus_count = self.count_vectors["corpus"] / sum(self.count_lengths["corpus"])
         flops = float(torch.dot(avg_query_count, avg_corpus_count).cpu())
         return flops
