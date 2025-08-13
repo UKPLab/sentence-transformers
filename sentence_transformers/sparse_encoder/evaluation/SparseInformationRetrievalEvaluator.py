@@ -218,7 +218,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
         logger.info(
             f"Model Corpus Sparsity: Active Dimensions: {self.sparsity_stats['corpus_active_dims']:.1f}, Sparsity Ratio: {self.sparsity_stats['corpus_sparsity_ratio']:.4f}"
         )
-        logger.info(f"Average FLOPS: {self.sparsity_stats['avg_flops']:.1f}")
+        logger.info(f"Average FLOPS: {self.sparsity_tats['avg_flops']:.2f}")
         if output_path is not None and self.write_csv:
             append_to_last_row(os.path.join(output_path, self.csv_file), self.sparsity_stats.values())
 
