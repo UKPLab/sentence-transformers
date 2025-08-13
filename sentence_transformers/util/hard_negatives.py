@@ -346,8 +346,8 @@ def mine_hard_negatives(
         os.makedirs(cache_folder, exist_ok=True)
 
         model_name = model.model_card_data.base_model or ""
-        query_hash = hashlib.md5((model_name + "".join(queries)).encode()).hexdigest()
-        corpus_hash = hashlib.md5((model_name + "".join(corpus)).encode()).hexdigest()
+        query_hash = hashlib.sha256((model_name + "".join(queries)).encode(), usedforsecurity=False).hexdigest()
+        corpus_hash = hashlib.sha256((model_name + "".join(corpus)).encode(), usedforsecurity=False).hexdigest()
 
         query_cache_file = os.path.join(cache_folder, f"query_embeddings_{query_hash}.npy")
         corpus_cache_file = os.path.join(cache_folder, f"corpus_embeddings_{corpus_hash}.npy")

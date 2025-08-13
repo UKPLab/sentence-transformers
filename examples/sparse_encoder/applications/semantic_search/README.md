@@ -136,7 +136,7 @@ This example demonstrates how to set up Qdrant for sparse vector search by showi
 
 ### Prerequisites:
 - Qdrant running locally (or accessible), see the [Qdrant Quickstart](https://qdrant.tech/documentation/quickstart/) for more details.
-- Python Qdrant Client installed:
+- The Qdrant Python client must be installed:
   ```bash
   pip install qdrant-client
   ```
@@ -211,7 +211,7 @@ This example demonstrates how to set up OpenSearch for sparse vector search by s
 
 ### Prerequisites:
 - OpenSearch running locally (or accessible), see [OpenSearch locally](https://docs.opensearch.org/docs/latest/getting-started/quickstart/) for more details.
-- Further, you need the Python OpenSearch Client installed: https://docs.opensearch.org/docs/latest/clients/python-low-level/, e.g.:
+- Further, the OpenSearch Python client must be installed: https://docs.opensearch.org/docs/latest/clients/python-low-level/, e.g.:
   ```bash
     pip install opensearch-py
   ```
@@ -305,12 +305,92 @@ This example demonstrates how to set up OpenSearch for sparse vector search by s
         queries = [input("Please enter a question: ")]
 ```
 
+## Elasticsearch Integration
+
+This example demonstrates how to set up Elasticsearch for sparse vector search by showing how to efficiently encode and index documents with sparse encoders, formulating search queries with sparse vectors, and providing an interactive query interface. See [semantic_search_elasticsearch.py](semantic_search_elasticsearch.py) or below:
+
+### Prerequisites:
+- Elasticsearch running locally (or accessible), see [Elasticsearch locally](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html) for more details.
+- The Elasticsearch Python client must be installed:
+  ```bash
+  pip install elasticsearch
+  ```
+
+```{eval-rst}
+
+.. sidebar:: Documentation
+
+   #. :class:`SparseEncoder <sentence_transformers.sparse_encoder.SparseEncoder>`
+   #. :meth:`SparseEncoder.encode_query <sentence_transformers.sparse_encoder.SparseEncoder.encode_query>`
+   #. :meth:`SparseEncoder.encode_document <sentence_transformers.sparse_encoder.SparseEncoder.encode_document>`
+   #. :meth:`semantic_search_elasticsearch <sentence_transformers.sparse_encoder.search_engines.semantic_search_elasticsearch>`
+   #. `naver/splade-cocondenser-ensembledistil <https://huggingface.co/naver/splade-cocondenser-ensembledistil>`_
+   #. `sentence-transformers/natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_
+
+::
+
+    import time
+
+    from datasets import load_dataset
+
+    from sentence_transformers import SparseEncoder
+    from sentence_transformers.sparse_encoder.search_engines import semantic_search_elasticsearch
+
+    # 1. Load the natural-questions dataset with 100K answers
+    dataset = load_dataset("sentence-transformers/natural-questions", split="train")
+    num_docs = 10_000
+    corpus = dataset["answer"][:num_docs]
+
+    # 2. Come up with some queries
+    queries = dataset["query"][:2]
+
+    # 3. Load the model
+    sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
+
+    # 4. Encode the corpus
+    print("Start encoding corpus...")
+    start_time = time.time()
+    corpus_embeddings = sparse_model.encode_document(
+        corpus, convert_to_sparse_tensor=True, batch_size=16, show_progress_bar=True
+    )
+    corpus_embeddings_decoded = sparse_model.decode(corpus_embeddings)
+    print(f"Corpus encoding time: {time.time() - start_time:.6f} seconds")
+
+    corpus_index = None
+    while True:
+        # 5. Encode the queries using the full precision
+        start_time = time.time()
+        query_embeddings = sparse_model.encode_query(queries, convert_to_sparse_tensor=True)
+        query_embeddings_decoded = sparse_model.decode(query_embeddings)
+        print(f"Encoding time: {time.time() - start_time:.6f} seconds")
+
+        # 6. Perform semantic search using Elasticsearch
+        results, search_time, corpus_index = semantic_search_elasticsearch(
+            query_embeddings_decoded,
+            corpus_embeddings_decoded=corpus_embeddings_decoded if corpus_index is None else None,
+            corpus_index=corpus_index,
+            top_k=5,
+            output_index=True,
+        )
+
+        # 7. Output the results
+        print(f"Search time: {search_time:.6f} seconds")
+        for query, result in zip(queries, results):
+            print(f"Query: {query}")
+            for entry in result:
+                print(f"(Score: {entry['score']:.4f}) {corpus[entry['corpus_id']]}, corpus_id: {entry['corpus_id']}")
+            print("")
+
+        # 8. Prompt for more queries
+        queries = [input("Please enter a question: ")]
+```
+
 ## Seismic Integration
 
 This example demonstrates how to use [Seismic](https://github.com/TusKANNy/seismic) for extremely performant sparse vector search. It does not require running a separate client, but instead performs search directly in memory. The Seismic library was introduced in [Bruch et al. (2024)](https://arxiv.org/abs/2404.18812), where it's shown to outperform the common inverted file (IVF) approach by an order of magnitude. For more information on building your Seismic Index you can look at the [Seismic Guidelines](https://github.com/TusKANNy/seismic/blob/main/docs/Guidelines.md). See [semantic_search_seismic.py](semantic_search_seismic.py) or below:
 
 ### Prerequisites:
-- The Seismic Python package installed:
+- The Seismic Python package must be installed:
   ```bash
   pip install pyseismic-lsr
   ```
@@ -384,15 +464,14 @@ This example demonstrates how to use [Seismic](https://github.com/TusKANNy/seism
         queries = [input("Please enter a question: ")]
 ```
 
-## Elasticsearch Integration
+## SPLADE-index Integration
 
-This example demonstrates how to set up Elasticsearch for sparse vector search by showing how to efficiently encode and index documents with sparse encoders, formulating search queries with sparse vectors, and providing an interactive query interface. See [semantic_search_elasticsearch.py](semantic_search_elasticsearch.py) or below:
+This example demonstrates how to use [splade-index](https://github.com/rasyosef/splade-index) for very fast sparse vector search powered by SciPy sparse matrices, built on top of the excellent [bm25s](https://github.com/xhluca/bm25s), a fast BM25 implementation. It does not require running a separate client, but instead performs search directly in memory. See [semantic_search_splade_index.py](semantic_search_splade_index.py) or below:
 
 ### Prerequisites:
-- Elasticsearch running locally (or accessible), see [Elasticsearch locally](https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html) for more details.
-- Python Elasticsearch client installed:
+- The SPLADE-index Python package must be installed:
   ```bash
-  pip install elasticsearch
+  pip install splade-index
   ```
 
 ```{eval-rst}
@@ -400,66 +479,50 @@ This example demonstrates how to set up Elasticsearch for sparse vector search b
 .. sidebar:: Documentation
 
    #. :class:`SparseEncoder <sentence_transformers.sparse_encoder.SparseEncoder>`
-   #. :meth:`SparseEncoder.encode_query <sentence_transformers.sparse_encoder.SparseEncoder.encode_query>`
-   #. :meth:`SparseEncoder.encode_document <sentence_transformers.sparse_encoder.SparseEncoder.encode_document>`
-   #. :meth:`semantic_search_elasticsearch <sentence_transformers.sparse_encoder.search_engines.semantic_search_elasticsearch>`
-   #. `naver/splade-cocondenser-ensembledistil <https://huggingface.co/naver/splade-cocondenser-ensembledistil>`_
+   #. `rasyosef/splade-tiny <https://huggingface.co/rasyosef/splade-tiny>`_
+   #. `rasyosef/splade-mini <https://huggingface.co/rasyosef/splade-mini>`_
    #. `sentence-transformers/natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_
 
 ::
-
-    import time
-
-    from datasets import load_dataset
-
-    from sentence_transformers import SparseEncoder
-    from sentence_transformers.sparse_encoder.search_engines import semantic_search_elasticsearch
-
-    # 1. Load the natural-questions dataset with 100K answers
-    dataset = load_dataset("sentence-transformers/natural-questions", split="train")
-    num_docs = 10_000
-    corpus = dataset["answer"][:num_docs]
-
-    # 2. Come up with some queries
-    queries = dataset["query"][:2]
-
-    # 3. Load the model
-    sparse_model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
-
-    # 4. Encode the corpus
-    print("Start encoding corpus...")
-    start_time = time.time()
-    corpus_embeddings = sparse_model.encode_document(
-        corpus, convert_to_sparse_tensor=True, batch_size=16, show_progress_bar=True
-    )
-    corpus_embeddings_decoded = sparse_model.decode(corpus_embeddings)
-    print(f"Corpus encoding time: {time.time() - start_time:.6f} seconds")
-
-    corpus_index = None
-    while True:
-        # 5. Encode the queries using the full precision
-        start_time = time.time()
-        query_embeddings = sparse_model.encode_query(queries, convert_to_sparse_tensor=True)
-        query_embeddings_decoded = sparse_model.decode(query_embeddings)
-        print(f"Encoding time: {time.time() - start_time:.6f} seconds")
-
-        # 6. Perform semantic search using Elasticsearch
-        results, search_time, corpus_index = semantic_search_elasticsearch(
-            query_embeddings_decoded,
-            corpus_embeddings_decoded=corpus_embeddings_decoded if corpus_index is None else None,
-            corpus_index=corpus_index,
-            top_k=5,
-            output_index=True,
-        )
-
-        # 7. Output the results
-        print(f"Search time: {search_time:.6f} seconds")
-        for query, result in zip(queries, results):
-            print(f"Query: {query}")
-            for entry in result:
-                print(f"(Score: {entry['score']:.4f}) {corpus[entry['corpus_id']]}, corpus_id: {entry['corpus_id']}")
-            print("")
-
-        # 8. Prompt for more queries
-        queries = [input("Please enter a question: ")]
+   
+   import time
+   
+   from datasets import load_dataset
+   from splade_index import SPLADE
+   
+   from sentence_transformers import SparseEncoder
+   
+   # 1. Load the natural-questions dataset with 100K answers
+   dataset = load_dataset("sentence-transformers/natural-questions", split="train")
+   num_docs = 10_000
+   corpus = dataset["answer"][:num_docs]
+   
+   # 2. Come up with some queries
+   queries = dataset["query"][:2]
+   
+   # 3. Load the model
+   sparse_model = SparseEncoder("rasyosef/splade-tiny")
+   
+   # 4. Encode the corpus & create the index
+   print("Start encoding corpus and creating index...")
+   start_time = time.time()
+   corpus_index = SPLADE()
+   corpus_index.index(model=sparse_model, documents=corpus, batch_size=16, show_progress=True)
+   print(f"Encoded corpus and created index in {time.time() - start_time:.6f} seconds")
+   
+   while True:
+       # 5. Encode the queries using the full precision
+       start_time = time.time()
+       all_doc_ids, all_documents, all_scores = corpus_index.retrieve(queries, k=5)
+       print(f"Encoding & Search time: {time.time() - start_time:.6f} seconds")
+   
+       # 7. Output the results
+       for query, doc_ids, documents, scores in zip(queries, all_doc_ids, all_documents, all_scores):
+           print(f"Query: {query}")
+           for doc_id, document, score in zip(doc_ids, documents, scores):
+               print(f"(Score: {score:.4f}) {document}, corpus_id: {doc_id}")
+           print("")
+   
+       # 8. Prompt for more queries
+       queries = [input("Please enter a question: ")]
 ```

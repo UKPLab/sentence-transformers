@@ -152,6 +152,23 @@ def test_predict_single_input(model_name: str):
         assert pair_score.shape == (model.num_labels,)
 
 
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+def test_empty_predict(reranker_bert_tiny_model: CrossEncoder, convert_to_numpy: bool, convert_to_tensor: bool):
+    model = reranker_bert_tiny_model
+    result = model.predict([], convert_to_numpy=convert_to_numpy, convert_to_tensor=convert_to_tensor)
+
+    if convert_to_tensor:
+        assert isinstance(result, torch.Tensor)
+        assert result.numel() == 0
+        assert result.device == model.model.device
+    elif convert_to_numpy:
+        assert isinstance(result, np.ndarray)
+        assert result.size == 0
+    else:
+        assert result == []
+
+
 @pytest.mark.parametrize("convert_to_tensor", [True, False])
 @pytest.mark.parametrize("convert_to_numpy", [True, False])
 def test_predict_output_types(

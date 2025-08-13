@@ -818,10 +818,38 @@ def test_safetensors(
         assert np.allclose(original_embedding, loaded_embedding)
 
 
-def test_empty_encode(stsb_bert_tiny_model: SentenceTransformer) -> None:
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+@pytest.mark.parametrize("convert_to_numpy", [True, False])
+@pytest.mark.parametrize("normalize_embeddings", [True, False])
+@pytest.mark.parametrize("precision", [None, "float32", "int8", "uint8", "binary", "ubinary"])
+@pytest.mark.parametrize("truncate_dim", [None, 64, 128])
+def test_empty_encode(
+    stsb_bert_tiny_model: SentenceTransformer,
+    convert_to_tensor: bool,
+    convert_to_numpy: bool,
+    normalize_embeddings: bool,
+    precision: str | None,
+    truncate_dim: int | None,
+) -> None:
     model = stsb_bert_tiny_model
-    embeddings = model.encode([])
-    assert embeddings.shape == (0,)
+    embeddings = model.encode(
+        [],
+        convert_to_tensor=convert_to_tensor,
+        convert_to_numpy=convert_to_numpy,
+        normalize_embeddings=normalize_embeddings,
+        precision=precision,
+        truncate_dim=truncate_dim,
+    )
+
+    if convert_to_tensor:
+        assert isinstance(embeddings, torch.Tensor)
+        assert embeddings.numel() == 0
+        assert embeddings.device == model.device
+    elif convert_to_numpy:
+        assert isinstance(embeddings, np.ndarray)
+        assert embeddings.size == 0
+    else:
+        assert embeddings == []
 
 
 @pytest.mark.skipif(not is_peft_available(), reason="PEFT must be available to test adapter methods.")

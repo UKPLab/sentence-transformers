@@ -40,7 +40,7 @@ class ContrastiveLoss(nn.Module):
             size_average: Average by the size of the mini-batch.
 
         References:
-            * Further information: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+            * Further information: https://www.researchgate.net/publication/4246277_Dimensionality_Reduction_by_Learning_an_Invariant_Mapping
             * `Training Examples > Quora Duplicate Questions <../../../examples/sentence_transformer/training/quora_duplicate_questions/README.html>`_
 
         Requirements:

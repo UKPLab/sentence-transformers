@@ -561,3 +561,39 @@ def test_encode_with_dataset_column(splade_bert_tiny_model: SparseEncoder) -> No
 
     # Check the shape of the embeddings
     assert embeddings.shape == (2, model.get_sentence_embedding_dimension())
+
+
+@pytest.mark.parametrize("convert_to_tensor", [True, False])
+@pytest.mark.parametrize("convert_to_sparse_tensor", [True, False])
+@pytest.mark.parametrize("save_to_cpu", [True, False])
+@pytest.mark.parametrize("max_active_dims", [None, 64, 128])
+def test_empty_encode(
+    splade_bert_tiny_model: SparseEncoder,
+    convert_to_tensor: bool,
+    convert_to_sparse_tensor: bool,
+    save_to_cpu: bool,
+    max_active_dims: int | None,
+):
+    model = splade_bert_tiny_model
+    embeddings = model.encode(
+        [],
+        convert_to_tensor=convert_to_tensor,
+        convert_to_sparse_tensor=convert_to_sparse_tensor,
+        save_to_cpu=save_to_cpu,
+        max_active_dims=max_active_dims,
+    )
+
+    if convert_to_tensor:
+        assert isinstance(embeddings, torch.Tensor)
+        assert embeddings.numel() == 0
+        if save_to_cpu:
+            assert embeddings.device == torch.device("cpu")
+        else:
+            assert embeddings.device == model.device
+
+        if convert_to_sparse_tensor:
+            assert embeddings.is_sparse
+        else:
+            assert not embeddings.is_sparse
+    else:
+        assert embeddings == []
