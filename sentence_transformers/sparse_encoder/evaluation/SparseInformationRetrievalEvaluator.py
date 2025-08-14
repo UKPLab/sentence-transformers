@@ -185,9 +185,16 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
 
     def _append_csv_headers(self, similarity_fn_names):
         super()._append_csv_headers(similarity_fn_names)
-        self.csv_headers.extend(
-            ["query_active_dims", "query_sparsity_ratio", "corpus_active_dims", "corpus_sparsity_ratio", "avg_flops"]
-        )
+        if "@" in self.csv_headers[-1]:
+            self.csv_headers.extend(
+                [
+                    "query_active_dims",
+                    "query_sparsity_ratio",
+                    "corpus_active_dims",
+                    "corpus_sparsity_ratio",
+                    "avg_flops",
+                ]
+            )
 
     def __call__(
         self, model: SparseEncoder, output_path: str | None = None, epoch: int = -1, steps: int = -1, *args, **kwargs
