@@ -158,7 +158,7 @@ class SparseInformationRetrievalEvaluator(InformationRetrievalEvaluator):
     ) -> None:
         self.max_active_dims = max_active_dims
         self.sparsity_stats = {"query": defaultdict(list), "corpus": defaultdict(list)}
-        self.count_vectors = {"query": [], "corpus": []}
+        self.count_vectors = {}
         self.count_lengths = {"query": [], "corpus": []}
         return super().__init__(
             queries=queries,
