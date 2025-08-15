@@ -34,13 +34,15 @@ Precision@5: 27.75%
 Recall@5: 56.57%
 Precision@10: 19.24%
 Recall@10: 64.31%
-MRR@10: 0.6848
-NDCG@10: 0.6218
+MRR@10: 0.6847
+NDCG@10: 0.6217
+MAP@100: 0.5440
 Model Query Sparsity: Active Dimensions: 72.7, Sparsity Ratio: 0.9976
 Model Corpus Sparsity: Active Dimensions: 165.9, Sparsity Ratio: 0.9946
+Average FLOPS: 3.79
 """
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")
 # => Primary metric: NanoBEIR_mean_dot_ndcg@10
 print(f"Primary metric value: {results[evaluator.primary_metric]:.4f}")
-# => Primary metric value: 0.6218
+# => Primary metric value: 0.6217
