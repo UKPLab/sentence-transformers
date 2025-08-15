@@ -210,9 +210,11 @@ class SparseNanoBEIREvaluator(NanoBEIREvaluator):
             human_readable_name += f"_{self.max_active_dims}"
         return human_readable_name
 
-    def _append_csv_headers(self, similarity_fn_names):
-        super()._append_csv_headers(similarity_fn_names)
-        if "@" in self.csv_headers[-1]:
+    def _append_csv_headers(self, score_function_names):
+        super()._append_csv_headers(score_function_names)
+        # To avoid adding the sparse-specific headers multiple times, we only add them if the superclass will
+        # add metric columns for the specified score functions
+        if score_function_names:
             self.csv_headers.extend(
                 [
                     "query_active_dims",
