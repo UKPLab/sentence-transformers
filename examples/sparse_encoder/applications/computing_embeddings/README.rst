@@ -238,7 +238,7 @@ You can use :meth:`SparseEncoder.encode() <sentence_transformers.sparse_encoder.
         def main():
             model = SparseEncoder("naver/splade-cocondenser-ensembledistil")
             # Start a multi-process pool with multiple GPUs
-            pool = model.start_multi_process_pool(devices=["cuda:0", "cuda:1"])
+            pool = model.start_multi_process_pool(target_devices=["cuda:0", "cuda:1"])
             # Encode with multiple GPUs
             embeddings = model.encode(inputs, pool=pool)
             # Don't forget to stop the pool after usage

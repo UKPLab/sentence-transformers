@@ -292,3 +292,24 @@ def test_multi_process_with_large_chunk_size(stsb_bert_tiny_model: SentenceTrans
     # Should produce correct embeddings
     assert isinstance(embeddings, np.ndarray)
     assert embeddings.shape == (len(texts), model.get_sentence_embedding_dimension())
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not torch.cuda.is_available(), reason="CUDA must be available to experiment with 2 separate devices"
+)
+def test_multi_process_output_tensors_two_devices(stsb_bert_tiny_model: SentenceTransformer):
+    # Test with two separate devices
+    model = stsb_bert_tiny_model
+    texts = ["First sentence.", "Second sentence."]
+
+    # Ensure that embeddings are moved to CPU so they can be concatenated
+    embeddings = model.encode(texts, device=["cpu", "cuda"], convert_to_tensor=True)
+    assert isinstance(embeddings, torch.Tensor)
+    assert embeddings.device.type == "cpu"
+    assert embeddings.shape == (len(texts), model.get_sentence_embedding_dimension())
+
+    # But the default is still just numpy
+    embeddings = model.encode(texts, device=["cpu", "cuda"])
+    assert isinstance(embeddings, np.ndarray)
+    assert embeddings.shape == (len(texts), model.get_sentence_embedding_dimension())

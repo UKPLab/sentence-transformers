@@ -1499,6 +1499,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             try:
                 chunk_id, inputs, kwargs = input_queue.get()
                 embeddings = model.encode(inputs, device=target_device, **kwargs)
+                # If multi-process embeddings are not on CPUs, move them to CPU, so they can
+                # all be concatenated later
+                if isinstance(embeddings, torch.Tensor) and embeddings.device.type != "cpu":
+                    embeddings = embeddings.cpu()
+                elif isinstance(embeddings, dict):
+                    embeddings = {
+                        key: value.cpu() if isinstance(value, torch.Tensor) and value.device.type != "cpu" else value
+                        for key, value in embeddings.items()
+                    }
                 results_queue.put([chunk_id, embeddings])
             except queue.Empty:
                 break
