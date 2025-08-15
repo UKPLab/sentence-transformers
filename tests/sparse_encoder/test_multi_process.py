@@ -229,3 +229,26 @@ def test_multi_process_with_large_chunk_size(splade_bert_tiny_model: SparseEncod
     # Should produce correct embeddings
     assert isinstance(embeddings, torch.Tensor)
     assert embeddings.shape == (len(texts), model.get_sentence_embedding_dimension())
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not torch.cuda.is_available(), reason="CUDA must be available to experiment with 2 separate devices"
+)
+def test_multi_process_output_tensors_two_devices(splade_bert_tiny_model: SparseEncoder):
+    # Test with two separate devices
+    model = splade_bert_tiny_model
+    texts = ["First sentence.", "Second sentence."]
+
+    # Ensure that embeddings are moved to CPU so they can be concatenated
+    embeddings = model.encode(texts, device=["cpu", "cuda"], convert_to_tensor=True)
+    assert isinstance(embeddings, torch.Tensor)
+    assert embeddings.device.type == "cpu"
+    assert embeddings.is_sparse
+    assert embeddings.shape == (len(texts), model.get_sentence_embedding_dimension())
+
+    # But we use lists of CPU tensor embeddings if convert_to_tensor=False
+    embeddings = model.encode(texts, device=["cpu", "cuda"], convert_to_tensor=False)
+    assert isinstance(embeddings, list)
+    assert len(embeddings) == len(texts)
+    assert all(isinstance(emb, torch.Tensor) for emb in embeddings)

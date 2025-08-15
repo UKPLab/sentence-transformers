@@ -526,7 +526,7 @@ class SparseEncoder(SentenceTransformer):
                 batch_size=batch_size,
                 convert_to_tensor=convert_to_tensor,
                 convert_to_sparse_tensor=convert_to_sparse_tensor,
-                save_to_cpu=save_to_cpu,
+                save_to_cpu=True,  # Move all embeddings to CPU to allow for concatenation
                 max_active_dims=max_active_dims,
                 **kwargs,
             )
