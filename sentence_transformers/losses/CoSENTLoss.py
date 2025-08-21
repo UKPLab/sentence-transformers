@@ -13,13 +13,13 @@ from sentence_transformers.SentenceTransformer import SentenceTransformer
 class CoSENTLoss(nn.Module):
     def __init__(self, model: SentenceTransformer, scale: float = 20.0, similarity_fct=util.pairwise_cos_sim) -> None:
         """
-        This class implements CoSENT (Cosine Sentence) loss.
+        This class implements CoSENT (Consistent SENTence embedding) loss.
         It expects that each of the InputExamples consists of a pair of texts and a float valued label, representing
         the expected similarity score between the pair.
 
         It computes the following loss function:
 
-        ``loss = logsum(1+exp(s(i,j)-s(k,l))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
+        ``loss = logsum(1+exp(s(k,l)-s(i,j))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
         batch such that the expected similarity of ``(i,j)`` is greater than ``(k,l)``. The summation is over all possible
         pairs of input pairs in the batch that match this condition.
 
@@ -36,7 +36,7 @@ class CoSENTLoss(nn.Module):
                 value. Represents the inverse temperature.
 
         References:
-            - For further details, see: https://kexue.fm/archives/8847
+            - For further details, see: https://penghao-bdsc.github.io/papers/CoSENT_TASLP2024.pdf
 
         Requirements:
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
