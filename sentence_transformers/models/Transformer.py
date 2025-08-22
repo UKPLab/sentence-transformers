@@ -228,7 +228,16 @@ class Transformer(InputModule):
         trans_features = {
             key: value
             for key, value in features.items()
-            if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
+            if key
+            in [
+                "input_ids",
+                "attention_mask",
+                "token_type_ids",
+                "inputs_embeds",
+                "entity_ids",
+                "entity_position_ids",
+                "entity_embeds",
+            ]
         }
 
         outputs = self.auto_model(**trans_features, **kwargs, return_dict=True)
