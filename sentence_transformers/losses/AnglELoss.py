@@ -70,12 +70,12 @@ class AnglELoss(losses.CoSENTLoss):
     @property
     def citation(self) -> str:
         return """
-@misc{li2023angleoptimized,
-    title={AnglE-optimized Text Embeddings},
-    author={Xianming Li and Jing Li},
-    year={2023},
-    eprint={2309.12871},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
+@inproceedings{li-li-2024-aoe,
+    title = "{A}o{E}: Angle-optimized Embeddings for Semantic Textual Similarity",
+    author = "Li, Xianming and Li, Jing",
+    year = "2024",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.101/",
+    doi = "10.18653/v1/2024.acl-long.101"
 }
 """
