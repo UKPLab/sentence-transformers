@@ -17,7 +17,7 @@ class AnglELoss(losses.CoSENTLoss):
 
         It computes the following loss function:
 
-        ``loss = logsum(1+exp(s(k,l)-s(i,j))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
+        ``loss = logsum(1+exp(s(i,j)-s(k,l))+exp...)``, where ``(i,j)`` and ``(k,l)`` are any of the input pairs in the
         batch such that the expected similarity of ``(i,j)`` is greater than ``(k,l)``. The summation is over all possible
         pairs of input pairs in the batch that match this condition. This is the same as CoSENTLoss, with a different
         similarity function.
@@ -28,7 +28,7 @@ class AnglELoss(losses.CoSENTLoss):
                 value. Represents the inverse temperature.
 
         References:
-            - For further details, see: https://arxiv.org/abs/2309.12871v1
+            - For further details, see: https://aclanthology.org/2024.acl-long.101/
 
         Requirements:
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
@@ -70,12 +70,12 @@ class AnglELoss(losses.CoSENTLoss):
     @property
     def citation(self) -> str:
         return """
-@misc{li2023angleoptimized,
-    title={AnglE-optimized Text Embeddings},
-    author={Xianming Li and Jing Li},
-    year={2023},
-    eprint={2309.12871},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
+@inproceedings{li-li-2024-aoe,
+    title = "{A}o{E}: Angle-optimized Embeddings for Semantic Textual Similarity",
+    author = "Li, Xianming and Li, Jing",
+    year = "2024",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.101/",
+    doi = "10.18653/v1/2024.acl-long.101"
 }
 """
