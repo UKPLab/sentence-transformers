@@ -118,7 +118,7 @@ class CoSENTLoss(nn.Module):
     @property
     def citation(self) -> str:
         return """
-@ARTICLE{10531646,
+@article{10531646,
     author={Huang, Xiang and Peng, Hao and Zou, Dongcheng and Liu, Zhiwei and Li, Jianxin and Liu, Kay and Wu, Jia and Su, Jianlin and Yu, Philip S.},
     journal={IEEE/ACM Transactions on Audio, Speech, and Language Processing}, 
     title={CoSENT: Consistent Sentence Embedding via Similarity Ranking}, 
