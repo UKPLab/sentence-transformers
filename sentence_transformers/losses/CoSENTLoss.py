@@ -118,11 +118,11 @@ class CoSENTLoss(nn.Module):
     @property
     def citation(self) -> str:
         return """
-@online{kexuefm-8847,
-    title={CoSENT: A more efficient sentence vector scheme than Sentence-BERT},
-    author={Su Jianlin},
-    year={2022},
-    month={Jan},
-    url={https://kexue.fm/archives/8847},
+@ARTICLE{10531646,
+    author={Huang, Xiang and Peng, Hao and Zou, Dongcheng and Liu, Zhiwei and Li, Jianxin and Liu, Kay and Wu, Jia and Su, Jianlin and Yu, Philip S.},
+    journal={IEEE/ACM Transactions on Audio, Speech, and Language Processing}, 
+    title={CoSENT: Consistent Sentence Embedding via Similarity Ranking}, 
+    year={2024},
+    doi={10.1109/TASLP.2024.3402087}
 }
 """
