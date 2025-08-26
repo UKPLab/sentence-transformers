@@ -433,7 +433,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         modules = list(self.named_children())
         forward_kwargs = set()
         while modules:
-            module_name, module = modules.pop(0)
+            module_name, module = modules.pop()
             if isinstance(module, Router):
                 for route_modules in module.sub_modules.values():
                     modules.extend(list(route_modules.named_modules()))
