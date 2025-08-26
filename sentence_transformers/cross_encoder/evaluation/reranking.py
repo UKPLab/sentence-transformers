@@ -209,7 +209,9 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
                 continue
 
             model_input = [[query, doc] for doc in docs]
-            pred_scores = model.predict(model_input, convert_to_numpy=True, show_progress_bar=False)
+            pred_scores = model.predict(
+                model_input, batch_size=self.batch_size, convert_to_numpy=True, show_progress_bar=False
+            )
 
             # Add the ignored positives at the end
             if num_ignored_positives := len(is_relevant) - len(pred_scores):
