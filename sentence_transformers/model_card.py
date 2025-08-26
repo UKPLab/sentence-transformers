@@ -375,6 +375,17 @@ class SentenceTransformerModelCardData(CardData):
     def validate_datasets(
         self, dataset_list: list[dict[str, Any]], infer_languages: bool | None = None
     ) -> list[dict[str, Any]]:
+        """
+        Validate (i.e. check if the dataset IDs exist on the Hub) and process a list of dataset dictionaries.
+
+        Args:
+            dataset_list (list[dict[str, Any]]): List of dataset metadata dictionaries.
+            infer_languages (bool | None, optional): Whether to infer languages from the dataset information.
+                If None (default), languages will be inferred only if `self.language` is empty.
+
+        Returns:
+            list[dict[str, Any]]: The validated and possibly updated list of dataset dictionaries.
+        """
         if infer_languages is None:
             # Infer languages if they're not already defined
             infer_languages = not self.language
