@@ -1201,6 +1201,7 @@ def test_get_model_kwargs(stsb_bert_tiny_model: SentenceTransformer) -> None:
         model.encode("Test sentence", normalize=True)
     # This should run fine
     model.encode("Test sentence")
+    model.encode_query("Test sentence")
 
     # If one of the modules has additional forward kwargs, they should be included
     model[0].forward_kwargs = {"foo"}
@@ -1219,6 +1220,7 @@ def test_get_model_kwargs(stsb_bert_tiny_model: SentenceTransformer) -> None:
         model.encode("Test sentence", normalize=True)
     # This should run fine
     model.encode("Test sentence")
+    model.encode_query("Test sentence")
     with pytest.raises(
         TypeError,
         match=re.escape("BertModel.forward() got an unexpected keyword argument 'foo'"),
@@ -1250,6 +1252,7 @@ def test_get_model_kwargs(stsb_bert_tiny_model: SentenceTransformer) -> None:
         model.encode("Test sentence", task="query", normalize=True)
     # This should run fine
     model.encode("Test sentence", task="document")
+    model.encode_query("Test sentence")
     with pytest.raises(
         TypeError,
         match=re.escape("BertModel.forward() got an unexpected keyword argument 'foo'"),

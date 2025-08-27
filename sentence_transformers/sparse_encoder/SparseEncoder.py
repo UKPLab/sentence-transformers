@@ -509,8 +509,10 @@ class SparseEncoder(SentenceTransformer):
             sentences = [sentences]
             input_was_string = True
 
+        # Throw an error if unused kwargs are passed, except 'task' which is always allowed, even
+        # when it does not do anything (as e.g. there's no Router module in the model)
         model_kwargs = self.get_model_kwargs()
-        if unused_kwargs := set(kwargs) - set(model_kwargs):
+        if unused_kwargs := set(kwargs) - set(model_kwargs) - {"task"}:
             raise ValueError(
                 f"{self.__class__.__name__}.encode() has been called with additional keyword arguments that this model does not use: {list(unused_kwargs)}. "
                 + (
