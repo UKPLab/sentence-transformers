@@ -890,7 +890,12 @@ def test_multiple_positives(
     if output_format == "triplet":
         assert len(result) == len(dataset) * num_negatives
     elif output_format == "labeled-pair":
-        # 1's for the original dataset, and num_negatives 0's for every unique query
+        # For the "labeled-pair" output format:
+        # - For each original (query, positive) pair in the dataset, we create one labeled pair with label 1 (positive).
+        # - For each unique query, we mine `num_negatives` negatives, each paired with the query and labeled 0 (negative).
+        # Therefore, the total number of result rows is:
+        #   (number of original pairs) + (number of unique queries) * num_negatives
+        #   == len(dataset) + len(set(dataset["query"])) * num_negatives
         assert len(result) == len(dataset) + len(set(dataset["query"])) * num_negatives
     elif output_format in ("n-tuple", "n-tuple-scores", "labeled-list"):
         assert len(result) == len(dataset)
