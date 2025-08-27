@@ -436,7 +436,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             module_name, module = modules.pop()
             if isinstance(module, Router):
                 for route_modules in module.sub_modules.values():
-                    modules.extend(list(route_modules.named_modules()))
+                    modules.extend(list(route_modules.named_children()))
             if self.module_kwargs and module_name in self.module_kwargs:
                 forward_kwargs.update(self.module_kwargs[module_name])
             if hasattr(module, "forward_kwargs"):
