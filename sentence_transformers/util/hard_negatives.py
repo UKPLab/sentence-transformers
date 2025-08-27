@@ -369,7 +369,7 @@ def mine_hard_negatives(
                 target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
             )
             if corpus_embeddings is None:
-                corpus_embeddings = model.encode(
+                corpus_embeddings = model.encode_document(
                     corpus,
                     pool=pool,
                     batch_size=batch_size,
@@ -380,7 +380,7 @@ def mine_hard_negatives(
                     prompt=corpus_prompt,
                 )
             if query_embeddings is None:
-                query_embeddings = model.encode(
+                query_embeddings = model.encode_query(
                     queries,
                     pool=pool,
                     batch_size=batch_size,
@@ -393,7 +393,7 @@ def mine_hard_negatives(
             model.stop_multi_process_pool(pool)
         else:
             if corpus_embeddings is None:
-                corpus_embeddings = model.encode(
+                corpus_embeddings = model.encode_document(
                     corpus,
                     batch_size=batch_size,
                     normalize_embeddings=True,
@@ -403,7 +403,7 @@ def mine_hard_negatives(
                     prompt=corpus_prompt,
                 )
             if query_embeddings is None:
-                query_embeddings = model.encode(
+                query_embeddings = model.encode_query(
                     queries,
                     batch_size=batch_size,
                     normalize_embeddings=True,

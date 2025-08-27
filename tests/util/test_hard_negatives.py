@@ -810,9 +810,9 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
     original_tokenize = model.tokenize
     tokenize_calls = []
 
-    def mock_tokenize(texts) -> dict[str, Tensor]:
+    def mock_tokenize(texts, **kwargs) -> dict[str, Tensor]:
         tokenize_calls.append(texts)
-        return original_tokenize(texts)
+        return original_tokenize(texts, **kwargs)
 
     # 2. Run without prompt - check that no prompt is added
     model.tokenize = mock_tokenize
