@@ -63,6 +63,17 @@ def dataset(queries, passages):
     )
 
 
+@pytest.fixture(scope="session")
+def multiple_positive_dataset(queries, passages):
+    """Return a sample dataset with multiple matching passages for each query."""
+    return Dataset.from_dict(
+        {
+            "query": queries + queries,
+            "passage": [f"Copy {idx}, {passage}" for idx in range(2) for passage in passages[:5]],
+        }
+    )
+
+
 @pytest.fixture
 def cross_encoder():
     """Return a cross-encoder model."""
@@ -856,3 +867,35 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
 
     # Restore original tokenize function
     model.tokenize = original_tokenize
+
+
+@pytest.mark.parametrize("output_format", ["triplet", "labeled-pair", "n-tuple", "n-tuple-scores", "labeled-list"])
+@pytest.mark.parametrize("test_dataset", ["dataset", "multiple_positive_dataset"])
+def test_multiple_positives(
+    request: pytest.FixtureRequest,
+    static_retrieval_mrl_en_v1_model: SentenceTransformer,
+    output_format: str,
+    test_dataset: str,
+):
+    model = static_retrieval_mrl_en_v1_model
+    # Get the actual dataset from the fixture using the parameter name
+    dataset = request.getfixturevalue(test_dataset)
+
+    num_negatives = 3
+    result = mine_hard_negatives(
+        dataset=dataset, model=model, num_negatives=num_negatives, output_format=output_format, verbose=False
+    )
+
+    # Should have the expected number of rows, accounting for the dataset type
+    if output_format == "triplet":
+        assert len(result) == len(dataset) * num_negatives
+    elif output_format == "labeled-pair":
+        # For the "labeled-pair" output format:
+        # - For each original (query, positive) pair in the dataset, we create one labeled pair with label 1 (positive).
+        # - For each unique query, we mine `num_negatives` negatives, each paired with the query and labeled 0 (negative).
+        # Therefore, the total number of result rows is:
+        #   (number of original pairs) + (number of unique queries) * num_negatives
+        #   == len(dataset) + len(set(dataset["query"])) * num_negatives
+        assert len(result) == len(dataset) + len(set(dataset["query"])) * num_negatives
+    elif output_format in ("n-tuple", "n-tuple-scores", "labeled-list"):
+        assert len(result) == len(dataset)
