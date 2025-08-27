@@ -359,12 +359,11 @@ class SentenceTransformerModelCardData(CardData):
 
     def __post_init__(self) -> None:
         # We don't want to save "ignore_metadata_errors" in our Model Card
-        infer_languages = not self.language
         if isinstance(self.language, str):
             self.language = [self.language]
 
-        self.train_datasets = self.validate_datasets(self.train_datasets, infer_languages=infer_languages)
-        self.eval_datasets = self.validate_datasets(self.eval_datasets, infer_languages=infer_languages)
+        self.train_datasets = self.validate_datasets(self.train_datasets)
+        self.eval_datasets = self.validate_datasets(self.eval_datasets)
 
         if self.model_id and self.model_id.count("/") != 1:
             logger.warning(
@@ -374,8 +373,22 @@ class SentenceTransformerModelCardData(CardData):
             self.model_id = None
 
     def validate_datasets(
-        self, dataset_list: list[dict[str, Any]], infer_languages: bool = True
+        self, dataset_list: list[dict[str, Any]], infer_languages: bool | None = None
     ) -> list[dict[str, Any]]:
+        """
+        Validate (i.e. check if the dataset IDs exist on the Hub) and process a list of dataset dictionaries.
+
+        Args:
+            dataset_list (list[dict[str, Any]]): List of dataset metadata dictionaries.
+            infer_languages (bool | None, optional): Whether to infer languages from the dataset information.
+                If None (default), languages will be inferred only if `self.language` is empty.
+
+        Returns:
+            list[dict[str, Any]]: The validated and possibly updated list of dataset dictionaries.
+        """
+        if infer_languages is None:
+            # Infer languages if they're not already defined
+            infer_languages = not self.language
         output_dataset_list = []
         for dataset in dataset_list:
             if "name" not in dataset:
