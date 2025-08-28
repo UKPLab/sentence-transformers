@@ -1223,7 +1223,7 @@ def test_get_model_kwargs(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model.encode_query("Test sentence")
     with pytest.raises(
         TypeError,
-        match=re.escape("BertModel.forward() got an unexpected keyword argument 'foo'"),
+        match=".*?" + re.escape("forward() got an unexpected keyword argument 'foo'"),
     ):
         # This would run fine, except the model can't actually accept these arguments (we monkeypatched the modules'
         # forward_kwargs for this test, after all). The model does send the args down to the underlying modules, though!
@@ -1255,7 +1255,7 @@ def test_get_model_kwargs(stsb_bert_tiny_model: SentenceTransformer) -> None:
     model.encode_query("Test sentence")
     with pytest.raises(
         TypeError,
-        match=re.escape("BertModel.forward() got an unexpected keyword argument 'foo'"),
+        match=".*?" + re.escape("forward() got an unexpected keyword argument 'foo'"),
     ):
         # This would run fine, except the model can't actually accept these arguments (we monkeypatched the modules'
         # forward_kwargs for this test, after all). The model does send the args down to the underlying modules, though!
