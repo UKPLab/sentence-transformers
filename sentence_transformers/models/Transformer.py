@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 from pathlib import Path
@@ -225,11 +226,9 @@ class Transformer(InputModule):
 
     def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
         """Returns token_embeddings, cls_token"""
-        trans_features = {
-            key: value
-            for key, value in features.items()
-            if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
-        }
+        # Get the signature of the auto_model's forward method to pass only the expected arguments from `features`
+        model_forward_params = list(inspect.signature(self.auto_model.forward).parameters)
+        trans_features = {key: value for key, value in features.items() if key in model_forward_params}
 
         outputs = self.auto_model(**trans_features, **kwargs, return_dict=True)
         token_embeddings = outputs[0]
