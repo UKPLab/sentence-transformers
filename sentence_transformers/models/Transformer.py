@@ -228,6 +228,8 @@ class Transformer(InputModule):
         """Returns token_embeddings, cls_token"""
         # Get the signature of the auto_model's forward method to pass only the expected arguments from `features`
         model_forward_params = list(inspect.signature(self.auto_model.forward).parameters)
+        # always pass ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"] to the forward
+        model_forward_params = list(set(model_forward_params + ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]))
         trans_features = {key: value for key, value in features.items() if key in model_forward_params}
 
         outputs = self.auto_model(**trans_features, **kwargs, return_dict=True)
