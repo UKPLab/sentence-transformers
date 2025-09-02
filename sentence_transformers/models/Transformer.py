@@ -87,6 +87,16 @@ class Transformer(InputModule):
         config, is_peft_model = self._load_config(model_name_or_path, cache_dir, backend, config_args)
         self._load_model(model_name_or_path, config, cache_dir, backend, is_peft_model, **model_args)
 
+        # Get the signature of the auto_model's forward method to pass only the expected arguments from `features`,
+        # plus some common values like "input_ids", "attention_mask", etc.
+        model_forward_params = list(inspect.signature(self.auto_model.forward).parameters)
+        self.model_forward_params = set(model_forward_params) | {
+            "input_ids",
+            "attention_mask",
+            "token_type_ids",
+            "inputs_embeds",
+        }
+
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -225,10 +235,28 @@ class Transformer(InputModule):
         return f"Transformer({dict(self.get_config_dict(), architecture=self.auto_model.__class__.__name__)})"
 
     def forward(self, features: dict[str, torch.Tensor], **kwargs) -> dict[str, torch.Tensor]:
-        """Returns token_embeddings, cls_token"""
-        # Get the signature of the auto_model's forward method to pass only the expected arguments from `features`
-        model_forward_params = list(inspect.signature(self.auto_model.forward).parameters)
-        trans_features = {key: value for key, value in features.items() if key in model_forward_params}
+        """
+        Forward pass through the transformer model.
+
+        This method processes the input features through the underlying transformers model
+        and returns the token embeddings along with any other relevant outputs.
+
+        Notes:
+            - Only passes arguments that are expected by the underlying transformer model
+
+        Args:
+            features (dict[str, torch.Tensor]): Input features dictionary containing at least
+                'input_ids' and 'attention_mask'. May also contain other tensors required by
+                the underlying transformer model.
+            **kwargs: Additional keyword arguments to pass to the underlying transformer model.
+
+        Returns:
+            dict[str, torch.Tensor]: Updated features dictionary containing the input features, plus:
+                - 'token_embeddings': Token-level embeddings from the transformer model
+                - 'attention_mask': Possibly modified attention mask if using PeftModel with prompt learning
+                - 'all_layer_embeddings': If the model outputs hidden states, contains embeddings from all layers
+        """
+        trans_features = {key: value for key, value in features.items() if key in self.model_forward_params}
 
         outputs = self.auto_model(**trans_features, **kwargs, return_dict=True)
         token_embeddings = outputs[0]
