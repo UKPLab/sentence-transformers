@@ -4,6 +4,7 @@ Tests general behaviour of the SentenceTransformer class
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
@@ -32,6 +33,7 @@ from sentence_transformers.models import (
     LayerNorm,
     Normalize,
     Pooling,
+    Router,
     Transformer,
     WeightedLayerPooling,
 )
@@ -1177,3 +1179,84 @@ def test_encode_with_dataset_column(stsb_bert_tiny_model: SentenceTransformer) -
 
     # Check the shape of the embeddings
     assert embeddings.shape == (2, model.get_sentence_embedding_dimension())
+
+
+def test_get_model_kwargs(stsb_bert_tiny_model: SentenceTransformer) -> None:
+    """Test that get_model_kwargs returns the correct keyword arguments."""
+    model = stsb_bert_tiny_model
+
+    # Check that the forward kwargs are as expected, i.e. no extra forward kwargs
+    # for this basic model
+    forward_kwargs = model.get_model_kwargs()
+    assert forward_kwargs == []
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "SentenceTransformer.encode() has been called with additional keyword arguments that this model does "
+            "not use: ['normalize']. As per SentenceTransformer.get_model_kwargs(), this model does not accept "
+            "any additional keyword arguments."
+        ),
+    ):
+        # There is no "normalize" argument, this should crash
+        model.encode("Test sentence", normalize=True)
+    # This should run fine
+    model.encode("Test sentence")
+    model.encode_query("Test sentence")
+
+    # If one of the modules has additional forward kwargs, they should be included
+    model[0].forward_kwargs = {"foo"}
+    model[1].forward_kwargs = {"bar", "baz"}
+    assert set(model.get_model_kwargs()) == {"foo", "bar", "baz"}
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "SentenceTransformer.encode() has been called with additional keyword arguments that this model does "
+            "not use: ['normalize']. As per SentenceTransformer.get_model_kwargs(), the valid additional keyword"
+            " arguments are: "
+        )
+        + r"\[('foo'|'bar'|'baz'|, ){5}\].",
+    ):
+        # There is no "normalize" argument, this should crash
+        model.encode("Test sentence", normalize=True)
+    # This should run fine
+    model.encode("Test sentence")
+    model.encode_query("Test sentence")
+    with pytest.raises(
+        TypeError,
+        match=".*?" + re.escape("forward() got an unexpected keyword argument 'foo'"),
+    ):
+        # This would run fine, except the model can't actually accept these arguments (we monkeypatched the modules'
+        # forward_kwargs for this test, after all). The model does send the args down to the underlying modules, though!
+        model.encode("Test sentence", foo=True, bar=False)
+
+    # And also if we have a Router in place
+    query_pooling_copy = copy.deepcopy(model[1])
+    query_pooling_copy.forward_kwargs = {"query_arg"}
+    document_pooling_copy = copy.deepcopy(model[1])
+    document_pooling_copy.forward_kwargs = {"document_arg_1", "document_arg_2"}
+    model[1] = Router.for_query_document(
+        query_modules=[query_pooling_copy],
+        document_modules=[document_pooling_copy],
+    )
+    assert set(model.get_model_kwargs()) == {"foo", "task", "query_arg", "document_arg_1", "document_arg_2"}
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "SentenceTransformer.encode() has been called with additional keyword arguments that this model does "
+            "not use: ['normalize']. As per SentenceTransformer.get_model_kwargs(), the valid additional keyword"
+            " arguments are: "
+        )
+        + r"\[('foo'|'task'|'query_arg'|'document_arg_1'|'document_arg_2'|, ){9}\].",
+    ):
+        # There is no "normalize" argument, this should crash
+        model.encode("Test sentence", task="query", normalize=True)
+    # This should run fine
+    model.encode("Test sentence", task="document")
+    model.encode_query("Test sentence")
+    with pytest.raises(
+        TypeError,
+        match=".*?" + re.escape("forward() got an unexpected keyword argument 'foo'"),
+    ):
+        # This would run fine, except the model can't actually accept these arguments (we monkeypatched the modules'
+        # forward_kwargs for this test, after all). The model does send the args down to the underlying modules, though!
+        model.encode("Test sentence", task="document", foo=True, document_arg_1=12)

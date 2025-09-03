@@ -413,6 +413,36 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         """
         return self.backend
 
+    def get_model_kwargs(self) -> list[str]:
+        """
+        Get the keyword arguments specific to this model for the `encode`, `encode_query`, or `encode_document` methods.
+
+        Example:
+
+            >>> from sentence_transformers import SentenceTransformer, SparseEncoder
+            >>> SentenceTransformer("all-MiniLM-L6-v2").get_model_kwargs()
+            []
+            >>> SentenceTransformer("jinaai/jina-embeddings-v4", trust_remote_code=True).get_model_kwargs()
+            ['task', 'truncate_dim']
+            >>> SparseEncoder("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill").get_model_kwargs()
+            ['task']
+
+        Returns:
+            list[str]: A list of keyword arguments for the forward pass.
+        """
+        modules = list(self.named_children())
+        forward_kwargs = set()
+        while modules:
+            module_name, module = modules.pop()
+            if isinstance(module, Router):
+                for route_modules in module.sub_modules.values():
+                    modules.extend(list(route_modules.named_children()))
+            if self.module_kwargs and module_name in self.module_kwargs:
+                forward_kwargs.update(self.module_kwargs[module_name])
+            if hasattr(module, "forward_kwargs"):
+                forward_kwargs.update(module.forward_kwargs)
+        return list(forward_kwargs)
+
     def encode_query(
         self,
         sentences: str | list[str] | np.ndarray,
@@ -945,6 +975,19 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if isinstance(sentences, str) or not hasattr(sentences, "__len__"):
             sentences = [sentences]
             input_was_string = True
+
+        # Throw an error if unused kwargs are passed, except 'task' which is always allowed, even
+        # when it does not do anything (as e.g. there's no Router module in the model)
+        model_kwargs = self.get_model_kwargs()
+        if unused_kwargs := set(kwargs) - set(model_kwargs) - {"task"}:
+            raise ValueError(
+                f"{self.__class__.__name__}.encode() has been called with additional keyword arguments that this model does not use: {list(unused_kwargs)}. "
+                + (
+                    f"As per {self.__class__.__name__}.get_model_kwargs(), the valid additional keyword arguments are: {model_kwargs}."
+                    if model_kwargs
+                    else f"As per {self.__class__.__name__}.get_model_kwargs(), this model does not accept any additional keyword arguments."
+                )
+            )
 
         # If pool or a list of devices is provided, use multi-process encoding
         if pool is not None or (isinstance(device, list) and len(device) > 0):
