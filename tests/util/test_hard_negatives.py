@@ -899,3 +899,75 @@ def test_multiple_positives(
         assert len(result) == len(dataset) + len(set(dataset["query"])) * num_negatives
     elif output_format in ("n-tuple", "n-tuple-scores", "labeled-list"):
         assert len(result) == len(dataset)
+
+
+@pytest.mark.parametrize("output_format", ["triplet", "labeled-pair", "n-tuple", "n-tuple-scores", "labeled-list"])
+@pytest.mark.parametrize("test_dataset", ["dataset", "multiple_positive_dataset"])
+def test_missing_negatives(
+    capsys: pytest.CaptureFixture,
+    request: pytest.FixtureRequest,
+    static_retrieval_mrl_en_v1_model: SentenceTransformer,
+    output_format: str,
+    test_dataset: str,
+):
+    model = static_retrieval_mrl_en_v1_model
+    # Get the actual dataset from the fixture using the parameter name
+    dataset = request.getfixturevalue(test_dataset)
+
+    num_negatives = 3
+    expected_max_count = len(
+        mine_hard_negatives(
+            dataset,
+            model=model,
+            output_format=output_format,
+            num_negatives=num_negatives,
+            verbose=True,
+        )
+    )
+
+    capsys.readouterr()  # Clear any previous output
+    result = mine_hard_negatives(
+        dataset,
+        model=model,
+        max_score=0,
+        range_max=4,
+        output_format=output_format,
+        num_negatives=num_negatives,
+        verbose=True,
+    )
+    assert len(result) < (len(dataset) * num_negatives)
+    captured = capsys.readouterr()
+    if test_dataset == "dataset":
+        # Only 6 negatives
+        if output_format == "triplet":
+            # 6 negatives, 15 max., so 9 not found
+            assert expected_max_count == 15
+            assert "Could not find enough negatives for 9 samples (60.00%)." in captured.out
+        elif output_format == "labeled-pair":
+            # 20 max, 6 negatives + 5 positives found, so 9 not found
+            assert expected_max_count == 20
+            assert "Could not find enough negatives for 9 samples (45.00%)." in captured.out
+        elif output_format == "labeled-list":
+            assert expected_max_count == 5
+            assert "Could not find enough negatives for 1 samples (20.00%)." in captured.out
+        elif output_format in ("n-tuple", "n-tuple-scores"):
+            assert expected_max_count == 5
+            assert "Could not find enough negatives for 5 samples (100.00%)." in captured.out
+    elif test_dataset == "multiple_positive_dataset":
+        # Only 4 negatives
+        if output_format == "triplet":
+            # 4 negs, 30 max., so 26 not found
+            assert expected_max_count == 30
+            assert "Could not find enough negatives for 26 samples (86.67%)." in captured.out
+        elif output_format == "labeled-pair":
+            # 4 negatives + 10 positives, with 40 max (10 positive, 30 unique negatives), so 11 not found
+            assert expected_max_count == 25
+            assert "Could not find enough negatives for 11 samples (44.00%)." in captured.out
+        elif output_format == "labeled-list":
+            # 4 negatives across 2 samples, so only 2 samples with 10 max
+            assert expected_max_count == 10
+            assert "Could not find enough negatives for 8 samples (80.00%)." in captured.out
+        elif output_format in ("n-tuple", "n-tuple-scores"):
+            # no samples with 3 negatives, so all 10 not found
+            assert expected_max_count == 10
+            assert "Could not find enough negatives for 10 samples (100.00%)." in captured.out
