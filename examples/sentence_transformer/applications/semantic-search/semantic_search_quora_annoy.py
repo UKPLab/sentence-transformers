@@ -78,11 +78,11 @@ if not os.path.exists(embedding_cache_path):
     print("Encode the corpus. This might take a while")
     corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_numpy=True)
 
-    print("Store file on disc")
+    print("Store file on disk")
     with open(embedding_cache_path, "wb") as fOut:
         pickle.dump({"sentences": corpus_sentences, "embeddings": corpus_embeddings}, fOut)
 else:
-    print("Load pre-computed embeddings from disc")
+    print("Load pre-computed embeddings from disk")
     with open(embedding_cache_path, "rb") as fIn:
         cache_data = pickle.load(fIn)
         corpus_sentences = cache_data["sentences"]
@@ -99,7 +99,7 @@ if not os.path.exists(annoy_index_path):
     annoy_index.build(n_trees)
     annoy_index.save(annoy_index_path)
 else:
-    # Load Annoy Index from disc
+    # Load Annoy Index from disk
     annoy_index = AnnoyIndex(embedding_size, "angular")
     annoy_index.load(annoy_index_path)
 

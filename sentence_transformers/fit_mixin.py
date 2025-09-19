@@ -503,7 +503,7 @@ class FitMixin:
             evaluator: An evaluator (sentence_transformers.evaluation)
                 evaluates the model performance during training on held-
                 out dev data. It is used to determine the best model
-                that is saved to disc.
+                that is saved to disk.
             epochs: Number of epochs for training
             steps_per_epoch: Number of training steps per epoch. If set
                 to None (default), one epoch is equal the DataLoader

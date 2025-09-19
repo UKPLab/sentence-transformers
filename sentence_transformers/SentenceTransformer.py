@@ -63,7 +63,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
     Args:
-        model_name_or_path (str, optional): If it is a filepath on disc, it loads the model from that path. If it is not a path,
+        model_name_or_path (str, optional): If it is a filepath on disk, it loads the model from that path. If it is not a path,
             it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
             from the Hugging Face Hub with that name.
         modules (Iterable[nn.Module], optional): A list of torch Modules that should be called sequentially, can be used to create custom
@@ -1695,7 +1695,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         with ``SentenceTransformer(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on disk where the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.
@@ -1788,7 +1788,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         with ``SentenceTransformer(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on disk where the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.

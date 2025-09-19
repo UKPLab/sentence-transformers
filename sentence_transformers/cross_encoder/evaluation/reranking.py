@@ -270,6 +270,7 @@ class CrossEncoderRerankingEvaluator(SentenceEvaluator):
             self.store_metrics_in_model_card_data(model, metrics, epoch, steps)
 
         if output_path is not None and self.write_csv:
+            os.makedirs(output_path, exist_ok=True)
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, mode="a" if output_file_exists else "w", encoding="utf-8") as f:

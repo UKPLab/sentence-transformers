@@ -236,8 +236,9 @@ class InformationRetrievalEvaluator(SentenceEvaluator):
 
         scores = self.compute_metrices(model, output_path=output_path, *args, **kwargs)
 
-        # Write results to disc
+        # Write results to disk
         if output_path is not None and self.write_csv:
+            os.makedirs(output_path, exist_ok=True)
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 fOut = open(csv_path, mode="w", encoding="utf-8")

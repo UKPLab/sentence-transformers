@@ -4,7 +4,7 @@ This scripts show how to mine parallel (translated) sentences from two list of m
 As input, you specific two text files that have sentences in every line. Then, the
 LaBSE model is used to find parallel (translated) across these two files.
 
-The result is written to disc.
+The result is written to disk.
 
 A large source for monolingual sentences in different languages is:
 http://data.statmt.org/cc-100/
@@ -154,7 +154,7 @@ scores = np.concatenate([fwd_scores.max(axis=1), bwd_scores.max(axis=1)])
 seen_src, seen_trg = set(), set()
 
 # Extract list of parallel sentences
-print("Write sentences to disc")
+print("Write sentences to disk")
 sentences_written = 0
 with gzip.open("parallel-sentences-out.tsv.gz", "wt", encoding="utf8") as fOut:
     for i in np.argsort(-scores):
