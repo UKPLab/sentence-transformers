@@ -845,7 +845,7 @@ class SparseEncoder(SentenceTransformer):
         with ``SparseEncoder(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on diskwhere the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.
@@ -873,7 +873,7 @@ class SparseEncoder(SentenceTransformer):
         with ``SparseEncoder(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on diskwhere the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.

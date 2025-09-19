@@ -99,7 +99,7 @@ if not os.path.exists(annoy_index_path):
     annoy_index.build(n_trees)
     annoy_index.save(annoy_index_path)
 else:
-    # Load Annoy Index from disc
+    # Load Annoy Index from disk
     annoy_index = AnnoyIndex(embedding_size, "angular")
     annoy_index.load(annoy_index_path)
 

@@ -324,6 +324,7 @@ class NanoBEIREvaluator(SentenceEvaluator):
             agg_results[metric] = self.aggregate_fn(per_metric_results[metric])
 
         if output_path is not None and self.write_csv:
+            os.makedirs(output_path, exist_ok=True)
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 fOut = open(csv_path, mode="w", encoding="utf-8")
