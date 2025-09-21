@@ -5,7 +5,7 @@ from collections.abc import Iterable
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class MSELoss(nn.Module):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from sentence_transformers import SentenceTransformer, losses, util
+from sentence_transformers import losses, util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class AnglELoss(losses.CoSENTLoss):

@@ -11,8 +11,8 @@ from torch import Tensor, nn
 from torch.utils.checkpoint import get_device_states, set_device_states
 from transformers import PreTrainedTokenizerBase
 
-from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import StaticEmbedding
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.util import all_gather_with_grad
 
 
