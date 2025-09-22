@@ -29,7 +29,7 @@ class SparseEncoder(SentenceTransformer):
     Loads or creates a SparseEncoder model that can be used to map sentences / text to sparse embeddings.
 
     Args:
-        model_name_or_path (str, optional): If it is a filepath on disc, it loads the model from that path. If it is not a path,
+        model_name_or_path (str, optional): If it is a filepath on disk, it loads the model from that path. If it is not a path,
             it first tries to download a pre-trained SparseEncoder model. If that fails, tries to construct a model
             from the Hugging Face Hub with that name.
         modules (Iterable[nn.Module], optional): A list of torch Modules that should be called sequentially, can be used to create custom
@@ -509,6 +509,19 @@ class SparseEncoder(SentenceTransformer):
             sentences = [sentences]
             input_was_string = True
 
+        # Throw an error if unused kwargs are passed, except 'task' which is always allowed, even
+        # when it does not do anything (as e.g. there's no Router module in the model)
+        model_kwargs = self.get_model_kwargs()
+        if unused_kwargs := set(kwargs) - set(model_kwargs) - {"task"}:
+            raise ValueError(
+                f"{self.__class__.__name__}.encode() has been called with additional keyword arguments that this model does not use: {list(unused_kwargs)}. "
+                + (
+                    f"As per {self.__class__.__name__}.get_model_kwargs(), the valid additional keyword arguments are: {model_kwargs}."
+                    if model_kwargs
+                    else f"As per {self.__class__.__name__}.get_model_kwargs(), this model does not accept any additional keyword arguments."
+                )
+            )
+
         # If pool or a list of devices is provided, use multi-process encoding
         if pool is not None or (isinstance(device, list) and len(device) > 0):
             return self._encode_multi_process(
@@ -526,7 +539,7 @@ class SparseEncoder(SentenceTransformer):
                 batch_size=batch_size,
                 convert_to_tensor=convert_to_tensor,
                 convert_to_sparse_tensor=convert_to_sparse_tensor,
-                save_to_cpu=save_to_cpu,
+                save_to_cpu=True,  # Move all embeddings to CPU to allow for concatenation
                 max_active_dims=max_active_dims,
                 **kwargs,
             )
@@ -845,7 +858,7 @@ class SparseEncoder(SentenceTransformer):
         with ``SparseEncoder(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on disk where the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.
@@ -873,7 +886,7 @@ class SparseEncoder(SentenceTransformer):
         with ``SparseEncoder(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on disk where the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.

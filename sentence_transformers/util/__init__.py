@@ -36,6 +36,7 @@ from .tensor import (
     _convert_to_batch_tensor,
     _convert_to_tensor,
     batch_to_device,
+    compute_count_vector,
     normalize_embeddings,
     select_max_active_dims,
     to_scipy_coo,
@@ -92,6 +93,7 @@ __all__ = [
     "select_max_active_dims",
     "to_scipy_coo",
     "truncate_embeddings",
+    "compute_count_vector",
     # From hard_negatives.py
     "mine_hard_negatives",
 ]

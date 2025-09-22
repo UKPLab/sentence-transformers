@@ -9,9 +9,10 @@ import torch
 import tqdm
 from torch import Tensor, nn
 
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import util
 from sentence_transformers.losses.CachedMultipleNegativesRankingLoss import RandContext
 from sentence_transformers.models import StaticEmbedding
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 from sentence_transformers.util import all_gather_with_grad
 
 

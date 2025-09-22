@@ -63,7 +63,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
     Loads or creates a SentenceTransformer model that can be used to map sentences / text to embeddings.
 
     Args:
-        model_name_or_path (str, optional): If it is a filepath on disc, it loads the model from that path. If it is not a path,
+        model_name_or_path (str, optional): If it is a filepath on disk, it loads the model from that path. If it is not a path,
             it first tries to download a pre-trained SentenceTransformer model. If that fails, tries to construct a model
             from the Hugging Face Hub with that name.
         modules (Iterable[nn.Module], optional): A list of torch Modules that should be called sequentially, can be used to create custom
@@ -412,6 +412,36 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             str: The backend used for inference.
         """
         return self.backend
+
+    def get_model_kwargs(self) -> list[str]:
+        """
+        Get the keyword arguments specific to this model for the `encode`, `encode_query`, or `encode_document` methods.
+
+        Example:
+
+            >>> from sentence_transformers import SentenceTransformer, SparseEncoder
+            >>> SentenceTransformer("all-MiniLM-L6-v2").get_model_kwargs()
+            []
+            >>> SentenceTransformer("jinaai/jina-embeddings-v4", trust_remote_code=True).get_model_kwargs()
+            ['task', 'truncate_dim']
+            >>> SparseEncoder("opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill").get_model_kwargs()
+            ['task']
+
+        Returns:
+            list[str]: A list of keyword arguments for the forward pass.
+        """
+        modules = list(self.named_children())
+        forward_kwargs = set()
+        while modules:
+            module_name, module = modules.pop()
+            if isinstance(module, Router):
+                for route_modules in module.sub_modules.values():
+                    modules.extend(list(route_modules.named_children()))
+            if self.module_kwargs and module_name in self.module_kwargs:
+                forward_kwargs.update(self.module_kwargs[module_name])
+            if hasattr(module, "forward_kwargs"):
+                forward_kwargs.update(module.forward_kwargs)
+        return list(forward_kwargs)
 
     def encode_query(
         self,
@@ -945,6 +975,19 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         if isinstance(sentences, str) or not hasattr(sentences, "__len__"):
             sentences = [sentences]
             input_was_string = True
+
+        # Throw an error if unused kwargs are passed, except 'task' which is always allowed, even
+        # when it does not do anything (as e.g. there's no Router module in the model)
+        model_kwargs = self.get_model_kwargs()
+        if unused_kwargs := set(kwargs) - set(model_kwargs) - {"task"}:
+            raise ValueError(
+                f"{self.__class__.__name__}.encode() has been called with additional keyword arguments that this model does not use: {list(unused_kwargs)}. "
+                + (
+                    f"As per {self.__class__.__name__}.get_model_kwargs(), the valid additional keyword arguments are: {model_kwargs}."
+                    if model_kwargs
+                    else f"As per {self.__class__.__name__}.get_model_kwargs(), this model does not accept any additional keyword arguments."
+                )
+            )
 
         # If pool or a list of devices is provided, use multi-process encoding
         if pool is not None or (isinstance(device, list) and len(device) > 0):
@@ -1499,6 +1542,15 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             try:
                 chunk_id, inputs, kwargs = input_queue.get()
                 embeddings = model.encode(inputs, device=target_device, **kwargs)
+                # If multi-process embeddings are not on CPUs, move them to CPU, so they can
+                # all be concatenated later
+                if isinstance(embeddings, torch.Tensor) and embeddings.device.type != "cpu":
+                    embeddings = embeddings.cpu()
+                elif isinstance(embeddings, dict):
+                    embeddings = {
+                        key: value.cpu() if isinstance(value, torch.Tensor) and value.device.type != "cpu" else value
+                        for key, value in embeddings.items()
+                    }
                 results_queue.put([chunk_id, embeddings])
             except queue.Empty:
                 break
@@ -1643,7 +1695,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         with ``SentenceTransformer(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on disk where the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.
@@ -1736,7 +1788,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         with ``SentenceTransformer(path)`` again.
 
         Args:
-            path (str): Path on disc where the model will be saved.
+            path (str): Path on disk where the model will be saved.
             model_name (str, optional): Optional model name.
             create_model_card (bool, optional): If True, create a README.md with basic information about this model.
             train_datasets (List[str], optional): Optional list with the names of the datasets used to train the model.

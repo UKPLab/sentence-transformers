@@ -151,6 +151,7 @@ class TranslationEvaluator(SentenceEvaluator):
         logger.info(f"Accuracy trg2src: {acc_trg2src * 100:.2f}")
 
         if output_path is not None and self.write_csv:
+            os.makedirs(output_path, exist_ok=True)
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, newline="", mode="a" if output_file_exists else "w", encoding="utf-8") as f:

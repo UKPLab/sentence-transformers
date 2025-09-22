@@ -8,12 +8,12 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from sentence_transformers import SentenceTransformer
 from sentence_transformers.losses import (
     CachedGISTEmbedLoss,
     CachedMultipleNegativesRankingLoss,
     CachedMultipleNegativesSymmetricRankingLoss,
 )
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 def shrink(tensor: Tensor, dim: int) -> Tensor:

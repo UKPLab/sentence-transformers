@@ -42,6 +42,7 @@ NDCG@10: 0.9339
 MAP@100: 0.9070
 Model Query Sparsity: Active Dimensions: 59.4, Sparsity Ratio: 0.9981
 Model Corpus Sparsity: Active Dimensions: 61.9, Sparsity Ratio: 0.9980
+Average FLOPS: 4.10
 
 Information Retrieval Evaluation of the model on the NanoMSMARCO dataset:
 Queries: 50
@@ -65,6 +66,7 @@ NDCG@10: 0.6780
 MAP@100: 0.6277
 Model Query Sparsity: Active Dimensions: 45.4, Sparsity Ratio: 0.9985
 Model Corpus Sparsity: Active Dimensions: 122.6, Sparsity Ratio: 0.9960
+Average FLOPS: 2.41
 
 Average Queries: 50.0
 Average Corpus: 5044.5
@@ -83,8 +85,10 @@ Precision@10: 10.90%
 Recall@10: 92.13%
 MRR@10: 0.7815
 NDCG@10: 0.8060
+MAP@100: 0.7674
 Model Query Sparsity: Active Dimensions: 52.4, Sparsity Ratio: 0.9983
 Model Corpus Sparsity: Active Dimensions: 92.2, Sparsity Ratio: 0.9970
+Average FLOPS: 2.59
 """
 # Print the results
 print(f"Primary metric: {evaluator.primary_metric}")
