@@ -81,7 +81,7 @@ logging.info(f"Model with {new_dimension} dimensions:")
 stsb_evaluator(model)
 
 
-# If you like, you can store the model on disc by uncommenting the following line
+# If you like, you can store the model on disk by uncommenting the following line
 model_name = model_name if "/" not in model_name else model_name.split("/")[-1]
 model.save(f"{model_name}-128dim")
 

@@ -177,8 +177,9 @@ class RerankingEvaluator(SentenceEvaluator):
         logger.info(f"MRR@{self.at_k}: {mean_mrr * 100:.2f}")
         logger.info(f"NDCG@{self.at_k}: {mean_ndcg * 100:.2f}")
 
-        #### Write results to disc
+        #### Write results to disk
         if output_path is not None and self.write_csv:
+            os.makedirs(output_path, exist_ok=True)
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, newline="", mode="a" if output_file_exists else "w", encoding="utf-8") as f:
