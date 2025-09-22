@@ -4,7 +4,7 @@ from typing import Any
 
 from torch.nn import Module
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 from .AdaptiveLayerLoss import AdaptiveLayerLoss
 from .MatryoshkaLoss import MatryoshkaLoss

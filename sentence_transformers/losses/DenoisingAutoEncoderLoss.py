@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from torch import Tensor, nn
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
-from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import StaticEmbedding
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
