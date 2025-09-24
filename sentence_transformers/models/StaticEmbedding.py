@@ -260,7 +260,7 @@ class StaticEmbedding(InputModule):
 
         static_model = StaticModel.from_pretrained(model_id_or_path)
         if isinstance(static_model.embedding, np.ndarray):
-            embedding_weights = torch.from_numpy(static_model.embedding)
+            embedding_weights = torch.from_numpy(static_model.embedding).contiguous()
         else:
             embedding_weights = static_model.embedding.weight
         tokenizer: Tokenizer = static_model.tokenizer
