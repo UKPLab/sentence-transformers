@@ -58,6 +58,9 @@ def _backward_hook(
                 ),
                 grad,
             ):
+                # TODO: This if-statement is for if the model does not require gradients, which may happen if the model
+                # contains a Router where one of the routes is frozen. It should be possible to not have to call
+                # embed_minibatch_iter in that case, as it's unnecessarily expensive.
                 if reps_mb.requires_grad:
                     surrogate = torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
                     surrogate.backward()
