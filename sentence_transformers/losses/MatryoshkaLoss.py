@@ -122,8 +122,8 @@ class MatryoshkaLoss(nn.Module):
         self,
         model: SentenceTransformer,
         loss: nn.Module,
-        matryoshka_dims: list[int],
-        matryoshka_weights: list[float] | list[int] | None = None,
+        matryoshka_dims: Sequence[int],
+        matryoshka_weights: Sequence[float] | Sequence[int] | None = None,
         n_dims_per_step: int = -1,
     ) -> None:
         """
