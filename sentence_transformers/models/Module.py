@@ -337,15 +337,15 @@ class Module(ABC, torch.nn.Module):
             # Either load the weights into the model or return the weights
             if model is not None:
                 missing, unexpected = load_safetensors_model(model, safetensors_path, strict=False)
-                missing_keys = ", ".join([f'"{k}"' for k in sorted(missing)])
-                unexpected_keys = ", ".join([f'"{k}"' for k in sorted(unexpected)])
-                error = f"Error(s) in loading state_dict for {model.__class__.__name__}:"
+                missing_keys = ", ".join(f'"{k}"' for k in sorted(missing))
+                unexpected_keys = ", ".join(f'"{k}"' for k in sorted(unexpected))
+                error_lines = [f"Error(s) in loading state_dict for {model.__class__.__name__}:"]
                 if missing:
-                    error += f"\n    Missing key(s) in state_dict: {missing_keys}"
+                    error_lines.append(f"    Missing key(s) in state_dict: {missing_keys}")
                 if unexpected:
-                    error += f"\n    Unexpected key(s) in state_dict: {unexpected_keys}"
+                    error_lines.append(f"    Unexpected key(s) in state_dict: {unexpected_keys}")
                 if missing or unexpected:
-                    raise RuntimeError(error)
+                    raise RuntimeError("\n".join(error_lines))
                 return model
             else:
                 weights = load_safetensors_file(safetensors_path)
