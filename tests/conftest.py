@@ -78,7 +78,7 @@ def tokenizer() -> Tokenizer:
 
 @pytest.fixture
 def embedding_weights():
-    return np.random.rand(30522, 768)
+    return np.random.rand(30522, 768).astype(np.float32)
 
 
 @pytest.fixture

@@ -35,8 +35,12 @@ def _backward_hook(
                 ),
                 grad,
             ):
-                surrogate = torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
-                surrogate.backward()
+                # TODO: This if-statement is for if the model does not require gradients, which may happen if the model
+                # contains a Router where one of the routes is frozen. It should be possible to not have to call
+                # embed_minibatch_iter in that case, as it's unnecessarily expensive.
+                if reps_mb.requires_grad:
+                    surrogate = torch.dot(reps_mb.flatten(), grad_mb.flatten()) * grad_output
+                    surrogate.backward()
 
 
 class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
@@ -154,7 +158,10 @@ class CachedMultipleNegativesSymmetricRankingLoss(nn.Module):
         """Embed a mini-batch of sentences."""
         grad_context = nullcontext if with_grad else torch.no_grad
         random_state_context = nullcontext() if random_state is None else random_state
-        sentence_feature_minibatch = {k: v[begin:end] for k, v in sentence_feature.items()}
+        sentence_feature_minibatch = {
+            key: value[begin:end] if isinstance(value, torch.Tensor) else value
+            for key, value in sentence_feature.items()
+        }
         with random_state_context:
             with grad_context():
                 random_state = RandContext(*sentence_feature_minibatch.values()) if copy_random_state else None
