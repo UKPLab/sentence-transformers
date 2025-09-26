@@ -189,10 +189,13 @@ class MatryoshkaLoss(nn.Module):
         self.model = model
         self.loss = loss
 
+        if not matryoshka_dims:
+            raise ValueError("You must provide at least one dimension in matryoshka_dims.")
+
         if matryoshka_weights is None:
             matryoshka_weights = [1] * len(matryoshka_dims)
         # Sort the dimensions and weights in descending order
-        dims_weights = zip(matryoshka_dims, matryoshka_weights)
+        dims_weights = zip(matryoshka_dims, matryoshka_weights, strict=True)
         self.matryoshka_dims: tuple[int, ...]
         self.matryoshka_weights: tuple[float, ...] | tuple[int, ...]
         self.matryoshka_dims, self.matryoshka_weights = zip(*sorted(dims_weights, key=lambda x: x[0], reverse=True))
