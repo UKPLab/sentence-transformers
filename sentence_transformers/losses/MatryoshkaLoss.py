@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 import torch
@@ -14,6 +15,8 @@ from sentence_transformers.losses import (
     CachedMultipleNegativesSymmetricRankingLoss,
 )
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+logger = logging.getLogger(__name__)
 
 
 def shrink(tensor: Tensor, dim: int) -> Tensor:
@@ -75,7 +78,11 @@ class CachedLossDecorator:
     """
 
     def __init__(
-        self, fn, matryoshka_dims: list[int], matryoshka_weights: list[float | int], n_dims_per_step: int = -1
+        self,
+        fn,
+        matryoshka_dims: Sequence[int],
+        matryoshka_weights: Sequence[float] | Sequence[int],
+        n_dims_per_step: int = -1,
     ) -> None:
         self.fn = fn
         self.matryoshka_dims = matryoshka_dims
@@ -116,7 +123,7 @@ class MatryoshkaLoss(nn.Module):
         model: SentenceTransformer,
         loss: nn.Module,
         matryoshka_dims: list[int],
-        matryoshka_weights: list[float | int] | None = None,
+        matryoshka_weights: list[float] | list[int] | None = None,
         n_dims_per_step: int = -1,
     ) -> None:
         """
@@ -186,8 +193,21 @@ class MatryoshkaLoss(nn.Module):
             matryoshka_weights = [1] * len(matryoshka_dims)
         # Sort the dimensions and weights in descending order
         dims_weights = zip(matryoshka_dims, matryoshka_weights)
+        self.matryoshka_dims: tuple[int, ...]
+        self.matryoshka_weights: tuple[float, ...] | tuple[int, ...]
         self.matryoshka_dims, self.matryoshka_weights = zip(*sorted(dims_weights, key=lambda x: x[0], reverse=True))
         self.n_dims_per_step = n_dims_per_step
+
+        model_embedding_dim = model.get_sentence_embedding_dimension()
+        if model_embedding_dim is not None:
+            if model_embedding_dim not in self.matryoshka_dims:
+                logger.warning(
+                    f"The model's own embedding dimension {model_embedding_dim} is not in the matryoshka_dims: {self.matryoshka_dims}. Although this works, it is recommended to add it."
+                )
+            if any(model_embedding_dim < d <= 0 for d in self.matryoshka_dims):
+                raise ValueError(
+                    f"All dimensions in matryoshka_dims must be > 0 and <= the model's embedding dimension: {model_embedding_dim}"
+                )
 
         # The Cached... losses require a special treatment as their backward pass is incompatible with the
         # ForwardDecorator approach. Instead, we use a CachedLossDecorator to compute the loss for each
