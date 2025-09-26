@@ -202,6 +202,10 @@ class MatryoshkaLoss(nn.Module):
         if model_embedding_dim is not None:
             if any(d <= 0 for d in self.matryoshka_dims):
                 raise ValueError("All dimensions passed to a matryoshka loss must be > 0.")
+            if any(d > model_embedding_dim for d in self.matryoshka_dims):
+                raise ValueError(
+                    f"All dimensions in matryoshka_dims must <= the model's embedding dimension: {model_embedding_dim}"
+                )
             if model_embedding_dim not in self.matryoshka_dims:
                 logger.warning(
                     f"The model's own embedding dimension, {model_embedding_dim}, is not in the matryoshka_dims: {self.matryoshka_dims}. Although this works, it is recommended to add it."
