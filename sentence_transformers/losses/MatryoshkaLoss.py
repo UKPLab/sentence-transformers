@@ -213,7 +213,7 @@ class MatryoshkaLoss(nn.Module):
                 )
 
         # Sort the dimensions and weights in descending order
-        dims_weights = zip(matryoshka_dims, matryoshka_weights, strict=True)
+        dims_weights = zip(matryoshka_dims, matryoshka_weights)
         self.matryoshka_dims: tuple[int, ...]
         self.matryoshka_weights: tuple[float, ...] | tuple[int, ...]
         self.matryoshka_dims, self.matryoshka_weights = zip(*sorted(dims_weights, key=lambda x: x[0], reverse=True))
