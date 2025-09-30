@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 import torch
@@ -14,6 +15,8 @@ from sentence_transformers.losses import (
     CachedMultipleNegativesSymmetricRankingLoss,
 )
 from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+logger = logging.getLogger(__name__)
 
 
 def shrink(tensor: Tensor, dim: int) -> Tensor:
@@ -75,7 +78,11 @@ class CachedLossDecorator:
     """
 
     def __init__(
-        self, fn, matryoshka_dims: list[int], matryoshka_weights: list[float | int], n_dims_per_step: int = -1
+        self,
+        fn,
+        matryoshka_dims: Sequence[int],
+        matryoshka_weights: Sequence[float] | Sequence[int],
+        n_dims_per_step: int = -1,
     ) -> None:
         self.fn = fn
         self.matryoshka_dims = matryoshka_dims
@@ -115,8 +122,8 @@ class MatryoshkaLoss(nn.Module):
         self,
         model: SentenceTransformer,
         loss: nn.Module,
-        matryoshka_dims: list[int],
-        matryoshka_weights: list[float | int] | None = None,
+        matryoshka_dims: Sequence[int],
+        matryoshka_weights: Sequence[float] | Sequence[int] | None = None,
         n_dims_per_step: int = -1,
     ) -> None:
         """
@@ -182,10 +189,33 @@ class MatryoshkaLoss(nn.Module):
         self.model = model
         self.loss = loss
 
+        if not matryoshka_dims:
+            raise ValueError("You must provide at least one dimension in matryoshka_dims.")
+        if any(dim <= 0 for dim in matryoshka_dims):
+            raise ValueError("All dimensions passed to a matryoshka loss must be > 0.")
         if matryoshka_weights is None:
             matryoshka_weights = [1] * len(matryoshka_dims)
+        elif len(matryoshka_weights) != len(matryoshka_dims):
+            raise ValueError("matryoshka_weights must be the same length as matryoshka_dims.")
+
+        model_embedding_dim = model.get_sentence_embedding_dimension()
+        if model_embedding_dim is not None:
+            if any(d > model_embedding_dim for d in matryoshka_dims):
+                raise ValueError(
+                    f"Dimensions in matryoshka_dims cannot exceed the model's embedding dimension of {model_embedding_dim}."
+                )
+            if model_embedding_dim not in matryoshka_dims:
+                logger.warning(
+                    f"The model's embedding dimension {model_embedding_dim} is not included in matryoshka_dims: {matryoshka_dims}. "
+                    "This means that the full model dimension won't be trained, which may lead to degraded performance "
+                    "when using the model without specifying a lower truncation dimension. It is strongly recommended to include "
+                    f"{model_embedding_dim} in matryoshka_dims."
+                )
+
         # Sort the dimensions and weights in descending order
         dims_weights = zip(matryoshka_dims, matryoshka_weights)
+        self.matryoshka_dims: tuple[int, ...]
+        self.matryoshka_weights: tuple[float, ...] | tuple[int, ...]
         self.matryoshka_dims, self.matryoshka_weights = zip(*sorted(dims_weights, key=lambda x: x[0], reverse=True))
         self.n_dims_per_step = n_dims_per_step
 
