@@ -1,0 +1,12 @@
+{
+    "MD033": {
+        "allowed_elements": [
+            "div",
+            "a",
+            "b",
+            "p",
+            "code",
+            "br"
+        ]
+    }
+}
