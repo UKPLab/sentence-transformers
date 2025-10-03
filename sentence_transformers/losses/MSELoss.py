@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Sequence
 
 import torch
 from torch import Tensor, nn
@@ -72,7 +72,7 @@ class MSELoss(nn.Module):
         self.model = model
         self.loss_fct = nn.MSELoss()
 
-    def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
+    def forward(self, sentence_features: Sequence[dict[str, Tensor]], labels: Tensor) -> Tensor:
         # Concatenate multiple inputs on the batch dimension
         if len(sentence_features) > 1:
             embeddings = torch.cat([self.model(inputs)["sentence_embedding"] for inputs in sentence_features], dim=0)
@@ -80,6 +80,10 @@ class MSELoss(nn.Module):
             return self.loss_fct(embeddings, labels.repeat(len(sentence_features), 1))
 
         embeddings = self.model(sentence_features[0])["sentence_embedding"]
+        if isinstance(labels, Tensor):
+            embedding_dim = embeddings.shape[1]
+            labels = labels[:, :embedding_dim]
+
         return self.loss_fct(embeddings, labels)
 
     @property
