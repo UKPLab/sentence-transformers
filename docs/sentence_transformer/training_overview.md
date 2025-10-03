@@ -1,20 +1,22 @@
 # Training Overview
 
 ## Why Finetune?
-Finetuning Sentence Transformer models often heavily improves the performance of the model on your use case, because each task requires a different notion of similarity. For example, given news articles: 
+
+Finetuning Sentence Transformer models often heavily improves the performance of the model on your use case, because each task requires a different notion of similarity. For example, given news articles:
+
 - "Apple launches the new iPad"
 - "NVIDIA is gearing up for the next GPU generation"
 
 Then the following use cases, we may have different notions of similarity:
+
 - a model for **classification** of news articles as Economy, Sports, Technology, Politics, etc., should produce **similar embeddings** for these texts.
 - a model for **semantic textual similarity** should produce **dissimilar embeddings** for these texts, as they have different meanings.
 - a model for **semantic search** would **not need a notion for similarity** between two documents, as it should only compare queries and documents.
 
-
 Also see [**Training Examples**](training/examples) for numerous training scripts for common real-world applications that you can adopt.
 
-
 ## Training Components
+
 Training Sentence Transformer models involves between 4 to 6 components:
 
 <div class="components">
@@ -46,6 +48,7 @@ Training Sentence Transformer models involves between 4 to 6 components:
 <p></p>
 
 ## Model
+
 ```{eval-rst}
 
 Sentence Transformer models consist of a sequence of `Modules <../package_reference/sentence_transformer/models.html>`_ or `Custom Modules <usage/custom_models.html#advanced-custom-modules>`_, allowing for a lot of flexibility. If you want to further finetune a SentenceTransformer model (e.g. it has a `modules.json file <https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/blob/main/modules.json>`_), then you don't have to worry about which modules are used::
@@ -128,6 +131,7 @@ But if instead you want to train from another checkpoint, or from scratch, then 
 ```
 
 ## Dataset
+
 ```{eval-rst}
 The :class:`SentenceTransformerTrainer` trains and evaluates using :class:`datasets.Dataset` (one dataset) or :class:`datasets.DatasetDict` instances (multiple datasets, see also `Multi-dataset training <#multi-dataset-training>`_). 
 
@@ -243,6 +247,7 @@ Additionally, if your dataset has extraneous columns (e.g. sample_id, metadata, 
 ```
 
 ## Loss Function
+
 Loss functions quantify how well a model performs for a given batch of data, allowing an optimizer to update the model weights to produce more favourable (i.e., lower) loss values. This is the core of the training process.
 
 Sadly, there is no single loss function that works best for all use-cases. Instead, which loss function to use greatly depends on your available data and on your target task. See [Dataset Format](#dataset-format) to learn what datasets are valid for which loss functions. Additionally, the [Loss Overview](loss_overview) will be your best friend to learn about the options.
@@ -609,6 +614,7 @@ documentation for more information on the integrated callbacks and how to write 
 ```
 
 ## Multi-Dataset Training
+
 ```{eval-rst}
 The top performing models are trained using many datasets at once. Normally, this is rather tricky, as each dataset has a different format. However, :class:`sentence_transformers.trainer.SentenceTransformerTrainer` can train with multiple datasets without having to convert each dataset to the same format. It can even apply different loss functions to each of the datasets. The steps to train with multiple datasets are:
 
@@ -731,7 +737,8 @@ Training on multiple datasets looks like this:
     model.push_to_hub("bert-base-all-nli-stsb-quora-nq")
 ```
 
-## Deprecated Training 
+## Deprecated Training
+
 ```{eval-rst}
 Prior to the Sentence Transformers v3.0 release, models would be trained with the :meth:`SentenceTransformer.fit() <sentence_transformers.SentenceTransformer.fit>` method and a :class:`~torch.utils.data.DataLoader` of :class:`~sentence_transformers.readers.InputExample`, which looked something like this::
 
@@ -761,6 +768,7 @@ In case there are issues with the updated :meth:`SentenceTransformer.fit() <sent
 ```
 
 ## Best Base Embedding Models
+
 The quality of your text embedding model depends on which transformer model you choose. Sadly we cannot infer from a better performance on e.g. the GLUE or SuperGLUE benchmark that this model will also yield better representations.
 
 To test the suitability of transformer models, I use the [training_nli_v2.py](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/nli/training_nli_v2.py) script and train on 560k (anchor, positive, negative)-triplets for 1 epoch with batch size 64. I then evaluate on 14 diverse text similarity tasks (clustering, semantic search, duplicate detection etc.) from various domains.
@@ -768,7 +776,7 @@ To test the suitability of transformer models, I use the [training_nli_v2.py](ht
 In the following table you find the performance for different models and their performance on this benchmark:
 
 | Model                                                                                                                             | Performance (14 sentence similarity tasks) |
-|-----------------------------------------------------------------------------------------------------------------------------------|-:-:----------------------------------------|
+|:-----------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------|
 | [microsoft/mpnet-base](https://huggingface.co/microsoft/mpnet-base)                                                               | 60.99                                      |
 | [nghuyong/ernie-2.0-en](https://huggingface.co/nghuyong/ernie-2.0-en)                                                             | 60.73                                      |
 | [microsoft/deberta-base](https://huggingface.co/microsoft/deberta-base)                                                           | 60.21                                      |
