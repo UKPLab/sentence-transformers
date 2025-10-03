@@ -153,7 +153,7 @@ def test_mse_loss_matryoshka(static_retrieval_mrl_en_v1_model):
     sentence_features = [model.tokenize(["This is an input text"])]
     x = torch.randn(1, 1024)  # Original dimension (teacher)
 
-    # Mock the model's forward method to return fixed embeddings
+    # Call the loss function and verify output type and shape
     output = loss(sentence_features, x)
     assert isinstance(output, torch.Tensor)
     assert output.shape == torch.Size([])  # MSELoss returns a scalar
