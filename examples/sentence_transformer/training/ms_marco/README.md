@@ -1,4 +1,5 @@
 # MS MARCO
+
 [MS MARCO Passage Ranking](https://github.com/microsoft/MSMARCO-Passage-Ranking) is a large dataset to train models for information retrieval. It consists of about 500k real search queries from Bing search engine with the relevant text passage that answers the query.
 
 This page shows how to **train** Sentence Transformer models on this dataset so that it can be used for searching text passages given queries (key words, phrases or questions).
@@ -16,6 +17,7 @@ For retrieval of suitable documents from a large collection, we have to use a Se
 This page describes two strategies to **train an bi-encoder** on the MS MARCO dataset:
 
 ### MultipleNegativesRankingLoss
+
 **Training code: [train_bi-encoder_mnrl.py](train_bi-encoder_mnrl.py)**
 
 ```{eval-rst}
@@ -36,7 +38,8 @@ We find these hard negatives in the following way: We use existing retrieval sys
 For :class:`~sentence_transformers.losses.MultipleNegativesRankingLoss`, we must ensure that in the triplet ``(query, positive_passage, negative_passage)`` that the ``negative_passage`` is indeed not relevant for the query. The MS MARCO dataset is sadly **highly redundant**, and even though that there is on average only one passage marked as relevant for a query, it actually contains many passages that humans would consider as relevant. We must ensure that these passages are **not passed as negatives**: We do this by ensuring a certain threshold in the CrossEncoder scores between the relevant passages and the mined hard negative. By default, we set a threshold of 3: If the ``(query, positive_passage)`` gets a score of 9 from the CrossEncoder, than we will only consider negatives with a score below 6 from the CrossEncoder. This threshold ensures that we actually use negatives in our triplets.
 ```
 
-You can find this data by traversing to any of the datasets in the [MS MARCO Mined Triplet dataset collection](https://huggingface.co/collections/sentence-transformers/ms-marco-mined-triplets-6644d6f1ff58c5103fe65f23) and using the ``triplet-hard`` subset. Across all datasets, this refers to 175.7 million triplets. The original data can be found [here](https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives). Load some of it using:
+You can find this data by traversing to any of the datasets in the [MS MARCO Mined Triplet dataset collection](https://huggingface.co/collections/sentence-transformers/ms-marco-mined-triplets-6644d6f1ff58c5103fe65f23) and using the `triplet-hard` subset. Across all datasets, this refers to 175.7 million triplets. The original data can be found [here](https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives). Load some of it using:
+
 ```python
 from datasets import load_dataset
 
@@ -50,6 +53,7 @@ print(train_dataset[0])
 ```
 
 ### MarginMSE
+
 **Training code: [train_bi-encoder_margin-mse.py](train_bi-encoder_margin-mse.py)**
 
 ```{eval-rst}
