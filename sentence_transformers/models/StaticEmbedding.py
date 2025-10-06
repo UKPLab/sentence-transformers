@@ -124,7 +124,9 @@ class StaticEmbedding(InputModule):
         out_features = {}
         # The tokenizer typing is incorrect because we don't pass a framework. Therefore, the return type
         # is a dict of lists of lists of ints for all keys we care about.
-        tokenized = cast(dict[str, list[list[int]]], self.tokenizer(texts, add_special_tokens=False, **self._tokenizer_kwargs))
+        tokenized = cast(
+            dict[str, list[list[int]]], self.tokenizer(texts, add_special_tokens=False, **self._tokenizer_kwargs)
+        )
         ids = []
         offsets = [0]
         for token_ids in tokenized["input_ids"]:
@@ -188,7 +190,9 @@ class StaticEmbedding(InputModule):
         tokenizer_path = cls.load_file_path(model_name_or_path, filename="tokenizer.json", **hub_kwargs)
         tokenizer = Tokenizer.from_file(tokenizer_path)
 
-        weights = cast(dict[str, torch.FloatTensor], cls.load_torch_weights(model_name_or_path=model_name_or_path, **hub_kwargs))
+        weights = cast(
+            dict[str, torch.FloatTensor], cls.load_torch_weights(model_name_or_path=model_name_or_path, **hub_kwargs)
+        )
         try:
             weights = weights["embedding.weight"]
         except KeyError:
