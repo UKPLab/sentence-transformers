@@ -255,7 +255,17 @@ class MatryoshkaLoss(nn.Module):
                 dim = self.matryoshka_dims[idx]
                 weight = self.matryoshka_weights[idx]
                 decorated_forward.set_dim(dim)
-                loss += weight * self.loss(sentence_features, labels)
+                # If the labels seem to be embeddings, truncate them to match the soon-to-be-truncated predicted embeddings
+                # This allows for MatryoshkaLoss with a direct distillation loss
+                dim_labels = labels
+                if (
+                    isinstance(labels, torch.Tensor)
+                    and labels.ndim == 2
+                    and labels.size(-1) == self.model.get_sentence_embedding_dimension()
+                ):
+                    dim_labels = labels[:, :dim]
+
+                loss += weight * self.loss(sentence_features, dim_labels)
         finally:
             self.model.forward = original_forward
         return loss
