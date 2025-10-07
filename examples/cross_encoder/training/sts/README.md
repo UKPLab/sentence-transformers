@@ -11,6 +11,7 @@ You can also train and use :class:`~sentence_transformers.SentenceTransformer` m
 ```
 
 ## Training data
+
 ```{eval-rst}
 In STS, we have sentence pairs annotated together with a score indicating the similarity. In the original STSbenchmark dataset, the scores range from 0 to 5. We have normalized these scores to range between 0 and 1 in `stsb <https://huggingface.co/datasets/sentence-transformers/stsb>`_, as that is required for :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss` as you can see in the `Loss Overiew <../../../../docs/cross_encoder/loss_overview.html>`_.
 ```
@@ -51,6 +52,7 @@ train_dataset = load_dataset("sentence-transformers/stsb", split="train")
 ```
 
 ## Loss Function
+
 ```{eval-rst}
 We use :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss` as our loss function.
 ```

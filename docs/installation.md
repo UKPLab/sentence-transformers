@@ -1,13 +1,14 @@
 # Installation
 
 We recommend **Python 3.9+**, **[PyTorch 1.11.0+](https://pytorch.org/get-started/locally/)**, and **[transformers v4.41.0+](https://github.com/huggingface/transformers)**. There are 5 extra options to install Sentence Transformers:
-* **Default:** This allows for loading, saving, and inference (i.e., getting embeddings) of models.
-* **ONNX:** This allows for loading, saving, inference, optimizing, and quantizing of models using the ONNX backend.
-* **OpenVINO:** This allows for loading, saving, and inference of models using the OpenVINO backend.
-* **Default and Training**: Like **Default**, plus training.
-* **Development**: All of the above plus some dependencies for developing Sentence Transformers, see [Editable Install](#editable-install).
 
-Note that you can mix and match the various extras, e.g. ``pip install -U "sentence-transformers[train,onnx-gpu]"``.
+- **Default:** This allows for loading, saving, and inference (i.e., getting embeddings) of models.
+- **ONNX:** This allows for loading, saving, inference, optimizing, and quantizing of models using the ONNX backend.
+- **OpenVINO:** This allows for loading, saving, and inference of models using the OpenVINO backend.
+- **Default and Training**: Like **Default**, plus training.
+- **Development**: All of the above plus some dependencies for developing Sentence Transformers, see [Editable Install](#editable-install).
+
+Note that you can mix and match the various extras, e.g. `pip install -U "sentence-transformers[train,onnx-gpu]"`.
 
 ## Install with pip
 
@@ -111,7 +112,7 @@ Note that you can mix and match the various extras, e.g. ``pip install -U "sente
 
 ## Install from Source
 
-You can install ``sentence-transformers`` directly from source to take advantage of the bleeding edge `master` branch rather than the latest stable release:
+You can install `sentence-transformers` directly from source to take advantage of the bleeding edge `master` branch rather than the latest stable release:
 
 ```{eval-rst}
 
@@ -163,7 +164,8 @@ You can install ``sentence-transformers`` directly from source to take advantage
 
 ## Editable Install
 
-If you want to make changes to ``sentence-transformers``, you will need an editable install. Clone the repository and install it with these commands:
+If you want to make changes to `sentence-transformers`, you will need an editable install. Clone the repository and install it with these commands:
+
 ```
 git clone https://github.com/UKPLab/sentence-transformers
 cd sentence-transformers
