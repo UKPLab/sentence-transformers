@@ -8,7 +8,7 @@ For the documentation how to train your own models, see [Training Overview](http
 
 ## Training Examples
 - [adaptive_layer](adaptive_layer/) - Examples to train models whose layers can be removed on the fly for faster inference.
-- [avg_word_embeddings](avg_word_embeddings/) - This folder contains examples to train models based on classical word embeddings like GloVe. These models are extremely fast, but are a more inaccuracte than transformers based models.
+- [avg_word_embeddings](avg_word_embeddings/) - This folder contains examples to train models based on classical word embeddings like GloVe. These models are extremely fast, but are a more inaccurate than transformers based models.
 - [clip](clip/) - Examples to train CLIP image models.
 - [cross-encoder](cross-encoder/) - Examples to train [CrossEncoder](http://www.sbert.net/docs/cross_encoder/usage/usage.html) models.
 - [data_augmentation](data_augmentation/) Examples of how to apply data augmentation strategies to improve embedding models.
