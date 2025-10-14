@@ -11,28 +11,28 @@ Many reranker models are trained on MS MARCO:
 
 But most likely, you will get the best results when training on your dataset. Because of this, this page includes some examples training scripts that you can adopt for your own data:
 
-* **[training_gooaq_bce.py](training_gooaq_bce.py)**:
-    ```{eval-rst}
-    This example uses :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss` on labeled pair data that was mined from the `GooAQ <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ dataset using an efficient :class:`~sentence_transformer.SentenceTransformers`.
+- **[training_gooaq_bce.py](training_gooaq_bce.py)**:
+  ```{eval-rst}
+  This example uses :class:`~sentence_transformers.cross_encoder.losses.BinaryCrossEntropyLoss` on labeled pair data that was mined from the `GooAQ <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ dataset using an efficient :class:`~sentence_transformer.SentenceTransformers`.
 
-    The model is evaluated on subsets of `MS MARCO <https://huggingface.co/datasets/sentence-transformers/NanoMSMARCO-bm25>`_, `NFCorpus <https://huggingface.co/datasets/sentence-transformers/NanoNFCorpus-bm25>`_, `NQ <https://huggingface.co/datasets/sentence-transformers/NanoNQ-bm25>`_ via the :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`. Additionally, it is evaluated on the performance gain when reranking the top 100 results from an efficient :class:`~sentence_transformer.SentenceTransformers` on the GooAQ development set.
-    ```
-* **[training_gooaq_cmnrl.py](training_gooaq_cmnrl.py)**:
-    ```{eval-rst}
-    This example uses :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss` on positive pair data loaded from the `GooAQ <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ dataset.
+  The model is evaluated on subsets of `MS MARCO <https://huggingface.co/datasets/sentence-transformers/NanoMSMARCO-bm25>`_, `NFCorpus <https://huggingface.co/datasets/sentence-transformers/NanoNFCorpus-bm25>`_, `NQ <https://huggingface.co/datasets/sentence-transformers/NanoNQ-bm25>`_ via the :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`. Additionally, it is evaluated on the performance gain when reranking the top 100 results from an efficient :class:`~sentence_transformer.SentenceTransformers` on the GooAQ development set.
+  ```
+- **[training_gooaq_cmnrl.py](training_gooaq_cmnrl.py)**:
+  ```{eval-rst}
+  This example uses :class:`~sentence_transformers.cross_encoder.losses.CachedMultipleNegativesRankingLoss` on positive pair data loaded from the `GooAQ <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ dataset.
 
-    The model is evaluated on subsets of `MS MARCO <https://huggingface.co/datasets/sentence-transformers/NanoMSMARCO-bm25>`_, `NFCorpus <https://huggingface.co/datasets/sentence-transformers/NanoNFCorpus-bm25>`_, `NQ <https://huggingface.co/datasets/sentence-transformers/NanoNQ-bm25>`_ via the :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`.
-    ```
-* **[training_gooaq_lambda.py](training_gooaq_lambda.py)**:
-    ```{eval-rst}
-    This example uses :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` on labeled list data that was mined from the `GooAQ <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ dataset using an efficient :class:`~sentence_transformer.SentenceTransformers`.
+  The model is evaluated on subsets of `MS MARCO <https://huggingface.co/datasets/sentence-transformers/NanoMSMARCO-bm25>`_, `NFCorpus <https://huggingface.co/datasets/sentence-transformers/NanoNFCorpus-bm25>`_, `NQ <https://huggingface.co/datasets/sentence-transformers/NanoNQ-bm25>`_ via the :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`.
+  ```
+- **[training_gooaq_lambda.py](training_gooaq_lambda.py)**:
+  ```{eval-rst}
+  This example uses :class:`~sentence_transformers.cross_encoder.losses.LambdaLoss` on labeled list data that was mined from the `GooAQ <https://huggingface.co/datasets/sentence-transformers/gooaq>`_ dataset using an efficient :class:`~sentence_transformer.SentenceTransformers`.
 
-    The model is evaluated on subsets of `MS MARCO <https://huggingface.co/datasets/sentence-transformers/NanoMSMARCO-bm25>`_, `NFCorpus <https://huggingface.co/datasets/sentence-transformers/NanoNFCorpus-bm25>`_, `NQ <https://huggingface.co/datasets/sentence-transformers/NanoNQ-bm25>`_ via the :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`. Additionally, it is evaluated on the performance gain when reranking the top 100 results from an efficient :class:`~sentence_transformer.SentenceTransformers` on the GooAQ development set.
-    ```
-* **[training_nq_bce.py](training_nq_bce.py)**:
-    ```{eval-rst}
-    This example uses a near-identical training script as ``training_gooaq_bce.py``, except on the smaller `NQ (natural questions) <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_ dataset.
-    ```
+  The model is evaluated on subsets of `MS MARCO <https://huggingface.co/datasets/sentence-transformers/NanoMSMARCO-bm25>`_, `NFCorpus <https://huggingface.co/datasets/sentence-transformers/NanoNFCorpus-bm25>`_, `NQ <https://huggingface.co/datasets/sentence-transformers/NanoNQ-bm25>`_ via the :class:`~sentence_transformers.cross_encoder.evaluation.CrossEncoderNanoBEIREvaluator`. Additionally, it is evaluated on the performance gain when reranking the top 100 results from an efficient :class:`~sentence_transformer.SentenceTransformers` on the GooAQ development set.
+  ```
+- **[training_nq_bce.py](training_nq_bce.py)**:
+  ```{eval-rst}
+  This example uses a near-identical training script as ``training_gooaq_bce.py``, except on the smaller `NQ (natural questions) <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_ dataset.
+  ```
 
 ## BinaryCrossEntropyLoss
 
