@@ -6,8 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from sentence_transformers import util
-from sentence_transformers.SentenceTransformer import SentenceTransformer
+from sentence_transformers import SentenceTransformer, util
 
 
 class MegaBatchMarginLoss(nn.Module):
@@ -96,10 +95,18 @@ class MegaBatchMarginLoss(nn.Module):
         anchor, positive = sentence_features
         feature_names = list(anchor.keys())
 
-        with torch.no_grad():
-            self.model.eval()
-            all_positive_emb = self.model(positive)["sentence_embedding"].detach()
-            self.model.train()
+        all_positive_emb = None
+        for start_idx in range(0, len(positive), self.mini_batch_size):
+            end_idx = start_idx + self.mini_batch_size
+            input_mini_batch = {k: v[start_idx:end_idx] for k, v in positive.items()}
+            with torch.no_grad():
+                self.model.eval()
+                if all_positive_emb is None:
+                    all_positive_emb = self.model(input_mini_batch)["sentence_embedding"].detach()
+                else:
+        
+                    all_positive_emb = torch.cat((all_positive_emb, self.model(input_mini_batch)["sentence_embedding"].detach()), dim=0)
+                self.model.train()
 
         diagonal_matrix = torch.eye(len(all_positive_emb), len(all_positive_emb), device=all_positive_emb.device)
 
