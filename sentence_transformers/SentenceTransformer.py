@@ -323,7 +323,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                     local_files_only=local_files_only,
                 )
                 == self._model_config["model_type"]
-            ):
+            ):  # TODO: This is a nightmare for third parties
+                # A potential fix introduces three paths:
+                # 1. Model type matches my model type
+                # 2. Model type is another SentenceTransformer model type
+                # 3. Model type is not a SentenceTransformer model type
                 modules, self.module_kwargs = self._load_sbert_model(
                     model_name_or_path,
                     token=token,
@@ -404,6 +408,12 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # Pass the model to the model card data for later use in generating a model card upon saving this model
         self.model_card_data.register_model(self)
+
+    @property
+    def modalities(self) -> list[str]:
+        if hasattr(self[0], "modalities"):
+            return self[0].modalities
+        return ["text"]
 
     def get_backend(self) -> Literal["torch", "onnx", "openvino"]:
         """Return the backend used for inference, which can be one of "torch", "onnx", or "openvino".
@@ -972,6 +982,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
         # Cast an individual input to a list with length 1
         input_was_string = False
+        # TODO: This will likely not work nicely, update to checking if not list?
         if isinstance(sentences, str) or not hasattr(sentences, "__len__"):
             sentences = [sentences]
             input_was_string = True
@@ -1054,11 +1065,11 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         truncate_dim = truncate_dim if truncate_dim is not None else self.truncate_dim
 
         all_embeddings = []
-        length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
-        sentences_sorted = [sentences[int(idx)] for idx in length_sorted_idx]
+        # length_sorted_idx = np.argsort([-self._text_length(sen) for sen in sentences])
+        # sentences_sorted = [sentences[int(idx)] for idx in length_sorted_idx]
 
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
-            sentences_batch = sentences_sorted[start_index : start_index + batch_size]
+            sentences_batch = sentences[start_index : start_index + batch_size]
             features = self.tokenize(sentences_batch, **kwargs)
             if self.device.type == "hpu":
                 if "input_ids" in features:
@@ -1131,7 +1142,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
 
                 all_embeddings.extend(embeddings)
 
-        all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
+        # all_embeddings = [all_embeddings[idx] for idx in np.argsort(length_sorted_idx)]
 
         if all_embeddings and precision and precision != "float32":
             all_embeddings = quantize_embeddings(all_embeddings, precision=precision)
@@ -2096,7 +2107,7 @@ print(similarities)
             List[nn.Module]: A list containing the transformer model and the pooling model.
         """
         logger.warning(
-            f"No sentence-transformers model found with name {model_name_or_path}. Creating a new one with mean pooling."
+            f"No SentenceTransformer model found with name {model_name_or_path}. Creating a new one with mean pooling."
         )
 
         shared_kwargs = {
@@ -2117,10 +2128,12 @@ print(similarities)
             config_args=config_kwargs,
             backend=self.backend,
         )
-        pooling_model = Pooling(transformer_model.get_word_embedding_dimension(), "mean")
+        modules = [transformer_model]
+        if transformer_model.module_output_name == "token_embeddings":
+            modules.append(Pooling(transformer_model.get_word_embedding_dimension(), "mean"))
         if not local_files_only:
             self.model_card_data.set_base_model(model_name_or_path, revision=revision)
-        return [transformer_model, pooling_model]
+        return modules
 
     def _load_module_class_from_ref(
         self,
@@ -2369,14 +2382,14 @@ print(similarities)
         """
         Property to get the tokenizer that is used by this model
         """
-        return self._first_module().tokenizer
+        return self[0].tokenizer
 
     @tokenizer.setter
     def tokenizer(self, value) -> None:
         """
         Property to set the tokenizer that should be used by this model
         """
-        self._first_module().tokenizer = value
+        self[0].tokenizer = value
 
     @property
     def max_seq_length(self) -> int:
