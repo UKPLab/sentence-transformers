@@ -31,7 +31,7 @@ results = mteb.evaluate(model, tasks)
 
    If you are evaluating existings models the MTEB team recommends that you use `mteb.get_model("{model_name}")` instead of `SentenceTransformer`. This will load the model as it is implemented in MTEB, typically by the model developers. This ensures reproducible results, which might otherwise vary due to normalization, quantization, prompts or similar. If the model isn't implemented in `mteb` it will attempt to load the model using `SentenceTransformer`.
 
-For the full list of available tasks, you can check the MTEB Tasks overview, e.g. for [STS22.v2](https://embeddings-benchmark.github.io/mteb/overview/available_tasks/sts/?h=sts22#sts22v2).
+For the full list of available tasks, you can check the MTEB Tasks overview, e.g. for [STS22.v2](https://embeddings-benchmark.github.io/mteb/overview/available_tasks/sts#sts22v2).
 
 You can also filter available MTEB tasks based on task type, domain, language, and more.
 For example, the following snippet evaluates on English retrieval tasks in the medical domain:
@@ -80,11 +80,11 @@ results = mteb.evaluate(
 )
 ```
 
-Additionally, your SentenceTransformer model may have been configured to use `prompts`. MTEB will automatically detect and use these prompts if they are defined in your model's configuration. For task-specific or document/query-specific prompts, you should read the MTEB Documentation on [Running SentenceTransformer models with prompts](https://embeddings-benchmark.github.io/mteb/usage/running_the_evaluation/?h=prompt#running-sentencetransformer-model-with-prompts).
+Additionally, your SentenceTransformer model may have been configured to use `prompts`. MTEB will automatically detect and use these prompts if they are defined in your model's configuration. For task-specific or document/query-specific prompts, you should read the MTEB Documentation on [Running SentenceTransformer models with prompts](https://embeddings-benchmark.github.io/mteb/usage/running_the_evaluation#running-sentencetransformer-model-with-prompts).
 
 ## Results Handling
 
-MTEB caches all results to disk, so you can rerun `mteb.evaluate` without needing to redownload datasets or recomputing scores. By default these are stored in `~/.cahce/mteb`, which is configurable using the environmental variable `MTEB_CACHE`. However you can also manage the cache using the `ResultCache` object:
+MTEB caches all results to disk, so you can rerun `mteb.evaluate` without needing to redownload datasets or recomputing scores. By default these are stored in `~/.cache/mteb`, which is configurable using the environmental variable `MTEB_CACHE`. However you can also manage the cache using the `ResultCache` object:
 
 ```python
 import mteb.cache import ResultCache
