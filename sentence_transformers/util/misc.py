@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import importlib
+import logging
 from contextlib import contextmanager
 
 
@@ -85,6 +86,24 @@ def disable_datasets_caching():
     finally:
         if is_originally_enabled:
             enable_caching()
+
+
+@contextmanager
+def disable_logging(highest_level=logging.CRITICAL):
+    """
+    A context manager that will prevent any logging messages
+    triggered during the body from being processed.
+
+    Args:
+        highest_level: the maximum logging level allowed.
+    """
+    previous_level = logging.root.manager.disable
+    logging.disable(highest_level)
+
+    try:
+        yield
+    finally:
+        logging.disable(previous_level)
 
 
 def append_to_last_row(csv_path, additional_data):

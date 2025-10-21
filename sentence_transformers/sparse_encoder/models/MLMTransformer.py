@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from sentence_transformers.backend import load_onnx_model, load_openvino_model
+
 try:
     from typing import Self
 except ImportError:
@@ -77,8 +79,17 @@ class MLMTransformer(InputModule):
         if config_args is None:
             config_args = {}
 
-        self.config, is_peft_model = self._load_config(model_name_or_path, cache_dir, backend, config_args)
-        self._load_model(model_name_or_path, self.config, cache_dir, backend, is_peft_model, **model_args)
+        self.config, is_peft_model = self._load_config(
+            model_name_or_path=model_name_or_path, cache_dir=cache_dir, backend=backend, config_args=config_args
+        )
+        self._load_model(
+            model_name_or_path=model_name_or_path,
+            config=self.config,
+            backend=backend,
+            is_peft_model=is_peft_model,
+            cache_dir=cache_dir,
+            **model_args,
+        )
 
         if max_seq_length is not None and "model_max_length" not in tokenizer_args:
             tokenizer_args["model_max_length"] = max_seq_length
@@ -141,7 +152,6 @@ class MLMTransformer(InputModule):
         self,
         model_name_or_path: str,
         config: PeftConfig | PretrainedConfig,
-        cache_dir: str,
         backend: str,
         is_peft_model: bool,
         **model_args,
@@ -153,10 +163,11 @@ class MLMTransformer(InputModule):
                 or the path to a local model directory.
             config ("PeftConfig" | PretrainedConfig): The model configuration.
             cache_dir (str | None): The cache directory to store the model configuration.
-            backend (str): Backend used for model inference. Can be only `torch` for now for this class.
+            backend (str): Backend used for model inference. Can be `torch`, `onnx`, or `openvino`.
             is_peft_model (bool): Whether the model is a PEFT model.
             model_args (dict[str, Any]): Keyword arguments passed to the Hugging Face Transformers model.
         """
+
         if backend == "torch":
             # When loading a PEFT model, we need to load the base model first,
             # but some model_args are only for the adapter
@@ -164,13 +175,23 @@ class MLMTransformer(InputModule):
                 for adapter_only_kwarg in ["revision"]:
                     model_args.pop(adapter_only_kwarg, None)
 
-            self.auto_model = AutoModelForMaskedLM.from_pretrained(
-                model_name_or_path, config=config, cache_dir=cache_dir, **model_args
+            self.auto_model = AutoModelForMaskedLM.from_pretrained(model_name_or_path, config=config, **model_args)
+        elif backend == "onnx":
+            self.auto_model = load_onnx_model(
+                model_name_or_path=model_name_or_path,
+                config=config,
+                task_name="fill-mask",
+                **model_args,
+            )
+        elif backend == "openvino":
+            self.auto_model = load_openvino_model(
+                model_name_or_path=model_name_or_path,
+                config=config,
+                task_name="fill-mask",
+                **model_args,
             )
         else:
-            raise ValueError(
-                f"Backend '{backend}' is not yet supported. MLMTransformer currently only works with the 'torch' backend."
-            )
+            raise ValueError(f"Unsupported backend '{backend}'. `backend` should be `torch`, `onnx`, or `openvino`.")
 
     def forward(self, features: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Returns the MLM head logits for the input features as token embeddings."""
@@ -179,10 +200,12 @@ class MLMTransformer(InputModule):
             for key, value in features.items()
             if key in ["input_ids", "attention_mask", "token_type_ids", "inputs_embeds"]
         }
+
+        outputs = self.auto_model(**trans_features)
         try:
-            features["token_embeddings"] = self.auto_model(**trans_features).logits
+            features["token_embeddings"] = outputs.logits
         except AttributeError:
-            features["token_embeddings"] = self.auto_model(**trans_features)[0]
+            features["token_embeddings"] = outputs[0]
 
         return features
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import torch
 from torch import Tensor, nn
 
 from sentence_transformers.cross_encoder.CrossEncoder import CrossEncoder
@@ -35,11 +36,17 @@ class MarginMSELoss(nn.Module):
             2. Usually uses a finetuned CrossEncoder teacher M in a knowledge distillation setup.
 
         Inputs:
-            +--------------------------------------------+-------------------------------------------------------------+-------------------------------+
-            | Texts                                      | Labels                                                      | Number of Model Output Labels |
-            +============================================+=============================================================+===============================+
-            | (query, passage_one, passage_two) triplets | gold_sim(query, passage_one) - gold_sim(query, passage_two) | 1                             |
-            +--------------------------------------------+-------------------------------------------------------------+-------------------------------+
+            +------------------------------------------------+--------------------------------------------------------------------------------------------+-------------------------------+
+            | Texts                                          | Labels                                                                                     | Number of Model Output Labels |
+            +================================================+============================================================================================+===============================+
+            | (query, passage_one, passage_two) triplets     | gold_sim(query, passage_one) - gold_sim(query, passage_two)                                | 1                             |
+            +------------------------------------------------+--------------------------------------------------------------------------------------------+-------------------------------+
+            | (query, passage_one, passage_two) triplets     | [gold_sim(query, passage_one), gold_sim(query, passage_two)]                               | 1                             |
+            +------------------------------------------------+--------------------------------------------------------------------------------------------+-------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [gold_sim(query, positive) - gold_sim(query, negative_i) for i in 1..n]                    | 1                             |
+            +------------------------------------------------+--------------------------------------------------------------------------------------------+-------------------------------+
+            | (query, positive, negative_1, ..., negative_n) | [gold_sim(query, positive), gold_sim(query, negative_1), ..., gold_sim(query, negative_n)] | 1                             |
+            +------------------------------------------------+--------------------------------------------------------------------------------------------+-------------------------------+
 
         Relations:
             - :class:`MSELoss` is similar to this loss, but without a margin through the negative pair.
@@ -92,37 +99,64 @@ class MarginMSELoss(nn.Module):
                 f"but got a model with {self.model.num_labels} output labels."
             )
 
-    def forward(self, inputs: list[list[str]], labels: Tensor) -> Tensor:
-        if len(inputs) != 3:
+    def forward(self, inputs: list[list[str]], labels: Tensor | list[Tensor]) -> Tensor:
+        anchors = inputs[0]
+        positives = inputs[1]
+        negatives = inputs[2:]
+        batch_size = len(anchors)
+
+        # If there's multiple scores, then `labels` is a list of tensors. We need to stack them into
+        # a single tensor of shape (batch_size, num_columns - 1)
+        if isinstance(labels, list):
+            labels = torch.stack(labels)
+
+        if labels.shape == (batch_size, len(negatives) + 1):
+            # If labels are given as a single score for positive and multiple negatives,
+            # we need to adjust the labels to be the difference between positive and negatives
+            labels = labels[:, 0].unsqueeze(1) - labels[:, 1:]
+
+        # Ensure the shape is (batch_size, num_negatives)
+        if labels.shape == (batch_size,):
+            labels = labels.unsqueeze(1)
+
+        if labels.shape != (batch_size, len(negatives)):
             raise ValueError(
-                f"MSELoss expects a dataset with three non-label columns, but got a dataset with {len(inputs)} columns."
+                f"Labels shape {labels.shape} does not match expected shape {(batch_size, len(negatives))}. "
+                "Ensure that your dataset labels/scores are 1) lists of differences between positive scores and "
+                "negatives scores (length `num_negatives`), or 2) lists of positive and negative scores "
+                "(length `num_negatives + 1`)."
             )
 
-        positive_pairs = list(zip(inputs[0], inputs[1]))
-        tokens = self.model.tokenizer(
-            positive_pairs,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-        )
-        tokens.to(self.model.device)
-        positive_logits = self.model(**tokens)[0].view(-1)
-        positive_logits = self.activation_fn(positive_logits)
+        positive_pairs = list(zip(anchors, positives))
+        positive_logits = self.logits_from_pairs(positive_pairs)
+        negative_logits_list = []
+        for negative in negatives:
+            negative_pairs = list(zip(anchors, negative))
+            negative_logits_list.append(self.logits_from_pairs(negative_pairs))
 
-        negative_pairs = list(zip(inputs[0], inputs[2]))
-        tokens = self.model.tokenizer(
-            negative_pairs,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-        )
-        tokens.to(self.model.device)
-        negative_logits = self.model(**tokens)[0].view(-1)
-        negative_logits = self.activation_fn(negative_logits)
-
-        margin_logits = positive_logits - negative_logits
+        margin_logits = positive_logits.unsqueeze(1) - torch.stack(negative_logits_list, dim=1)
         loss = self.loss_fct(margin_logits, labels.float())
         return loss
+
+    def logits_from_pairs(self, pairs: list[tuple[str, str]]) -> Tensor:
+        """
+        Computes the logits for a list of pairs using the model.
+
+        Args:
+            pairs (list[tuple[str, str]]): A list of pairs of strings (query, passage).
+
+        Returns:
+            Tensor: The logits for the pairs.
+        """
+        tokens = self.model.tokenizer(
+            pairs,
+            padding=True,
+            truncation=True,
+            return_tensors="pt",
+        )
+        tokens.to(self.model.device)
+        logits = self.model(**tokens)[0].view(-1)
+        return self.activation_fn(logits)
 
     def get_config_dict(self):
         return {

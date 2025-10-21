@@ -5,6 +5,7 @@ This page contains an example of knowledge distillation for SparseEncoder models
 Knowledge distillation allows us to compress knowledge from larger, more computationally expensive models (teacher models) into smaller, more efficient sparse models (student models). This approach can leverage bigger model results, including non-sparse models like Cross-Encoders and dense bi-encoders, to compress the knowledge into our small sparse model while maintaining much of the original performance.
 
 ## MarginMSE
+
 **Training code: [train_splade_msmarco_margin_mse.py](train_splade_msmarco_margin_mse.py)**
 
 ```{eval-rst}

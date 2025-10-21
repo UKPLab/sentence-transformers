@@ -346,8 +346,8 @@ def mine_hard_negatives(
         os.makedirs(cache_folder, exist_ok=True)
 
         model_name = model.model_card_data.base_model or ""
-        query_hash = hashlib.md5((model_name + "".join(queries)).encode()).hexdigest()
-        corpus_hash = hashlib.md5((model_name + "".join(corpus)).encode()).hexdigest()
+        query_hash = hashlib.sha256((model_name + "".join(queries)).encode(), usedforsecurity=False).hexdigest()
+        corpus_hash = hashlib.sha256((model_name + "".join(corpus)).encode(), usedforsecurity=False).hexdigest()
 
         query_cache_file = os.path.join(cache_folder, f"query_embeddings_{query_hash}.npy")
         corpus_cache_file = os.path.join(cache_folder, f"corpus_embeddings_{corpus_hash}.npy")
@@ -369,7 +369,7 @@ def mine_hard_negatives(
                 target_devices=None if isinstance(use_multi_process, bool) else use_multi_process
             )
             if corpus_embeddings is None:
-                corpus_embeddings = model.encode(
+                corpus_embeddings = model.encode_document(
                     corpus,
                     pool=pool,
                     batch_size=batch_size,
@@ -380,7 +380,7 @@ def mine_hard_negatives(
                     prompt=corpus_prompt,
                 )
             if query_embeddings is None:
-                query_embeddings = model.encode(
+                query_embeddings = model.encode_query(
                     queries,
                     pool=pool,
                     batch_size=batch_size,
@@ -393,7 +393,7 @@ def mine_hard_negatives(
             model.stop_multi_process_pool(pool)
         else:
             if corpus_embeddings is None:
-                corpus_embeddings = model.encode(
+                corpus_embeddings = model.encode_document(
                     corpus,
                     batch_size=batch_size,
                     normalize_embeddings=True,
@@ -403,7 +403,7 @@ def mine_hard_negatives(
                     prompt=corpus_prompt,
                 )
             if query_embeddings is None:
-                query_embeddings = model.encode(
+                query_embeddings = model.encode_query(
                     queries,
                     batch_size=batch_size,
                     normalize_embeddings=True,
@@ -636,6 +636,7 @@ def mine_hard_negatives(
             dataset_data[positive_column_name].append(corpus[positive_idx])
             dataset_data["negative"].append(corpus[negative_idx])
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+        maximum_possible_samples = indices_to_keep.numel()
 
     elif output_format == "labeled-pair":
         indices_to_keep = negative_scores != -float("inf")
@@ -660,6 +661,7 @@ def mine_hard_negatives(
 
         negative_scores = negative_scores[indices_to_keep]
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+        maximum_possible_samples = n_queries * num_negatives + len(dataset)
 
     elif output_format in ("n-tuple", "n-tuple-scores"):
         # Keep only indices where num_negative negatives were found
@@ -681,6 +683,7 @@ def mine_hard_negatives(
             ).tolist()
         negative_scores = negative_scores.flatten()
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep].flatten() - negative_scores
+        maximum_possible_samples = indices_to_keep.size(0)
 
     elif output_format == "labeled-list":
         indices_to_keep = negative_scores != -float("inf")
@@ -696,6 +699,7 @@ def mine_hard_negatives(
         }
         negative_scores = negative_scores[indices_to_keep]
         difference_scores = positive_scores.repeat(num_negatives, 1).T[indices_to_keep] - negative_scores
+        maximum_possible_samples = indices_to_keep.size(0)
 
     if len(dataset_data) == 0:
         raise ValueError("No triplets could be generated. Please check the parameters and dataset.")
@@ -746,8 +750,8 @@ def mine_hard_negatives(
                     f"Skipped {skipped:,} potential negatives ({ratio:.2%}) due to the {param_name} of {param_value}."
                 )
 
-        missing_negatives = (num_negatives * len(dataset)) - len(negative_scores)
-        if missing_negatives > 0:
+        missing_samples = maximum_possible_samples - len(output_dataset)
+        if missing_samples > 0:
             solutions = ["range_max"]
             if range_min > 0:
                 solutions.append("range_min")
@@ -760,9 +764,9 @@ def mine_hard_negatives(
             considerations = ", ".join(solutions[:-1])
             if len(solutions) > 1:
                 considerations += " and " + solutions[-1]
-            missing_negatives_ratio = missing_negatives / (num_negatives * len(dataset))
+            missing_samples_ratio = missing_samples / maximum_possible_samples
             print(
-                f"Could not find enough negatives for {missing_negatives} samples ({missing_negatives_ratio:.2%})."
+                f"Could not find enough negatives for {missing_samples} samples ({missing_samples_ratio:.2%})."
                 f" Consider adjusting the {considerations} parameter{'s' if len(solutions) > 1 else ''} if you'd like to find more valid negatives."
             )
 

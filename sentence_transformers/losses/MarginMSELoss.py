@@ -5,7 +5,8 @@ from collections.abc import Iterable
 import torch
 from torch import Tensor, nn
 
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class MarginMSELoss(nn.Module):
@@ -187,9 +188,8 @@ class MarginMSELoss(nn.Module):
             # we need to adjust the labels to be the difference between positive and negatives
             labels = labels[:, 0].unsqueeze(1) - labels[:, 1:]
 
+        # Ensure the shape is (batch_size, num_negatives)
         if labels.shape == (batch_size,):
-            # If labels are given as a single score for positive and multiple negatives,
-            # we need to adjust the labels to be the difference between positive and negatives
             labels = labels.unsqueeze(1)
 
         if labels.shape != (batch_size, len(embeddings_negs)):

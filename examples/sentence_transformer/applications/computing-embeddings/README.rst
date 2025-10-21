@@ -172,7 +172,7 @@ You can use :meth:`SentenceTransformer.encode() <sentence_transformers.SentenceT
         def main():
             model = SentenceTransformer("all-MiniLM-L6-v2")
             # Start a multi-process pool with multiple GPUs
-            pool = model.start_multi_process_pool(devices=["cuda:0", "cuda:1"])
+            pool = model.start_multi_process_pool(target_devices=["cuda:0", "cuda:1"])
             # Encode with multiple GPUs
             embeddings = model.encode(inputs, pool=pool)
             # Don't forget to stop the pool after usage

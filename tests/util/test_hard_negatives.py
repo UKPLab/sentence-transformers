@@ -63,6 +63,17 @@ def dataset(queries, passages):
     )
 
 
+@pytest.fixture(scope="session")
+def multiple_positive_dataset(queries, passages):
+    """Return a sample dataset with multiple matching passages for each query."""
+    return Dataset.from_dict(
+        {
+            "query": queries + queries,
+            "passage": [f"Copy {idx}, {passage}" for idx in range(2) for passage in passages[:5]],
+        }
+    )
+
+
 @pytest.fixture
 def cross_encoder():
     """Return a cross-encoder model."""
@@ -799,9 +810,9 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
     original_tokenize = model.tokenize
     tokenize_calls = []
 
-    def mock_tokenize(texts) -> dict[str, Tensor]:
+    def mock_tokenize(texts, **kwargs) -> dict[str, Tensor]:
         tokenize_calls.append(texts)
-        return original_tokenize(texts)
+        return original_tokenize(texts, **kwargs)
 
     # 2. Run without prompt - check that no prompt is added
     model.tokenize = mock_tokenize
@@ -856,3 +867,107 @@ def test_mine_hard_negatives_with_prompt(paraphrase_distilroberta_base_v1_model:
 
     # Restore original tokenize function
     model.tokenize = original_tokenize
+
+
+@pytest.mark.parametrize("output_format", ["triplet", "labeled-pair", "n-tuple", "n-tuple-scores", "labeled-list"])
+@pytest.mark.parametrize("test_dataset", ["dataset", "multiple_positive_dataset"])
+def test_multiple_positives(
+    request: pytest.FixtureRequest,
+    static_retrieval_mrl_en_v1_model: SentenceTransformer,
+    output_format: str,
+    test_dataset: str,
+):
+    model = static_retrieval_mrl_en_v1_model
+    # Get the actual dataset from the fixture using the parameter name
+    dataset = request.getfixturevalue(test_dataset)
+
+    num_negatives = 3
+    result = mine_hard_negatives(
+        dataset=dataset, model=model, num_negatives=num_negatives, output_format=output_format, verbose=False
+    )
+
+    # Should have the expected number of rows, accounting for the dataset type
+    if output_format == "triplet":
+        assert len(result) == len(dataset) * num_negatives
+    elif output_format == "labeled-pair":
+        # For the "labeled-pair" output format:
+        # - For each original (query, positive) pair in the dataset, we create one labeled pair with label 1 (positive).
+        # - For each unique query, we mine `num_negatives` negatives, each paired with the query and labeled 0 (negative).
+        # Therefore, the total number of result rows is:
+        #   (number of original pairs) + (number of unique queries) * num_negatives
+        #   == len(dataset) + len(set(dataset["query"])) * num_negatives
+        assert len(result) == len(dataset) + len(set(dataset["query"])) * num_negatives
+    elif output_format in ("n-tuple", "n-tuple-scores", "labeled-list"):
+        assert len(result) == len(dataset)
+
+
+@pytest.mark.parametrize("output_format", ["triplet", "labeled-pair", "n-tuple", "n-tuple-scores", "labeled-list"])
+@pytest.mark.parametrize("test_dataset", ["dataset", "multiple_positive_dataset"])
+def test_missing_negatives(
+    capsys: pytest.CaptureFixture,
+    request: pytest.FixtureRequest,
+    static_retrieval_mrl_en_v1_model: SentenceTransformer,
+    output_format: str,
+    test_dataset: str,
+):
+    model = static_retrieval_mrl_en_v1_model
+    # Get the actual dataset from the fixture using the parameter name
+    dataset = request.getfixturevalue(test_dataset)
+
+    num_negatives = 3
+    expected_max_count = len(
+        mine_hard_negatives(
+            dataset,
+            model=model,
+            output_format=output_format,
+            num_negatives=num_negatives,
+            verbose=True,
+        )
+    )
+
+    capsys.readouterr()  # Clear any previous output
+    result = mine_hard_negatives(
+        dataset,
+        model=model,
+        max_score=0,
+        range_max=4,
+        output_format=output_format,
+        num_negatives=num_negatives,
+        verbose=True,
+    )
+    assert len(result) < (len(dataset) * num_negatives)
+    captured = capsys.readouterr()
+    if test_dataset == "dataset":
+        # Only 6 negatives
+        if output_format == "triplet":
+            # 6 negatives, 15 max., so 9 not found
+            assert expected_max_count == 15
+            assert "Could not find enough negatives for 9 samples (60.00%)." in captured.out
+        elif output_format == "labeled-pair":
+            # 20 max, 6 negatives + 5 positives found, so 9 not found
+            assert expected_max_count == 20
+            assert "Could not find enough negatives for 9 samples (45.00%)." in captured.out
+        elif output_format == "labeled-list":
+            assert expected_max_count == 5
+            assert "Could not find enough negatives for 1 samples (20.00%)." in captured.out
+        elif output_format in ("n-tuple", "n-tuple-scores"):
+            assert expected_max_count == 5
+            assert "Could not find enough negatives for 5 samples (100.00%)." in captured.out
+    elif test_dataset == "multiple_positive_dataset":
+        # Only 4 negatives
+        if output_format == "triplet":
+            # 4 negs, 30 max., so 26 not found
+            assert expected_max_count == 30
+            assert "Could not find enough negatives for 26 samples (86.67%)." in captured.out
+        elif output_format == "labeled-pair":
+            # 4 negatives + 10 positives, with 40 max (10 positive, 30 unique negatives), so 11 not found
+            assert expected_max_count == 25
+            assert "Could not find enough negatives for 11 samples (44.00%)." in captured.out
+        elif output_format == "labeled-list":
+            # 4 negatives across 2 samples, so only 2 samples with 10 max
+            assert expected_max_count == 10
+            assert "Could not find enough negatives for 8 samples (80.00%)." in captured.out
+        elif output_format in ("n-tuple", "n-tuple-scores"):
+            # no samples with 3 negatives, so all 10 not found
+            assert expected_max_count == 10
+            assert "Could not find enough negatives for 10 samples (100.00%)." in captured.out

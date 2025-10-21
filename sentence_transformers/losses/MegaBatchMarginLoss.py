@@ -6,7 +6,8 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import util
+from sentence_transformers.SentenceTransformer import SentenceTransformer
 
 
 class MegaBatchMarginLoss(nn.Module):

@@ -31,6 +31,11 @@ def test_sparse_static_embedding_save_load(
 ) -> None:
     model = inference_free_splade_bert_tiny_model
 
+    assert isinstance(model[0].sub_modules.query[0], SparseStaticEmbedding), "SparseStaticEmbedding component missing"
+
+    # Let's randomize the weights to ensure that we can check if they are maintained after saving and loading
+    model[0].sub_modules.query[0].weight == torch.rand_like(model[0].sub_modules.query[0].weight)
+
     # Define test inputs
     test_inputs = ["This is a simple test.", "Another example text for testing."]
 
@@ -52,8 +57,8 @@ def test_sparse_static_embedding_save_load(
 
     # Check if SparseStaticEmbedding weights are maintained after loading
     assert isinstance(
-        loaded_model[0].query_0_SparseStaticEmbedding, SparseStaticEmbedding
+        loaded_model[0].sub_modules.query[0], SparseStaticEmbedding
     ), "SparseStaticEmbedding component missing after loading"
     assert torch.allclose(
-        model[0].query_0_SparseStaticEmbedding.weight, loaded_model[0].query_0_SparseStaticEmbedding.weight
+        model[0].sub_modules.query[0].weight, loaded_model[0].sub_modules.query[0].weight
     ), "SparseStaticEmbedding weights changed after save and load"
