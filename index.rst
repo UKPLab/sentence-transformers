@@ -1,6 +1,6 @@
 .. attention::
 
-   Sentence Transformers is transitioning from `UKP Lab <http://www.ukp.tu-darmstadt.de/>`_ to `🤗 Hugging Face <https://huggingface.co>`_. This formalizes the existing maintenance structure, as Hugging Face has been maintaining the project for the past two years. The project's development roadmap, support, and commitment to the community remain unchanged. Read the `full announcement <https://huggingface.co/blog/sentence-transformers-transition>`_ for more details!
+   Sentence Transformers is transitioning from `UKP Lab <http://www.ukp.tu-darmstadt.de/>`_ to `🤗 Hugging Face <https://huggingface.co>`_. This formalizes the existing maintenance structure, as Hugging Face has been maintaining the project for the past two years. The project's development roadmap, support, and commitment to the community remain unchanged. Read the `full announcement <https://huggingface.co/blog/sentence-transformers-joins-hf>`_ for more details!
 
 .. note::
 
