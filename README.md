@@ -278,11 +278,15 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 
 Please have a look at [Publications](https://www.sbert.net/docs/publications.html) for our different publications that are integrated into SentenceTransformers.
 
+### Maintainers
+
 Maintainer: [Tom Aarsen](https://github.com/tomaarsen), 🤗 Hugging Face
 
-https://www.ukp.tu-darmstadt.de/
-
 Don't hesitate to open an issue if something is broken (and it shouldn't be) or if you have further questions.
+
+---
+
+This project was originally developed by the [Ubiquitous Knowledge Processing (UKP) Lab](https://www.ukp.tu-darmstadt.de/) at TU Darmstadt. We're grateful for their foundational work and continued contributions to the field.
 
 > This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication.
 
