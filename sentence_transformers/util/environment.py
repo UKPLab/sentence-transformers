@@ -33,7 +33,7 @@ def get_device_name() -> str:
         return "mps"
     elif is_torch_npu_available():
         return "npu"
-    elif hasattr(torch, 'xpu') and torch.xpu.is_available():
+    elif hasattr(torch, "xpu") and torch.xpu.is_available():
         return "xpu"
     elif importlib.util.find_spec("habana_frameworks") is not None:
         import habana_frameworks.torch.hpu as hthpu
