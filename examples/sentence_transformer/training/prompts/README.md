@@ -1,7 +1,8 @@
 # Training with Prompts
 
 ## What are Prompts?
-Many modern embedding models are trained with "instructions" or "prompts" following the [INSTRUCTOR paper](https://arxiv.org/abs/2212.09741). These prompts are strings, prefixed to each text to be embedded, allowing the model to distinguish between different types of text. 
+
+Many modern embedding models are trained with "instructions" or "prompts" following the [INSTRUCTOR paper](https://arxiv.org/abs/2212.09741). These prompts are strings, prefixed to each text to be embedded, allowing the model to distinguish between different types of text.
 
 For example, the [mixedbread-ai/mxbai-embed-large-v1](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1) model was trained with `Represent this sentence for searching relevant passages: ` as the prompt for all queries. This prompt is stored in the [model configuration](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1/blob/main/config_sentence_transformers.json) under the prompt name `"query"`, so users can specify that `prompt_name` in `model.encode`:
 
@@ -21,6 +22,7 @@ similarity = model.similarity(query_embedding, document_embeddings)
 print(similarity)
 # => tensor([[0.7594, 0.7560, 0.4674]])
 ```
+
 See [Prompt Templates](https://sbert.net/examples/applications/computing-embeddings/README.html#prompt-templates) for more information about inference with prompts.
 
 ## Why would we train with Prompts?
@@ -96,7 +98,7 @@ Additionally, some research papers (`INSTRUCTOR <https://arxiv.org/abs/2212.0974
 ```{eval-rst}
 See the following script as an example of how to train with prompts in practice:
 
-* `training_nq_prompts.py <https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/prompts/training_nq_prompts.py>`_: This script finetunes `mpnet-base <https://huggingface.co/microsoft/mpnet-base>`_ on 100k query-answer pairs from the `natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_ dataset using the :class:`~sentence_transformers.losses.CachedMultipleNegativesRankingLoss` loss. The model is evaluated during training using the :class:`~sentence_transformers.evaluation.NanoBEIREvaluator`.
+* `training_nq_prompts.py <https://github.com/huggingface/sentence-transformers/blob/master/examples/sentence_transformer/training/prompts/training_nq_prompts.py>`_: This script finetunes `mpnet-base <https://huggingface.co/microsoft/mpnet-base>`_ on 100k query-answer pairs from the `natural-questions <https://huggingface.co/datasets/sentence-transformers/natural-questions>`_ dataset using the :class:`~sentence_transformers.losses.CachedMultipleNegativesRankingLoss` loss. The model is evaluated during training using the :class:`~sentence_transformers.evaluation.NanoBEIREvaluator`.
 
 This script has two variables that affect 1) whether prompts are used and 2) whether prompts are included in the pooling. I have finetuned both ``mpnet-base`` and ``bert-base-uncased`` under the various different settings, resulting in a 0.66% and 0.90% relative improvements on ``NDCG@10`` at no extra cost.
 

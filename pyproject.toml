@@ -29,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
@@ -44,7 +45,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://www.SBERT.net"
-Repository = "https://github.com/UKPLab/sentence-transformers/"
+Repository = "https://github.com/huggingface/sentence-transformers/"
 
 
 [project.optional-dependencies]
