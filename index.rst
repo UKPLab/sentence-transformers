@@ -4,7 +4,7 @@
 
 .. note::
 
-   Sentence Transformers v5.1 recently released, bringing the ONNX and OpenVINO backends to SparseEncoder models. Read `SparseEncoder > Usage > Speeding up Inference <docs/sparse_encoder/usage/efficiency.html>`_ to read more about the performance boosts that you can expect, or read the `v5.1 Release Notes <https://github.com/UKPLab/sentence-transformers/releases/tag/v5.1.0>`_ for information on the other changes.
+   Sentence Transformers v5.1 recently released, bringing the ONNX and OpenVINO backends to SparseEncoder models. Read `SparseEncoder > Usage > Speeding up Inference <docs/sparse_encoder/usage/efficiency.html>`_ to read more about the performance boosts that you can expect, or read the `v5.1 Release Notes <https://github.com/huggingface/sentence-transformers/releases/tag/v5.1.0>`_ for information on the other changes.
 
 SentenceTransformers Documentation
 ==================================
@@ -14,7 +14,7 @@ It can be used to compute embeddings using Sentence Transformer models (`quickst
 
 A wide selection of over `10,000 pre-trained Sentence Transformers models <https://huggingface.co/models?library=sentence-transformers>`_ are available for immediate use on 🤗 Hugging Face, including many of the state-of-the-art models from the `Massive Text Embeddings Benchmark (MTEB) leaderboard <https://huggingface.co/spaces/mteb/leaderboard>`_. Additionally, it is easy to train or finetune your own `embedding models <docs/sentence_transformer/training_overview.html>`_, `reranker models <docs/cross_encoder/training_overview.html>`_, or `sparse encoder models <docs/sparse_encoder/training_overview.html>`_ using Sentence Transformers, enabling you to create custom models for your specific use cases.
 
-Sentence Transformers was created by `UKP Lab <http://www.ukp.tu-darmstadt.de/>`_ and is being maintained by `🤗 Hugging Face <https://huggingface.co>`_. Don't hesitate to open an issue on the `Sentence Transformers repository <https://github.com/UKPLab/sentence-transformers>`_ if something is broken or if you have further questions.
+Sentence Transformers was created by `UKP Lab <http://www.ukp.tu-darmstadt.de/>`_ and is being maintained by `🤗 Hugging Face <https://huggingface.co>`_. Don't hesitate to open an issue on the `Sentence Transformers repository <https://github.com/huggingface/sentence-transformers>`_ if something is broken or if you have further questions.
 
 Usage
 =====
@@ -187,7 +187,7 @@ If you use one of the multilingual models, feel free to cite our publication `Ma
 
 
 
-If you use the code for `data augmentation <https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/training/data_augmentation>`_, feel free to cite our publication `Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks <https://arxiv.org/abs/2010.08240>`_:
+If you use the code for `data augmentation <https://github.com/huggingface/sentence-transformers/tree/master/examples/sentence_transformer/training/data_augmentation>`_, feel free to cite our publication `Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks <https://arxiv.org/abs/2010.08240>`_:
 
  .. code-block:: bibtex
 

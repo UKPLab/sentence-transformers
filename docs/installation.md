@@ -120,31 +120,31 @@ You can install `sentence-transformers` directly from source to take advantage o
 
     ::
 
-        pip install git+https://github.com/UKPLab/sentence-transformers.git
+        pip install git+https://github.com/huggingface/sentence-transformers.git
 
 .. tab:: ONNX
 
     For GPU and CPU:
     ::
 
-        pip install -U "sentence-transformers[onnx-gpu] @ git+https://github.com/UKPLab/sentence-transformers.git"
+        pip install -U "sentence-transformers[onnx-gpu] @ git+https://github.com/huggingface/sentence-transformers.git"
 
     For CPU only:
     ::
 
-        pip install -U "sentence-transformers[onnx] @ git+https://github.com/UKPLab/sentence-transformers.git"
+        pip install -U "sentence-transformers[onnx] @ git+https://github.com/huggingface/sentence-transformers.git"
 
 .. tab:: OpenVINO
 
     ::
 
-        pip install -U "sentence-transformers[openvino] @ git+https://github.com/UKPLab/sentence-transformers.git"
+        pip install -U "sentence-transformers[openvino] @ git+https://github.com/huggingface/sentence-transformers.git"
 
 .. tab:: Default and Training
 
     ::
 
-        pip install -U "sentence-transformers[train] @ git+https://github.com/UKPLab/sentence-transformers.git"
+        pip install -U "sentence-transformers[train] @ git+https://github.com/huggingface/sentence-transformers.git"
 
     To use `Weights and Biases <https://wandb.ai/>`_ to track your training logs, you should also install ``wandb`` **(recommended)**::
 
@@ -158,7 +158,7 @@ You can install `sentence-transformers` directly from source to take advantage o
 
     ::
 
-        pip install -U "sentence-transformers[dev] @ git+https://github.com/UKPLab/sentence-transformers.git"
+        pip install -U "sentence-transformers[dev] @ git+https://github.com/huggingface/sentence-transformers.git"
 
 ```
 
@@ -167,7 +167,7 @@ You can install `sentence-transformers` directly from source to take advantage o
 If you want to make changes to `sentence-transformers`, you will need an editable install. Clone the repository and install it with these commands:
 
 ```
-git clone https://github.com/UKPLab/sentence-transformers
+git clone https://github.com/huggingface/sentence-transformers
 cd sentence-transformers
 pip install -e ".[train,dev]"
 ```

@@ -633,7 +633,7 @@ class CrossEncoder(nn.Module, PushToHubMixin, FitMixin):
             except Exception:
                 logger.error(
                     f"Error while generating model card:\n{traceback.format_exc()}"
-                    "Consider opening an issue on https://github.com/UKPLab/sentence-transformers/issues with this traceback.\n"
+                    "Consider opening an issue on https://github.com/huggingface/sentence-transformers/issues with this traceback.\n"
                     "Skipping model card creation."
                 )
                 return
