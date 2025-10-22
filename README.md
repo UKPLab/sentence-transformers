@@ -36,7 +36,7 @@ conda install -c conda-forge sentence-transformers
 
 **Install from sources**
 
-Alternatively, you can also clone the latest version from the [repository](https://github.com/UKPLab/sentence-transformers) and install it directly from the source code:
+Alternatively, you can also clone the latest version from the [repository](https://github.com/huggingface/sentence-transformers) and install it directly from the source code:
 
 ```
 pip install -e .
@@ -179,13 +179,13 @@ This framework allows you to fine-tune your own sentence embedding methods, so t
 
 - Embedding Models
   - [Sentence Transformer > Training Overview](https://www.sbert.net/docs/sentence_transformer/training_overview.html)
-  - [Sentence Transformer > Training Examples](https://www.sbert.net/docs/sentence_transformer/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/training).
+  - [Sentence Transformer > Training Examples](https://www.sbert.net/docs/sentence_transformer/training/examples.html) or [training examples on GitHub](https://github.com/huggingface/sentence-transformers/tree/master/examples/sentence_transformer/training).
 - Reranker Models
   - [Cross Encoder > Training Overview](https://www.sbert.net/docs/cross_encoder/training_overview.html)
-  - [Cross Encoder > Training Examples](https://www.sbert.net/docs/cross_encoder/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/cross_encoder/training).
+  - [Cross Encoder > Training Examples](https://www.sbert.net/docs/cross_encoder/training/examples.html) or [training examples on GitHub](https://github.com/huggingface/sentence-transformers/tree/master/examples/cross_encoder/training).
 - Sparse Embedding Models
   - [Sparse Encoder > Training Overview](https://www.sbert.net/docs/sparse_encoder/training_overview.html)
-  - [Sparse Encoder > Training Examples](https://www.sbert.net/docs/sparse_encoder/training/examples.html) or [training examples on GitHub](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sparse_encoder/training).
+  - [Sparse Encoder > Training Examples](https://www.sbert.net/docs/sparse_encoder/training/examples.html) or [training examples on GitHub](https://github.com/huggingface/sentence-transformers/tree/master/examples/sparse_encoder/training).
 
 Some highlights across the different types of training are:
 
@@ -228,7 +228,7 @@ You can use this framework for:
 
 and many more use-cases.
 
-For all examples, see [examples/sentence_transformer/applications](https://github.com/UKPLab/sentence-transformers/tree/master/examples/sentence_transformer/applications).
+For all examples, see [examples/sentence_transformer/applications](https://github.com/huggingface/sentence-transformers/tree/master/examples/sentence_transformer/applications).
 
 ## Development setup
 
@@ -278,14 +278,18 @@ If you use one of the multilingual models, feel free to cite our publication [Ma
 
 Please have a look at [Publications](https://www.sbert.net/docs/publications.html) for our different publications that are integrated into SentenceTransformers.
 
+### Maintainers
+
 Maintainer: [Tom Aarsen](https://github.com/tomaarsen), 🤗 Hugging Face
 
-https://www.ukp.tu-darmstadt.de/
-
 Don't hesitate to open an issue if something is broken (and it shouldn't be) or if you have further questions.
+
+---
+
+This project was originally developed by the [Ubiquitous Knowledge Processing (UKP) Lab](https://www.ukp.tu-darmstadt.de/) at TU Darmstadt. We're grateful for their foundational work and continued contributions to the field.
 
 > This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication.
 
 [#docs-package]: https://www.sbert.net/
-[#github-license]: https://github.com/UKPLab/sentence-transformers/blob/master/LICENSE
+[#github-license]: https://github.com/huggingface/sentence-transformers/blob/master/LICENSE
 [#pypi-package]: https://pypi.org/project/sentence-transformers/

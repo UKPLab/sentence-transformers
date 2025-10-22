@@ -153,11 +153,11 @@ def linkcode_resolve(domain, info):
         return None
     start, end = lines[1], lines[1] + len(lines[0]) - 1
 
-    return f"https://github.com/UKPLab/sentence-transformers/blob/master/{file}#L{start}-L{end}"
+    return f"https://github.com/huggingface/sentence-transformers/blob/master/{file}#L{start}-L{end}"
 
 
 def visit_download_reference(self, node):
-    root = "https://github.com/UKPLab/sentence-transformers/tree/master"
+    root = "https://github.com/huggingface/sentence-transformers/tree/master"
     atts = {"class": "reference download", "download": ""}
 
     if not self.builder.download_support:

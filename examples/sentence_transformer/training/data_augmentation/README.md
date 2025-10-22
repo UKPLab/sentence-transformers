@@ -50,7 +50,7 @@ We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy, it involves thre
 
 ## Training
 
-The [examples/sentence_transformer/training/data_augmentation](https://github.com/UKPLab/sentence-transformers/blob/master/examples/sentence_transformer/training/data_augmentation/) folder contains simple training examples for each scenario explained below:
+The [examples/sentence_transformer/training/data_augmentation](https://github.com/huggingface/sentence-transformers/blob/master/examples/sentence_transformer/training/data_augmentation/) folder contains simple training examples for each scenario explained below:
 
 - [train_sts_seed_optimization.py](train_sts_seed_optimization.py)
 
