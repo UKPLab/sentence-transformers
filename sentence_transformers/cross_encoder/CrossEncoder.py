@@ -13,6 +13,7 @@ from tqdm.autonotebook import trange
 from transformers import (
     AutoConfig,
     PretrainedConfig,
+    PreTrainedModel,
 )
 from typing_extensions import deprecated
 
@@ -146,8 +147,20 @@ class CrossEncoder(SentenceTransformer):
             model_card_data=model_card_data,
             backend=backend,
         )
-        self.activation_fn = activation_fn or nn.Identity()
-        # self.activation_fn = activation_fn or nn.Sigmoid()
+        # TODO: Store activation function as a plain callable to avoid nn.Module registration
+        self._activation_fn = [activation_fn or nn.Sigmoid()]
+
+        classifier_trained = False
+        if self.config.architectures is not None:
+            classifier_trained = any(
+                [arch.endswith("ForSequenceClassification") for arch in self.config.architectures]
+            )
+
+        if num_labels is None and not classifier_trained:
+            num_labels = 1
+
+        if num_labels is not None:
+            self.config.num_labels = num_labels
 
         """
         if tokenizer_kwargs is None:
@@ -440,12 +453,21 @@ class CrossEncoder(SentenceTransformer):
     def config(self) -> PretrainedConfig:
         # return self.model.config
         # TODO: This won't work nicely
-        return self[0].auto_model.config
+        return self[0].model.config
+
+    @property
+    def model(self) -> PreTrainedModel:
+        return self[0].model
 
     @property
     def num_labels(self) -> int:
         # TODO: This won't work nicely
         return self.config.num_labels
+
+    @property
+    def activation_fn(self) -> Callable:
+        """Get the activation function used for predictions."""
+        return self._activation_fn[0]
 
     @property
     def max_length(self) -> int:
@@ -476,6 +498,7 @@ class CrossEncoder(SentenceTransformer):
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
+        **kwargs,
     ) -> torch.Tensor: ...
 
     @overload
@@ -488,6 +511,7 @@ class CrossEncoder(SentenceTransformer):
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[True] = True,
         convert_to_tensor: Literal[False] = False,
+        **kwargs,
     ) -> np.ndarray: ...
 
     @overload
@@ -500,6 +524,7 @@ class CrossEncoder(SentenceTransformer):
         apply_softmax: bool | None = ...,
         convert_to_numpy: bool = ...,
         convert_to_tensor: Literal[True] = ...,
+        **kwargs,
     ) -> torch.Tensor: ...
 
     @overload
@@ -512,6 +537,7 @@ class CrossEncoder(SentenceTransformer):
         apply_softmax: bool | None = ...,
         convert_to_numpy: Literal[False] = ...,
         convert_to_tensor: Literal[False] = ...,
+        **kwargs,
     ) -> list[torch.Tensor]: ...
 
     @torch.inference_mode()
@@ -527,6 +553,7 @@ class CrossEncoder(SentenceTransformer):
         apply_softmax: bool | None = False,
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
+        **kwargs,
     ) -> list[torch.Tensor] | np.ndarray | torch.Tensor:
         """
         Performs predictions with the CrossEncoder on the given sentence pairs.
@@ -601,6 +628,7 @@ class CrossEncoder(SentenceTransformer):
             batch = sentences[start_index : start_index + batch_size]
             # TODO: Let's also allow a prompt
             # TODO: This should probably call self.tokenize() instead
+            # '''
             if hasattr(self, "template") and self.template is not None:
                 template_parts = self.template.split("{document}")  # TODO: What if the prompt is after the document?
                 main_template = template_parts[0] + "{document}"
@@ -615,29 +643,38 @@ class CrossEncoder(SentenceTransformer):
                     truncation=True,
                     max_length=self.tokenizer.model_max_length - num_suffix_tokens,
                 )
-                for key in tokenized.keys():
-                    tokenized[key] = [items + tokenized_suffix[key] for items in tokenized[key]]
 
-                self.tokenizer.deprecation_warnings["Asking-to-pad-a-fast-tokenizer"] = True
-                features = self.tokenizer.pad(
-                    tokenized,
-                    padding=True,
-                    return_tensors="pt",
-                )
-            else:
-                # TODO: Add prompt on this level as well
-                features = self.tokenizer(
-                    batch,
-                    padding=True,
-                    truncation=True,
-                    return_tensors="pt",
-                )
+                # for key in tokenized.keys():
+                #     tokenized[key] = [items + tokenized_suffix[key] for items in tokenized[key]]
+
+                batch = [body + suffix for body in self.tokenizer.batch_decode(tokenized["input_ids"])]
+
+                # self.tokenizer.deprecation_warnings["Asking-to-pad-a-fast-tokenizer"] = True
+                # features = self.tokenizer.pad(
+                #     tokenized,
+                #     padding=True,
+                #     return_tensors="pt",
+                # )
+            # else:
+            # TODO: Add prompt on this level as well
+            # features = self.tokenizer(
+            #     batch,
+            #     padding=True,
+            #     truncation=True,
+            #     return_tensors="pt",
+            # )
+            # features = self.tokenize(batch, **kwargs)
+            # '''
+            features = self.tokenize(batch, **kwargs)
             # return features
             features.to(self.device)
-            # TODO: Add kwargs
-            out_features = self.forward(features)
+            out_features = self.forward(features, **kwargs)
             scores = out_features["scores"]
             scores = self.activation_fn(scores)
+
+            # NOTE: This is just backwards compatibility with the code below, we can optimize this
+            if scores.ndim == 1:
+                scores = scores.unsqueeze(1)
 
             if apply_softmax and scores.ndim > 1:
                 scores = torch.nn.functional.softmax(scores, dim=1)

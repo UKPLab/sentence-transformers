@@ -3,23 +3,20 @@ from __future__ import annotations
 import inspect
 import logging
 import os
-from collections import defaultdict
 from dataclasses import fields
-from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Union
 
-import numpy as np
-from PIL.Image import Image
+import torch
 
 from sentence_transformers.backend import load_onnx_model, load_openvino_model
+from sentence_transformers.models.modality_utils import parse_inputs
 
 try:
     from typing import Self
 except ImportError:
     from typing_extensions import Self
 
-import torch
 from tokenizers.normalizers import Lowercase, Sequence
 from transformers import (
     AutoConfig,
@@ -49,19 +46,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING and is_peft_available():
     from peft import PeftConfig
-
-
-class Modality(Enum):
-    TEXT = "text"
-    IMAGE = "image"
-    AUDIO = "audio"
-    VIDEO = "video"
-    MESSAGE = "message"  # For chat models, e.g. with text+image inputs
-
-    @classmethod
-    def all(cls) -> list[str]:
-        """Return a list of all modality values as strings."""
-        return [m.value for m in cls.__members__.values()]
 
 
 def _save_pretrained_wrapper(_save_pretrained_fn: Callable, subfolder: str) -> Callable[..., None]:
@@ -826,7 +810,11 @@ class Transformer(InputModule):
     # TODO: Perhaps rename to 'preprocess' or 'process'?
     # TODO: Consider moving modality checking to SentenceTransformer, so you can make multiple towers for different modalities
     def tokenize(
-        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
+        self,
+        texts: list[str] | list[dict] | list[tuple[str, str]],
+        padding: str | bool = True,
+        modality: str | tuple[str, ...] | None = None,
+        **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Tokenizes inputs and maps tokens to token-ids.
 
@@ -837,6 +825,7 @@ class Transformer(InputModule):
                 - PIL.Image.Image: Image inputs
                 - np.ndarray/torch.Tensor: Audio (1-2D) or video (3-5D) inputs
             padding: Padding strategy for tokenization
+            modality: Optional modality to use. If not provided, will be inferred from inputs.
 
         Returns:
             Dictionary containing tokenized inputs with 'modality' key indicating the input type
@@ -852,35 +841,18 @@ class Transformer(InputModule):
             "video": {},
         }
 
-        # Handle chat/message format
-        if self._is_chat_format(texts):
-            return self._process_chat_messages(texts, modality_kwargs["text"], common_kwargs)
-
-        # Parse inputs and group by modality
-        modality_inputs = self._parse_inputs(texts)
-
-        # Enforce single modality constraint
-        if len(modality_inputs) > 1:
-            raise ValueError(
-                f"Mixed modalities in a single batch are not supported. Found modalities: {list(modality_inputs.keys())}. "
-                f"Please process each modality separately."
-            )
-
-        if not modality_inputs:
-            raise ValueError("No valid inputs found to tokenize")
-
-        # Tackle an edge case: audio sampling_rate must be passed via the modality_kwargs
-        if "audio" in modality_inputs and "sampling_rate" in modality_inputs["audio"]:
-            modality_kwargs["audio"]["sampling_rate"] = modality_inputs["audio"].pop("sampling_rate")
-
-        # Process the single modality
-        modality, processor_inputs = next(iter(modality_inputs.items()))
+        # Parse inputs, throw error if multiple modalities are detected, and process the single modality
+        modality, processor_inputs = parse_inputs(texts)
 
         if modality not in self.modality_config:
             raise ValueError(
                 f"Modality '{modality}' is not supported by this model. "
                 f"Supported modalities: {list(self.modality_config.keys())}"
             )
+
+        # Tackle an edge case: audio sampling_rate must be passed via the modality_kwargs
+        if "sampling_rate" in processor_inputs:
+            modality_kwargs["audio"]["sampling_rate"] = processor_inputs.pop("sampling_rate")
 
         processor_output = self._call_processor(modality, processor_inputs, modality_kwargs, common_kwargs)
         processor_output["modality"] = modality
@@ -920,90 +892,6 @@ class Transformer(InputModule):
         processor_output["modality"] = "message"
         return processor_output
 
-    def _parse_inputs(self, texts: list) -> dict[str | tuple[str, ...], dict[str, list]]:
-        """Parse input list and group by modality.
-
-        Returns:
-            Dictionary mapping modality (or tuple of modalities) to processor input arguments.
-        """
-        # Mapping from singular modality names to processor argument names
-        MODALITY_TO_PROCESSOR_ARG = {
-            "text": "text",
-            "image": "images",
-            "audio": "audio",
-            "video": "videos",
-        }
-
-        modality_inputs = defaultdict(lambda: defaultdict(list))
-
-        for item in texts:
-            if isinstance(item, dict):
-                # Let's check if we have an audio file here
-                if "array" in item and "sampling_rate" in item:
-                    audio = item["array"]
-                    sampling_rate = item["sampling_rate"]
-                    modality_inputs["audio"]["audio"].append(audio)
-                    if (
-                        "sampling_rate" in modality_inputs["audio"]
-                        and modality_inputs["audio"]["sampling_rate"] != sampling_rate
-                    ):
-                        logger.warning(
-                            f"Conflicting sampling rates found for audio input: "
-                            f"{modality_inputs['audio']['sampling_rate']} vs {sampling_rate}. "
-                            f"Using {sampling_rate}."
-                        )
-                    modality_inputs["audio"]["sampling_rate"] = sampling_rate
-                    continue
-
-                # Dictionary input, e.g. multimodal: extract modalities from keys
-                modality_names = tuple(modality_name for modality_name in Modality.all() if modality_name in item)
-
-                # Warn about unused keys in the dictionary
-                unused_keys = set(item.keys()) - set(modality_names)
-                if unused_keys:
-                    logger.warning(
-                        f"Ignoring unexpected keys in input dictionary: {unused_keys}. Valid modality keys are: {Modality.all()}"
-                    )
-
-                if not modality_names:
-                    raise ValueError(
-                        f"Dictionary input must contain at least one modality key. "
-                        f"Valid keys: {Modality.all()}, found: {list(item.keys())}"
-                    )
-
-                for modality_name in modality_names:
-                    value = item[modality_name]
-                    processor_arg = MODALITY_TO_PROCESSOR_ARG[modality_name]
-                    modality_inputs[modality_names][processor_arg].append(value)
-
-            elif isinstance(item, str):
-                modality_inputs["text"]["text"].append(item)
-
-            elif isinstance(item, Image):
-                modality_inputs["image"]["images"].append(item)
-
-            elif isinstance(item, (np.ndarray, torch.Tensor)):
-                # Infer modality from tensor dimensions
-                if item.ndim in (1, 2):
-                    # 1D or 2D: audio (waveform or batch of waveforms)
-                    # TODO: Warn that passing a dictionary with sampling_rate is preferred?
-                    modality_inputs["audio"]["audio"].append(item)
-                elif item.ndim in (3, 4, 5):
-                    # 3D-5D: video (frames, with optional batch/channel dimensions)
-                    modality_inputs["video"]["videos"].append(item)
-                else:
-                    raise ValueError(
-                        f"Unsupported tensor dimensionality: {item.ndim}. Expected 1-2D for audio or 3-5D for video."
-                    )
-
-            else:
-                raise ValueError(
-                    f"Unsupported input type: {type(item).__name__}. "
-                    f"Supported types: str, dict, PIL.Image.Image, np.ndarray, torch.Tensor"
-                )
-
-        return modality_inputs
-
     def _call_processor(
         self,
         modality: str | tuple[str, ...],
@@ -1022,6 +910,10 @@ class Transformer(InputModule):
         Returns:
             Processor output dictionary
         """
+        # Handle chat/message format
+        if modality == "message":
+            return self._process_chat_messages(processor_inputs["message"], modality_kwargs["text"], common_kwargs)
+
         if isinstance(self.processor, ProcessorMixin):
             # Multi-modal processor: pass modality-specific kwargs
             return self.processor(

@@ -35,6 +35,7 @@ from typing_extensions import deprecated
 
 from sentence_transformers.model_card import SentenceTransformerModelCardData, generate_model_card
 from sentence_transformers.models import Router
+from sentence_transformers.models.modality_utils import infer_modality
 from sentence_transformers.models.Module import Module
 from sentence_transformers.similarity_functions import SimilarityFunction
 
@@ -981,11 +982,16 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             convert_to_numpy = False
 
         # Cast an individual input to a list with length 1
-        input_was_string = False
+        input_was_singular = False
         # TODO: This will likely not work nicely, update to checking if not list?
-        if isinstance(sentences, str) or not hasattr(sentences, "__len__"):
+        if (
+            isinstance(sentences, str)
+            or not hasattr(sentences, "__len__")
+            or (isinstance(sentences, np.ndarray) and sentences.ndim == 0)
+            or isinstance(sentences, dict)
+        ):
             sentences = [sentences]
-            input_was_string = True
+            input_was_singular = True
 
         # Throw an error if unused kwargs are passed, except 'task' which is always allowed, even
         # when it does not do anything (as e.g. there's no Router module in the model)
@@ -1006,7 +1012,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 sentences,
                 # Utility and post-processing parameters
                 show_progress_bar=show_progress_bar,
-                input_was_string=input_was_string,
+                input_was_singular=input_was_singular,
                 # Multi-process encoding parameters
                 pool=pool,
                 device=device,
@@ -1164,7 +1170,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         elif isinstance(all_embeddings, np.ndarray):
             all_embeddings = [torch.from_numpy(embedding) for embedding in all_embeddings]
 
-        if input_was_string:
+        if input_was_singular:
             all_embeddings = all_embeddings[0]
 
         return all_embeddings
@@ -1481,7 +1487,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
         self,
         inputs: list[str],
         show_progress_bar: bool | None = True,
-        input_was_string: bool = False,
+        input_was_singular: bool = False,
         pool: dict[Literal["input", "output", "processes"], Any] | None = None,
         device: str | list[str | torch.device] | None = None,
         chunk_size: int | None = None,
@@ -1517,7 +1523,7 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
                 [output_queue.get() for _ in trange(chunk_id + 1, desc="Chunks", disable=not show_progress_bar)],
                 key=lambda x: x[0],
             )
-            if input_was_string:
+            if input_was_singular:
                 # If input was a single string, return the first (only) result directly
                 return output_list[0][1][0]
 
@@ -1628,6 +1634,14 @@ class SentenceTransformer(nn.Sequential, FitMixin, PeftAdapterMixin):
             Dict[str, Tensor]: A dictionary of tensors with the tokenized texts. Common keys are "input_ids",
                 "attention_mask", and "token_type_ids".
         """
+        # Infer modality if not already provided in kwargs
+        if "modality" not in kwargs:
+            try:
+                kwargs["modality"] = infer_modality(texts)
+            except (ValueError, TypeError, ImportError):
+                # If modality inference fails, proceed without it
+                pass
+
         try:
             return self[0].tokenize(texts, **kwargs)
         except TypeError:
