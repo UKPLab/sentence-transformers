@@ -1,4 +1,5 @@
 """Utilities for handling modality detection and parsing across different input types."""
+# TODO: Should we move this to utils?
 
 from __future__ import annotations
 
@@ -37,6 +38,24 @@ MODALITY_TO_PROCESSOR_ARG = {
     "video": "videos",
     "message": "message",
 }
+
+# TODO: We don't support this format with both a message plus a processor call with e.g. images
+"""
+# Create input messages
+messages = [
+    {
+        "role": "user",
+        "content": [
+            {"type": "image"},
+            {"type": "text", "text": text}
+        ]
+    },
+]
+
+# Prepare inputs
+prompt = processor.apply_chat_template(messages)
+inputs = processor(text=prompt, images=[image], return_tensors="pt")
+"""
 
 
 def parse_inputs(inputs: list) -> tuple[str | tuple[str, ...], dict[str, list]]:
