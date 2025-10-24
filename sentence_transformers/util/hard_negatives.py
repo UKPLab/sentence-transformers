@@ -712,6 +712,14 @@ def mine_hard_negatives(
         maximum_possible_samples = n_queries * num_negatives + len(dataset)
 
     elif output_format in ("n-tuple", "n-tuple-scores"):
+        if output_format == "n-tuple-scores":
+            logger.warning(
+                "\"n-tuple-scores\" value of `output_format` is deprecated. '" \
+                "'Use \"n-tuple\" with `include_scores=True instead"
+            )
+            output_format = "n-tuple"
+            include_scores = True
+
         # Keep only indices where num_negative negatives were found
         indices_to_keep = (negative_scores != -float("inf")).all(dim=1)
         negative_scores = negative_scores[indices_to_keep]
@@ -725,7 +733,7 @@ def mine_hard_negatives(
                 for i, neg_indices in enumerate(indices.T, start=1)
             },
         }
-        if include_scores or output_format == "n-tuple-scores":
+        if include_scores:
             dataset_data["score"] = torch.cat(
                 [positive_scores[indices_to_keep].unsqueeze(-1), negative_scores], dim=1
             ).tolist()
