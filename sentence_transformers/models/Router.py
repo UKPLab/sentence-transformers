@@ -149,48 +149,42 @@ class Router(InputModule):
 
             ::
 
+                from PIL import Image
                 from sentence_transformers import SentenceTransformer
-                from sentence_transformers.models import Router, Transformer, Pooling
+                from sentence_transformers.models import Dense, Pooling, Router, Transformer
 
                 # Create separate encoders for different modalities
                 text_encoder = Transformer("sentence-transformers/all-MiniLM-L6-v2")
-                text_pooling = Pooling(text_encoder.get_word_embedding_dimension())
+                # Project to 768 dims to match image encoder
+                text_dense = Dense(text_encoder.get_word_embedding_dimension(), 768, module_input_name="token_embeddings")
                 image_encoder = Transformer(
                     "ModernVBERT/modernvbert",
                     model_args={"trust_remote_code": True},
                     tokenizer_args={"trust_remote_code": True},
-                    config_args={"trust_remote_code": "True"},
-                    modality_config={
-                        "image": {
-                            "method": "forward",
-                            "method_output_name": "last_hidden_state",
-                        },
-                        ("text", "image"): {
-                            "method": "forward",
-                            "method_output_name": "last_hidden_state",
-                        }
-                    },
+                    config_args={"trust_remote_code": True},
                 )
+                pooling = Pooling(text_encoder.get_word_embedding_dimension())
 
                 # Route based on modality
                 router = Router(
                     sub_modules={
-                        "text": [text_encoder, text_pooling],
+                        "text": [text_encoder, text_dense],
                         "image": [image_encoder],
                     },
                     route_mappings={
-                        (None, "text"): "text",                # Any task with text goes to text encoder
-                        (None, "image"): "image",              # Any task with image goes to image encoder
-                        (None, ("text", "image")): "image",    # Any task with text-image together goes to image encoder
+                        (None, "text"): "text",  # Any task with text goes to text encoder
+                        (None, ("text", "image")): "image",  # Any task with text-image together goes to image encoder
                     },
                 )
 
-                model = SentenceTransformer(modules=[router])
+                model = SentenceTransformer(modules=[router, pooling])
 
                 # Modality is automatically inferred
                 text_embedding = model.encode("A photo of a cat")
-                image_embedding = model.encode(Image.open("cat.jpg"))
-                multimodal_embedding = model.encode({"text": "A photo of a cat", "image": Image.open("cat.jpg")})
+                multimodal_embedding = model.encode({"text": "A photo of a <image>", "image": Image.open("cat.jpg")})
+
+                # Compute the similarity; it'll be poor as the model hasn't yet been trained
+                similarity = model.similarity(text_embedding, multimodal_embedding)
 
             Hybrid Asymmetric + Multimodal Example:
 
@@ -209,7 +203,6 @@ class Router(InputModule):
                     route_mappings={
                         ("query", "text"): "query_text",        # Query text uses efficient encoder
                         ("document", "text"): "doc_text",       # Document text uses powerful encoder
-                        (None, "image"): "image",               # Any image uses image encoder
                         (None, ("text", "image")): "image",     # Any text-image together goes to image encoder
                     },
                 )
@@ -219,7 +212,6 @@ class Router(InputModule):
                 # Explicit task + automatic modality inference
                 query_embedding = model.encode_query("Find images of cats")
                 doc_embedding = model.encode_document("Article about cats")
-                image_embedding = model.encode(Image.open("cat.jpg"))
                 multimodal_embedding = model.encode({"text": "A photo of a cat", "image": Image.open("cat.jpg")})
 
         .. note::

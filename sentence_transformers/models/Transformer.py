@@ -65,6 +65,8 @@ TRANSFORMER_TASK_TO_AUTO_MODEL = {
 
 # Maps transformer tasks -> modalities -> methods -> model output fields -> module feature names
 # Structure: {task: {modality: {method_name: {model_output_field: module_feature_name}}}}
+# TODO: How about defaults? E.g. I want to support "image" for a model that traditionally only has ("text", "image")
+# by defaulting to a "text" input like an empty string or just a "<image>" token?
 TASK_MODALITY_METHOD_CONFIG = {
     "feature-extraction": {
         "text": {
